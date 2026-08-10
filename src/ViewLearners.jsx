@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "./firebase";
+import EditLearnerModal from "./EditLearnerModal";
 
 // Calculates age from a birth date string (YYYY-MM-DD), as of today.
 // Note: official DepEd age is "as of 1st Friday of June" — we're using today's date
@@ -30,6 +31,8 @@ function ViewLearners({ user, goBack }) {
   const [filterValue, setFilterValue] = useState("All");
   // errorMessage: shows a friendly error if delete fails (e.g. network issue).
   const [errorMessage, setErrorMessage] = useState("");
+  // editingLearner: the learner object currently being edited, or null when the modal is closed.
+  const [editingLearner, setEditingLearner] = useState(null);
 
   // On component mount, fetch ALL documents from the "learners" collection in Firestore.
   useEffect(() => {
@@ -194,6 +197,21 @@ function ViewLearners({ user, goBack }) {
                   <td style={cellStyle}>{l.learningModality || ""}</td>
                   <td style={cellStyle}>
                     <button
+                      onClick={() => setEditingLearner(l)}
+                      style={{
+                        padding: "4px 10px",
+                        background: "#e3f2fd",
+                        color: "#1565c0",
+                        border: "1px solid #90caf9",
+                        borderRadius: "4px",
+                        cursor: "pointer",
+                        fontSize: "13px",
+                        marginRight: "6px",
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
                       onClick={() => handleDelete(l.id)}
                       style={{
                         padding: "4px 10px",
@@ -213,6 +231,20 @@ function ViewLearners({ user, goBack }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Edit learner modal: shown when an Edit button is clicked. */}
+      {editingLearner && (
+        <EditLearnerModal
+          learner={editingLearner}
+          onClose={() => setEditingLearner(null)}
+          onSaved={(updatedLearner) => {
+            setLearners((prev) =>
+              prev.map((l) => (l.id === updatedLearner.id ? updatedLearner : l))
+            );
+            setEditingLearner(null);
+          }}
+        />
       )}
     </div>
   );
