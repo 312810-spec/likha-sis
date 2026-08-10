@@ -8,11 +8,12 @@ import { auth } from "./firebase";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
 import SF1 from "./SF1";
+import ViewLearners from "./ViewLearners";
 
 function App() {
   const [user, setUser] = useState(null);
   const [isChecking, setIsChecking] = useState(true);
-  const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard" or "sf1"
+  const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard", "sf1", or "viewLearners"
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -35,7 +36,17 @@ function App() {
     return <SF1 user={user} goBack={() => setCurrentPage("dashboard")} />;
   }
 
-  return <Dashboard user={user} goToSF1={() => setCurrentPage("sf1")} />;
+  if (currentPage === "viewLearners") {
+    return <ViewLearners user={user} goBack={() => setCurrentPage("dashboard")} />;
+  }
+
+  return (
+    <Dashboard
+      user={user}
+      goToSF1={() => setCurrentPage("sf1")}
+      goToViewLearners={() => setCurrentPage("viewLearners")}
+    />
+  );
 }
 
 export default App;

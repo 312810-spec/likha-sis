@@ -6,7 +6,7 @@
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
 
-function Dashboard({ user, goToSF1 }) {
+function Dashboard({ user, goToSF1, goToViewLearners }) {
   async function handleLogout() {
     try {
       await signOut(auth);
@@ -67,6 +67,12 @@ function Dashboard({ user, goToSF1 }) {
           );
         })}
       </ul>
+      <button
+        onClick={goToViewLearners}
+        style={{ marginTop: "16px", padding: "10px 16px", cursor: "pointer" }}
+      >
+        📋 View Saved Learners
+      </button>
     </div>
   );
 }
