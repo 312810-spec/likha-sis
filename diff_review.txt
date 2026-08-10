@@ -1,0 +1,261 @@
+diff --git a/src/SF1.jsx b/src/SF1.jsx
+index d0b59a7..48165b8 100644
+--- a/src/SF1.jsx
++++ b/src/SF1.jsx
+@@ -3,6 +3,7 @@
+ // Teachers can add multiple learners in a table, then save the whole class list at once.
+ 
+ import { useState } from "react";
++import { Fragment } from "react";
+ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+ import { db } from "./firebase";
+ 
+@@ -31,6 +32,16 @@ function createBlankLearner() {
+     sex: "",
+     birthDate: "",
+     learningModality: "Face to Face",
++    // Extended fields for learner details (expandable section)
++    houseStreetSitio: "",
++    barangay: "",
++    municipalityCity: "",
++    province: "",
++    fathersName: "",
++    mothersMaidenName: "",
++    guardianName: "",
++    guardianRelationship: "",
++    remarks: "",
+   };
+ }
+ 
+@@ -39,6 +50,9 @@ function SF1({ user, goBack }) {
+   const [section, setSection] = useState("");
+   const [schoolYear, setSchoolYear] = useState("2026-2027");
+   const [learners, setLearners] = useState([createBlankLearner()]);
++  // Tracks which row indexes are expanded (showing detail panel).
++  // Using a Set for O(1) lookup when rendering.
++  const [expandedRows, setExpandedRows] = useState(new Set());
+   const [isSaving, setIsSaving] = useState(false);
+   const [statusMessage, setStatusMessage] = useState("");
+ 
+@@ -57,6 +71,17 @@ function SF1({ user, goBack }) {
+     setLearners(learners.filter((_, i) => i !== index));
+   }
+ 
++  // Toggles the expanded detail panel for a given row index.
++  function toggleExpand(index) {
++    const next = new Set(expandedRows);
++    if (next.has(index)) {
++      next.delete(index);
++    } else {
++      next.add(index);
++    }
++    setExpandedRows(next);
++  }
++
+   // Checks everything is filled in correctly before we try saving to Firebase.
+   function validateLearners() {
+     if (!gradeLevel.trim() || !section.trim()) {
+@@ -136,6 +161,7 @@ function SF1({ user, goBack }) {
+       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
+         <thead>
+           <tr style={{ background: "#f0f0f0" }}>
++            <th style={cellStyle}>▼</th>
+             <th style={cellStyle}>LRN (12 digits)</th>
+             <th style={cellStyle}>Last Name</th>
+             <th style={cellStyle}>First Name</th>
+@@ -149,51 +175,152 @@ function SF1({ user, goBack }) {
+         </thead>
+         <tbody>
+           {learners.map((learner, index) => (
+-            <tr key={index}>
+-              <td style={cellStyle}>
+-                <input style={inputStyle} value={learner.lrn} maxLength={12}
+-                  onChange={(e) => updateLearner(index, "lrn", e.target.value.replace(/\D/g, ""))} />
+-              </td>
+-              <td style={cellStyle}>
+-                <input style={inputStyle} value={learner.lastName}
+-                  onChange={(e) => updateLearner(index, "lastName", e.target.value)} />
+-              </td>
+-              <td style={cellStyle}>
+-                <input style={inputStyle} value={learner.firstName}
+-                  onChange={(e) => updateLearner(index, "firstName", e.target.value)} />
+-              </td>
+-              <td style={cellStyle}>
+-                <input style={inputStyle} value={learner.middleName}
+-                  onChange={(e) => updateLearner(index, "middleName", e.target.value)} />
+-              </td>
+-              <td style={cellStyle}>
+-                <select style={inputStyle} value={learner.sex}
+-                  onChange={(e) => updateLearner(index, "sex", e.target.value)}>
+-                  <option value="">--</option>
+-                  <option value="M">M</option>
+-                  <option value="F">F</option>
+-                </select>
+-              </td>
+-              <td style={cellStyle}>
+-                <input style={inputStyle} type="date" value={learner.birthDate}
+-                  onChange={(e) => updateLearner(index, "birthDate", e.target.value)} />
+-              </td>
+-              <td style={cellStyle}>{calculateAge(learner.birthDate)}</td>
+-              <td style={cellStyle}>
+-                <select style={inputStyle} value={learner.learningModality}
+-                  onChange={(e) => updateLearner(index, "learningModality", e.target.value)}>
+-                  <option>Face to Face</option>
+-                  <option>Blended</option>
+-                  <option>Online</option>
+-                  <option>Modular</option>
+-                </select>
+-              </td>
+-              <td style={cellStyle}>
+-                <button onClick={() => removeRow(index)} disabled={learners.length === 1}>✕</button>
+-              </td>
+-            </tr>
++            <Fragment key={index}>
++              {/* Main learner row */}
++              <tr>
++                {/* Expand/collapse toggle button — first column */}
++                <td style={cellStyle}>
++                  <button
++                    style={{ padding: "2px 8px", fontSize: "12px", cursor: "pointer" }}
++                    onClick={() => toggleExpand(index)}
++                    aria-label={expandedRows.has(index) ? "Collapse details" : "Expand details"}
++                  >
++                    {expandedRows.has(index) ? "▼" : "▶"}
++                  </button>
++                </td>
++                <td style={cellStyle}>
++                  <input style={inputStyle} value={learner.lrn} maxLength={12}
++                    onChange={(e) => updateLearner(index, "lrn", e.target.value.replace(/\D/g, ""))} />
++                </td>
++                <td style={cellStyle}>
++                  <input style={inputStyle} value={learner.lastName}
++                    onChange={(e) => updateLearner(index, "lastName", e.target.value)} />
++                </td>
++                <td style={cellStyle}>
++                  <input style={inputStyle} value={learner.firstName}
++                    onChange={(e) => updateLearner(index, "firstName", e.target.value)} />
++                </td>
++                <td style={cellStyle}>
++                  <input style={inputStyle} value={learner.middleName}
++                    onChange={(e) => updateLearner(index, "middleName", e.target.value)} />
++                </td>
++                <td style={cellStyle}>
++                  <select style={inputStyle} value={learner.sex}
++                    onChange={(e) => updateLearner(index, "sex", e.target.value)}>
++                    <option value="">--</option>
++                    <option value="M">M</option>
++                    <option value="F">F</option>
++                  </select>
++                </td>
++                <td style={cellStyle}>
++                  <input style={inputStyle} type="date" value={learner.birthDate}
++                    onChange={(e) => updateLearner(index, "birthDate", e.target.value)} />
++                </td>
++                <td style={cellStyle}>{calculateAge(learner.birthDate)}</td>
++                <td style={cellStyle}>
++                  <select style={inputStyle} value={learner.learningModality}
++                    onChange={(e) => updateLearner(index, "learningModality", e.target.value)}>
++                    <option>Face to Face</option>
++                    <option>Blended</option>
++                    <option>Online</option>
++                    <option>Modular</option>
++                  </select>
++                </td>
++                <td style={cellStyle}>
++                  <button onClick={() => removeRow(index)} disabled={learners.length === 1}>✕</button>
++                </td>
++              </tr>
++
++              {/* Expandable detail panel row — shown when row is expanded */}
++              {expandedRows.has(index) && (
++                <tr style={{ background: "#f7fafd" }}>
++                  {/* Empty cell for the expand column */}
++                  <td style={cellStyle}></td>
++                  {/* Detail panel spanning all data columns (colSpan=9 covers LRN through Actions) */}
++                  <td colSpan={9} style={{ ...cellStyle, padding: "12px" }}>
++                    <div style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
++
++                      {/* Address section */}
++                      <fieldset style={{ flex: "1 1 300px", minWidth: "280px", border: "1px solid #ddd", borderRadius: "4px", padding: "8px" }}>
++                        <legend style={{ fontWeight: "bold", color: "#333" }}>Address</legend>
++                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
++                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
++                            House / Street / Sitio
++                            <input style={inputStyle} value={learner.houseStreetSitio}
++                              onChange={(e) => updateLearner(index, "houseStreetSitio", e.target.value)} />
++                          </label>
++                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
++                            Barangay
++                            <input style={inputStyle} value={learner.barangay}
++                              onChange={(e) => updateLearner(index, "barangay", e.target.value)} />
++                          </label>
++                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
++                            Municipality / City
++                            <input style={inputStyle} value={learner.municipalityCity}
++                              onChange={(e) => updateLearner(index, "municipalityCity", e.target.value)} />
++                          </label>
++                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
++                            Province
++                            <input style={inputStyle} value={learner.province}
++                              onChange={(e) => updateLearner(index, "province", e.target.value)} />
++                          </label>
++                        </div>
++                      </fieldset>
++
++                      {/* Parents section */}
++                      <fieldset style={{ flex: "1 1 280px", minWidth: "260px", border: "1px solid #ddd", borderRadius: "4px", padding: "8px" }}>
++                        <legend style={{ fontWeight: "bold", color: "#333" }}>Parents</legend>
++                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
++                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
++                            Father's Name
++                            <input style={inputStyle} value={learner.fathersName}
++                              onChange={(e) => updateLearner(index, "fathersName", e.target.value)} />
++                          </label>
++                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
++                            Mother's Maiden Name
++                            <input style={inputStyle} value={learner.mothersMaidenName}
++                              onChange={(e) => updateLearner(index, "mothersMaidenName", e.target.value)} />
++                          </label>
++                        </div>
++                      </fieldset>
++
++                      {/* Guardian section */}
++                      <fieldset style={{ flex: "1 1 280px", minWidth: "260px", border: "1px solid #ddd", borderRadius: "4px", padding: "8px" }}>
++                        <legend style={{ fontWeight: "bold", color: "#333" }}>Guardian (if not parent)</legend>
++                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
++                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
++                            Guardian Name
++                            <input style={inputStyle} value={learner.guardianName}
++                              onChange={(e) => updateLearner(index, "guardianName", e.target.value)} />
++                          </label>
++                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
++                            Relationship to Learner
++                            <input style={inputStyle} value={learner.guardianRelationship}
++                              onChange={(e) => updateLearner(index, "guardianRelationship", e.target.value)} />
++                          </label>
++                        </div>
++                      </fieldset>
++
++                      {/* Remarks section */}
++                      <fieldset style={{ flex: "1 1 280px", minWidth: "260px", border: "1px solid #ddd", borderRadius: "4px", padding: "8px" }}>
++                        <legend style={{ fontWeight: "bold", color: "#333" }}>Remarks</legend>
++                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
++                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
++                            Remarks (indicator codes, notes, etc.)
++                            <textarea style={{ ...inputStyle, minHeight: "60px", resize: "vertical" }} value={learner.remarks}
++                              onChange={(e) => updateLearner(index, "remarks", e.target.value)} />
++                          </label>
++                        </div>
++                      </fieldset>
++
++                    </div>
++                  </td>
++                </tr>
++              )}
++            </Fragment>
+           ))}
+         </tbody>
++
+       </table>
+ 
+       <div style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
