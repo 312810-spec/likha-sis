@@ -6,7 +6,7 @@
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
 
-function Dashboard({ user }) {
+function Dashboard({ user, goToSF1 }) {
   async function handleLogout() {
     try {
       await signOut(auth);
@@ -45,21 +45,27 @@ function Dashboard({ user }) {
       <hr style={{ margin: "20px 0" }} />
 
       <h2>School Forms & Tools</h2>
-      <ul style={{ listStyle: "none", padding: 0 }}>
-        {menuItems.map((item) => (
-          <li
-            key={item}
-            style={{
-              padding: "12px",
-              marginBottom: "8px",
-              border: "1px solid #ddd",
-              borderRadius: "6px",
-              color: "#999",
-            }}
-          >
-            {item} <span style={{ fontSize: "12px" }}>(coming soon)</span>
-          </li>
-        ))}
+<ul style={{ listStyle: "none", padding: 0 }}>
+        {menuItems.map((item) => {
+          const isSF1 = item.startsWith("School Form 1");
+          return (
+            <li
+              key={item}
+              onClick={isSF1 ? goToSF1 : undefined}
+              style={{
+                padding: "12px",
+                marginBottom: "8px",
+                border: "1px solid #ddd",
+                borderRadius: "6px",
+                color: isSF1 ? "#000" : "#999",
+                cursor: isSF1 ? "pointer" : "default",
+                background: isSF1 ? "#eef6ff" : "transparent",
+              }}
+            >
+              {item} {!isSF1 && <span style={{ fontSize: "12px" }}>(coming soon)</span>}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

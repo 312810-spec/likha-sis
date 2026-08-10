@@ -1,36 +1,41 @@
 // src/App.jsx
-// This is the "traffic controller" of our app.
-// It watches Firebase for "is anyone logged in?" and shows Login or Dashboard accordingly.
+// Traffic controller: now handles THREE possible screens —
+// Login, Dashboard, and SF1 — based on login state + which page is selected.
 
 import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
+import SF1 from "./SF1";
 
 function App() {
-  const [user, setUser] = useState(null);       // who's logged in (or null if nobody)
-  const [isChecking, setIsChecking] = useState(true); // are we still checking on first load?
+  const [user, setUser] = useState(null);
+  const [isChecking, setIsChecking] = useState(true);
+  const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard" or "sf1"
 
   useEffect(() => {
-    // onAuthStateChanged is Firebase's built-in "watcher" —
-    // it runs automatically every time someone logs in OR logs out, anywhere in the app.
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser); // currentUser is either a user object, or null
+      setUser(currentUser);
       setIsChecking(false);
     });
-
-    // Cleanup: stop watching if this component ever goes away (good practice, prevents memory leaks)
     return () => unsubscribe();
   }, []);
 
-  // While Firebase is still checking (happens fast, but not instantly), show a simple loading message
   if (isChecking) {
     return <p style={{ textAlign: "center", marginTop: "80px" }}>Loading...</p>;
   }
 
-  // The core logic: if we have a user, show Dashboard. Otherwise, show Login.
-  return user ? <Dashboard user={user} /> : <Login />;
+  if (!user) {
+    return <Login />;
+  }
+
+  // Logged in — decide which page to show based on currentPage
+  if (currentPage === "sf1") {
+    return <SF1 user={user} goBack={() => setCurrentPage("dashboard")} />;
+  }
+
+  return <Dashboard user={user} goToSF1={() => setCurrentPage("sf1")} />;
 }
 
 export default App;
