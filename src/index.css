@@ -368,3 +368,233 @@ code {
     grid-template-columns: repeat(1, 1fr);
   }
 }
+
+/* SMEA Enrollment Report */
+.smea-enrollment {
+  font-family: var(--sans);
+  color: #0b1220;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 960px;
+}
+
+.smea-message {
+  padding: 24px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 0;
+  color: #334155;
+}
+
+.smea-message.smea-error {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.smea-empty {
+  padding: 24px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 0;
+  color: #475569;
+  text-align: left;
+}
+
+.smea-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.smea-title {
+  margin: 0;
+  font-size: 18px;
+  color: #0306C3;
+}
+
+.smea-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.smea-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.smea-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.smea-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.smea-select {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #0b1220;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+}
+
+.smea-select:focus {
+  border-color: #0306C3;
+  box-shadow: 0 0 0 3px rgba(3, 6, 195, 0.12);
+}
+
+.smea-term {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-left: 4px solid #074C0B;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.smea-term .smea-term-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0b1220;
+}
+
+.smea-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.smea-card {
+  background: #fff;
+  border: 1px solid #e6e9ef;
+  border-top: 4px solid var(--tnhs-blue);
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: 0 1px 6px rgba(2, 6, 23, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.smea-card-label {
+  font-size: 12px;
+  color: #334155;
+}
+
+.smea-card-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0b1220;
+}
+
+.smea-panel {
+  background: #fff;
+  border: 1px solid #e6e9ef;
+  border-radius: 8px;
+  padding: 14px;
+  box-shadow: 0 1px 6px rgba(2, 6, 23, 0.04);
+}
+
+.smea-table-wrap {
+  overflow-x: auto;
+}
+
+.smea-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #0b1220;
+  text-align: left;
+}
+
+.smea-table th {
+  background: #f1f5f9;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  font-weight: 600;
+  color: #334155;
+}
+
+.smea-table td {
+  padding: 9px 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.smea-table tbody tr:nth-child(even) {
+  background: #fafbfc;
+}
+
+.smea-table .smea-subtotal td {
+  background: #eef2ff;
+  font-weight: 600;
+  color: #0306C3;
+}
+
+.smea-table .smea-grand-total td {
+  background: #0306C3;
+  color: #fff;
+  font-weight: 700;
+}
+
+.smea-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.smea-quality {
+  border-color: #fde68a;
+  border-left: 4px solid #FE9C2F;
+}
+
+.smea-quality-title {
+  margin: 0;
+  font-size: 14px;
+  color: #92400e;
+}
+
+.smea-quality-list {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.smea-quality-list li {
+  font-size: 13px;
+  color: #78350f;
+  padding: 8px 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+}
+
+@media (max-width: 700px) {
+  .smea-cards {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
+

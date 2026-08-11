@@ -34,13 +34,18 @@ export default function Sidebar({ currentPage, onNavigate, user }) {
     { label: 'View Learners', page: 'viewLearners' },
     { label: 'Certificates', page: 'certificates' },
     { label: 'ID Generator', page: 'idGenerator' },
+    {
+      label: 'SMEA',
+      children: [
+        { label: 'Enrollment', page: 'smeaEnrollment' },
+      ],
+    },
   ];
 
   const future = [
     {
       label: 'SMEA',
       children: [
-        { label: 'Enrollment' },
         { label: 'Anecdotal Records' },
       ],
     },

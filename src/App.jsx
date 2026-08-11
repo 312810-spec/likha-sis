@@ -13,6 +13,7 @@ import SF2 from "./SF2";
 import ViewLearners from "./ViewLearners";
 import CertificateGenerator from "./CertificateGenerator";
 import IDGenerator from "./IDGenerator";
+import SMEAEnrollment from "./SMEAEnrollment";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -59,6 +60,10 @@ function App() {
     case "idGenerator":
       pageTitle = "ID Generator";
       pageContent = <IDGenerator user={user} goBack={() => setCurrentPage("dashboard")} />;
+      break;
+    case "smeaEnrollment":
+      pageTitle = "SMEA — Enrollment";
+      pageContent = <SMEAEnrollment />;
       break;
     default:
       // Dashboard
