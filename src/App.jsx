@@ -8,13 +8,14 @@ import { auth } from "./firebase";
 import Login from "./Login";
 import Dashboard from "./Dashboard";
 import SF1 from "./SF1";
+import SF2 from "./SF2";
 import ViewLearners from "./ViewLearners";
 import CertificateGenerator from "./CertificateGenerator";
 
 function App() {
   const [user, setUser] = useState(null);
   const [isChecking, setIsChecking] = useState(true);
-  const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard", "sf1", "viewLearners", or "certificates"
+  const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard", "sf1", "sf2", "viewLearners", or "certificates"
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -37,6 +38,10 @@ function App() {
     return <SF1 user={user} goBack={() => setCurrentPage("dashboard")} />;
   }
 
+  if (currentPage === "sf2") {
+    return <SF2 user={user} goBack={() => setCurrentPage("dashboard")} />;
+  }
+
   if (currentPage === "viewLearners") {
     return <ViewLearners user={user} goBack={() => setCurrentPage("dashboard")} />;
   }
@@ -49,6 +54,7 @@ function App() {
     <Dashboard
       user={user}
       goToSF1={() => setCurrentPage("sf1")}
+      goToSF2={() => setCurrentPage("sf2")}
       goToViewLearners={() => setCurrentPage("viewLearners")}
       goToCertificates={() => setCurrentPage("certificates")}
     />

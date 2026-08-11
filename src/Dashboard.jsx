@@ -6,7 +6,7 @@
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
 
-function Dashboard({ user, goToSF1, goToViewLearners, goToCertificates }) {
+function Dashboard({ user, goToSF1, goToSF2, goToViewLearners, goToCertificates }) {
   async function handleLogout() {
     try {
       await signOut(auth);
@@ -48,9 +48,10 @@ function Dashboard({ user, goToSF1, goToViewLearners, goToCertificates }) {
 <ul style={{ listStyle: "none", padding: 0 }}>
         {menuItems.map((item) => {
           const isSF1 = item.startsWith("School Form 1");
+          const isSF2 = item === "School Form 2 (Attendance)";
           const isCertificates = item === "Certificates";
-          const isClickable = isSF1 || isCertificates;
-          const handleClick = isSF1 ? goToSF1 : isCertificates ? goToCertificates : undefined;
+          const isClickable = isSF1 || isSF2 || isCertificates;
+          const handleClick = isSF1 ? goToSF1 : isSF2 ? goToSF2 : isCertificates ? goToCertificates : undefined;
           return (
             <li
               key={item}
