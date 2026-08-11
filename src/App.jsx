@@ -66,37 +66,18 @@ function App() {
       pageContent = <SMEAEnrollment />;
       break;
     default:
-      // Dashboard
-      pageTitle = "Dashboard";
-      pageContent = (
-        <div>
-          <section className="cards" aria-label="Overview cards" style={{ marginBottom: '20px' }}>
-            <div className="card">
-              <h3>Learners</h3>
-              <p style={{ marginTop: 8 }}>Quick snapshot of registered learners.</p>
-            </div>
-
-            <div className="card">
-              <h3>Enrollment</h3>
-              <p style={{ marginTop: 8 }}>Enrollment status and recent changes.</p>
-            </div>
-
-            <div className="card">
-              <h3>Forms</h3>
-              <p style={{ marginTop: 8 }}>Access SF1 / SF2 forms and related reports.</p>
-            </div>
-          </section>
-
-          <Dashboard
-            user={user}
-            goToSF1={() => setCurrentPage("sf1")}
-            goToSF2={() => setCurrentPage("sf2")}
-            goToViewLearners={() => setCurrentPage("viewLearners")}
-            goToCertificates={() => setCurrentPage("certificates")}
-            goToIDGenerator={() => setCurrentPage("idGenerator")}
-          />
-        </div>
-      );
+  // Dashboard
+  pageTitle = "Dashboard";
+  pageContent = (
+    <Dashboard
+      user={user}
+      goToSF1={() => setCurrentPage("sf1")}
+      goToSF2={() => setCurrentPage("sf2")}
+      goToViewLearners={() => setCurrentPage("viewLearners")}
+      goToCertificates={() => setCurrentPage("certificates")}
+      goToIDGenerator={() => setCurrentPage("idGenerator")}
+    />
+  );
   }
 
   return (

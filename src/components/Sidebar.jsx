@@ -1,8 +1,33 @@
 import { useState } from 'react';
-import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  GraduationCap,
+  IdCard,
+  BarChart3,
+  NotebookPen,
+  Pencil,
+  CalendarDays,
+} from 'lucide-react';
 
-export default function Sidebar({ currentPage, onNavigate, user }) {
+const icons = {
+  Dashboard: LayoutDashboard,
+  'School Forms': FileText,
+  SF1: FileText,
+  SF2: FileText,
+  'View Learners': Users,
+  Certificates: GraduationCap,
+  'ID Generator': IdCard,
+  SMEA: BarChart3,
+  Enrollment: BarChart3,
+  'Anecdotal Records': NotebookPen,
+  Academic: NotebookPen,
+  Grades: Pencil,
+  Attendance: CalendarDays,
+};
+
+export default function Sidebar({ currentPage, onNavigate }) {
   const [collapsed, setCollapsed] = useState(false);
   const [openMobile, setOpenMobile] = useState(false);
 
@@ -12,14 +37,6 @@ export default function Sidebar({ currentPage, onNavigate, user }) {
 
   function toggleMobile() {
     setOpenMobile((s) => !s);
-  }
-
-  async function handleLogout() {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
   }
 
   const nav = [
@@ -45,16 +62,11 @@ export default function Sidebar({ currentPage, onNavigate, user }) {
   const future = [
     {
       label: 'SMEA',
-      children: [
-        { label: 'Anecdotal Records' },
-      ],
+      children: [{ label: 'Anecdotal Records' }],
     },
     {
       label: 'Academic',
-      children: [
-        { label: 'Grades' },
-        { label: 'Attendance' },
-      ],
+      children: [{ label: 'Grades' }, { label: 'Attendance' }],
     },
   ];
 
@@ -65,136 +77,137 @@ export default function Sidebar({ currentPage, onNavigate, user }) {
     }
   }
 
+  function NavIcon({ label }) {
+    const Icon = icons[label];
+    return Icon ? <Icon size={18} /> : null;
+  }
+
   return (
     <aside
-      className={`sidebar ${collapsed ? 'collapsed' : ''} ${openMobile ? 'open' : ''}`}
+      className={`${collapsed ? 'w-20' : 'w-64'} ${openMobile ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static top-0 left-0 h-screen bg-primary text-white flex flex-col transition-all duration-200 z-40`}
       aria-label="Primary"
     >
-      <div className="top-row">
-        <div className="brand">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
+        <div className="flex items-center gap-3 min-w-0">
           <img
             src={'/Tingub%20National%20High%20School%28clear%29.png'}
             alt="Tingub National High School"
-            width={44}
-            height={44}
+            width={36}
+            height={36}
+            className="rounded-full bg-white flex-shrink-0"
           />
-          <div className="school-meta">
-            <div className="school-name">Tingub National High School</div>
-            <div style={{ fontSize: 12, color: 'var(--text)' }}>LIKHA-SIS</div>
-          </div>
+          {!collapsed && (
+            <div className="min-w-0">
+              <div className="text-sm font-semibold truncate">Tingub National High School</div>
+              <div className="text-xs text-accent-light">LIKHA-SIS</div>
+            </div>
+          )}
         </div>
 
-        <div className="controls">
-          <button
-            className="mobile-toggle"
-            aria-label="Toggle sidebar"
-            onClick={toggleMobile}
-            title="Open menu"
-            type="button"
-          >
-            ☰
-          </button>
+        <button
+          className="hidden md:block text-white/70 hover:text-white text-lg"
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onClick={toggleCollapsed}
+          type="button"
+        >
+          {collapsed ? '»' : '«'}
+        </button>
 
-          <button
-            className="collapse-btn"
-            aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            onClick={toggleCollapsed}
-            type="button"
-          >
-            {collapsed ? '»' : '«'}
-          </button>
-        </div>
+        <button
+          className="md:hidden text-white/70 hover:text-white text-lg"
+          aria-label="Toggle sidebar"
+          onClick={toggleMobile}
+          type="button"
+        >
+          ☰
+        </button>
       </div>
 
-      <nav className="nav" aria-label="Sidebar navigation">
-        <div className="nav-section" aria-hidden={collapsed}>
-          <ul className="nav-list">
-            {nav.map((item) => (
-              item.children ? (
-                <li key={item.label}>
-                  <div className="nav-group">
-                    <h3>{item.label}</h3>
-                    <ul className="nav-list">
-                      {item.children.map((c) => (
-                        <li key={c.label}>
-                          <button
-                            type="button"
-                            className={`nav-link ${currentPage === c.page ? 'active' : ''}`}
-                            onClick={() => handleNavClick(c.page)}
-                          >
-                            <span className="icon">{c.label[0]}</span>
-                            <span className="label">{c.label}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </li>
-              ) : (
-                <li key={item.label}>
-                  <button
-                    type="button"
-                    className={`nav-link ${currentPage === item.page ? 'active' : ''}`}
-                    onClick={() => handleNavClick(item.page)}
-                  >
-                    <span className="icon">{item.label[0]}</span>
-                    <span className="label">{item.label}</span>
-                  </button>
-                </li>
-              )
-            ))}
-          </ul>
-        </div>
+      <nav className="flex-1 overflow-y-auto py-3 px-2">
+        <ul className="space-y-1">
+          {nav.map((item) =>
+            item.children ? (
+              <li key={item.label}>
+                {!collapsed && (
+                  <h3 className="px-3 pt-3 pb-1 text-xs uppercase tracking-wide text-accent-light font-semibold">
+                    {item.label}
+                  </h3>
+                )}
+                <ul className="space-y-1">
+                  {item.children.map((c) => (
+                    <li key={c.label}>
+                      <button
+                        type="button"
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          currentPage === c.page
+                            ? 'bg-accent text-primary-dark font-semibold'
+                            : 'text-white/80 hover:bg-white/10'
+                        }`}
+                        onClick={() => handleNavClick(c.page)}
+                      >
+                        <NavIcon label={c.label} />
+                        {!collapsed && <span>{c.label}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ) : (
+              <li key={item.label}>
+                <button
+                  type="button"
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                    currentPage === item.page
+                      ? 'bg-accent text-primary-dark font-semibold'
+                      : 'text-white/80 hover:bg-white/10'
+                  }`}
+                  onClick={() => handleNavClick(item.page)}
+                >
+                  <NavIcon label={item.label} />
+                  {!collapsed && <span>{item.label}</span>}
+                </button>
+              </li>
+            )
+          )}
+        </ul>
 
-        <div className="nav-section">
-          <h3>Future</h3>
-          <ul className="nav-list">
+        <div className="mt-6">
+          {!collapsed && (
+            <h3 className="px-3 pb-1 text-xs uppercase tracking-wide text-accent-light font-semibold">Future</h3>
+          )}
+          <ul className="space-y-1">
             {future.map((sec) => (
               <li key={sec.label}>
-                <div>
-                  <h3>{sec.label}</h3>
-                  <ul className="nav-list">
-                    {sec.children.map((c) => (
-                      <li key={c.label}>
-                        <button className="nav-link disabled" disabled type="button">
-                          <span className="icon">{c.label[0]}</span>
-                          <span className="label">{c.label} (Coming Soon)</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {!collapsed && (
+                  <h3 className="px-3 pt-2 pb-1 text-xs text-white/60">{sec.label}</h3>
+                )}
+                <ul className="space-y-1">
+                  {sec.children.map((c) => (
+                    <li key={c.label}>
+                      <button
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/50 cursor-not-allowed"
+                        disabled
+                        type="button"
+                      >
+                        <NavIcon label={c.label} />
+                        {!collapsed && <span>{c.label} (Coming Soon)</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </li>
             ))}
           </ul>
         </div>
-
-        <div className="nav-section" style={{ marginTop: 'auto', paddingTop: '8px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 10px' }}>
-            <span className="icon" style={{ fontSize: '12px' }}>👤</span>
-            {!collapsed && (
-              <div style={{ textAlign: 'left', flex: 1, fontSize: '12px', minWidth: 0 }}>
-                <div style={{ fontWeight: 500, color: 'var(--text-h)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {user?.email || 'User'}
-                </div>
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="nav-link"
-            style={{ width: '100%' }}
-          >
-            <span className="icon">🚪</span>
-            {!collapsed && <span className="label">Logout</span>}
-          </button>
-        </div>
       </nav>
 
-      {/* Mobile overlay close (rendered in DOM, toggled via class) */}
-      {openMobile && <div className="main-content-overlay" onClick={toggleMobile} />}
+      {openMobile && (
+        <div
+          className="fixed inset-0 bg-black/40 md:hidden -z-10"
+          onClick={toggleMobile}
+        />
+      )}
     </aside>
   );
 }
