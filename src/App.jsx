@@ -11,11 +11,12 @@ import SF1 from "./SF1";
 import SF2 from "./SF2";
 import ViewLearners from "./ViewLearners";
 import CertificateGenerator from "./CertificateGenerator";
+import IDGenerator from "./IDGenerator";
 
 function App() {
   const [user, setUser] = useState(null);
   const [isChecking, setIsChecking] = useState(true);
-  const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard", "sf1", "sf2", "viewLearners", or "certificates"
+  const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard", "sf1", "sf2", "viewLearners", "certificates", or "idGenerator"
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -50,6 +51,10 @@ function App() {
     return <CertificateGenerator user={user} goBack={() => setCurrentPage("dashboard")} />;
   }
 
+  if (currentPage === "idGenerator") {
+    return <IDGenerator user={user} goBack={() => setCurrentPage("dashboard")} />;
+  }
+
   return (
     <Dashboard
       user={user}
@@ -57,6 +62,7 @@ function App() {
       goToSF2={() => setCurrentPage("sf2")}
       goToViewLearners={() => setCurrentPage("viewLearners")}
       goToCertificates={() => setCurrentPage("certificates")}
+      goToIDGenerator={() => setCurrentPage("idGenerator")}
     />
   );
 }
