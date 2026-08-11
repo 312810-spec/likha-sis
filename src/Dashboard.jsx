@@ -6,7 +6,7 @@
 import { signOut } from "firebase/auth";
 import { auth } from "./firebase";
 
-function Dashboard({ user, goToSF1, goToViewLearners }) {
+function Dashboard({ user, goToSF1, goToViewLearners, goToCertificates }) {
   async function handleLogout() {
     try {
       await signOut(auth);
@@ -48,21 +48,24 @@ function Dashboard({ user, goToSF1, goToViewLearners }) {
 <ul style={{ listStyle: "none", padding: 0 }}>
         {menuItems.map((item) => {
           const isSF1 = item.startsWith("School Form 1");
+          const isCertificates = item === "Certificates";
+          const isClickable = isSF1 || isCertificates;
+          const handleClick = isSF1 ? goToSF1 : isCertificates ? goToCertificates : undefined;
           return (
             <li
               key={item}
-              onClick={isSF1 ? goToSF1 : undefined}
+              onClick={handleClick}
               style={{
                 padding: "12px",
                 marginBottom: "8px",
                 border: "1px solid #ddd",
                 borderRadius: "6px",
-                color: isSF1 ? "#000" : "#999",
-                cursor: isSF1 ? "pointer" : "default",
-                background: isSF1 ? "#eef6ff" : "transparent",
+                color: isClickable ? "#000" : "#999",
+                cursor: isClickable ? "pointer" : "default",
+                background: isClickable ? "#eef6ff" : "transparent",
               }}
             >
-              {item} {!isSF1 && <span style={{ fontSize: "12px" }}>(coming soon)</span>}
+              {item} {!isClickable && <span style={{ fontSize: "12px" }}>(coming soon)</span>}
             </li>
           );
         })}

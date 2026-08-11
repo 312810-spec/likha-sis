@@ -9,11 +9,12 @@ import Login from "./Login";
 import Dashboard from "./Dashboard";
 import SF1 from "./SF1";
 import ViewLearners from "./ViewLearners";
+import CertificateGenerator from "./CertificateGenerator";
 
 function App() {
   const [user, setUser] = useState(null);
   const [isChecking, setIsChecking] = useState(true);
-  const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard", "sf1", or "viewLearners"
+  const [currentPage, setCurrentPage] = useState("dashboard"); // "dashboard", "sf1", "viewLearners", or "certificates"
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -40,11 +41,16 @@ function App() {
     return <ViewLearners user={user} goBack={() => setCurrentPage("dashboard")} />;
   }
 
+  if (currentPage === "certificates") {
+    return <CertificateGenerator user={user} goBack={() => setCurrentPage("dashboard")} />;
+  }
+
   return (
     <Dashboard
       user={user}
       goToSF1={() => setCurrentPage("sf1")}
       goToViewLearners={() => setCurrentPage("viewLearners")}
+      goToCertificates={() => setCurrentPage("certificates")}
     />
   );
 }
