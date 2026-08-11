@@ -109,3 +109,262 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+/* Dashboard / Sidebar styles (TailAdmin-inspired) */
+:root {
+  --tnhs-blue: #0306C3;
+  --tnhs-green: #074C0B;
+  --tnhs-orange: #FE9C2F;
+  --tnhs-yellow: #F8F56A;
+}
+
+.dashboard-shell {
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 24px;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  min-width: 64px;
+  background: linear-gradient(180deg, rgba(3,6,195,0.04), transparent);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar .top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar .brand img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: white;
+}
+
+.sidebar .brand .school-name {
+  font-weight: 600;
+  color: var(--text-h);
+  font-size: 14px;
+  text-align: left;
+}
+
+/* Collapse button */
+.sidebar .controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.sidebar .collapse-btn,
+.sidebar .mobile-toggle {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text-h);
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.sidebar .collapse-btn:focus,
+.sidebar .mobile-toggle:focus {
+  outline: 3px solid var(--accent-bg);
+}
+
+.nav {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+}
+
+.nav-section {
+  margin-top: 6px;
+}
+
+.nav-section h3 {
+  margin: 8px 6px;
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nav-list a,
+.nav-list button.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--text-h);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.nav-list a:hover,
+.nav-list button.nav-link:hover {
+  background: var(--accent-bg);
+}
+
+.nav-list button.nav-link.active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.nav-list button.nav-link.active .icon {
+  background: var(--accent);
+  color: white;
+}
+
+.nav-list .icon {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid var(--border);
+  color: var(--tnhs-blue);
+  font-weight: 700;
+}
+
+.nav-list .label {
+  flex: 1 1 auto;
+  text-align: left;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.nav-list .chev {
+  opacity: 0.7;
+}
+
+.nav-list .disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Collapsed state */
+.sidebar.collapsed {
+  width: 72px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.sidebar.collapsed .brand .school-name,
+.sidebar.collapsed .nav-section h3,
+.sidebar.collapsed .label {
+  display: none;
+}
+
+/* Mobile overlay */
+@media (max-width: 900px) {
+  .dashboard-shell {
+    padding: 12px;
+    flex-direction: column;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 80;
+    transform: translateX(-120%);
+    transition: transform 220ms ease;
+    box-shadow: var(--shadow);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar.collapsed {
+    width: 220px;
+  }
+
+  .main-content-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 60;
+  }
+}
+
+/* Main content area */
+.main-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.card {
+  padding: 14px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(248,245,106,0.06), rgba(254,156,47,0.03));
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+@media (max-width: 900px) {
+  .cards {
+    grid-template-columns: repeat(1, 1fr);
+  }
+}
