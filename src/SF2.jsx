@@ -15,11 +15,42 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import schoolConfig from "./schoolConfig";
 
 // Common table cell style, consistent with SF1.jsx / ViewLearners.jsx.
 const cellStyle = { border: "1px solid #ccc", padding: "6px", textAlign: "left" };
 // Center-aligned variant used for the compact weekday date columns.
 const centerCellStyle = { ...cellStyle, textAlign: "center" };
+
+// Dropout reason codes (a1–f) per the DepEd NLS legend. Used both for the
+// "Legend & Guidelines" section and the per-learner Remarks dropdown options.
+const DROPOUT_REASONS = [
+  { code: "a1", label: "Had to take care of siblings" },
+  { code: "a2", label: "Early marriage/pregnancy" },
+  { code: "a3", label: "Parents' attitude toward schooling" },
+  { code: "a4", label: "Family problems" },
+  { code: "b1", label: "Illness" },
+  { code: "b2", label: "Overage" },
+  { code: "b3", label: "Death" },
+  { code: "b4", label: "Drug Abuse" },
+  { code: "b5", label: "Poor academic performance" },
+  { code: "b6", label: "Lack of interest/Distractions" },
+  { code: "b7", label: "Hunger/Malnutrition" },
+  { code: "c1", label: "Teacher Factor" },
+  { code: "c2", label: "Physical condition of classroom" },
+  { code: "c3", label: "Peer influence" },
+  { code: "d1", label: "Distance between home and school" },
+  { code: "d2", label: "Armed conflict" },
+  { code: "d3", label: "Calamities/Disasters" },
+  { code: "e1", label: "Child labor, work" },
+  { code: "f", label: "Others (Specify)" },
+];
+
+// The value/label used when a learner "Dropped Out" for a given reason code.
+function dropoutLabel(code) {
+  const r = DROPOUT_REASONS.find((x) => x.code === code);
+  return `Dropped Out - ${code}: ${r ? r.label : ""}`;
+}
 
 // ---- Helpers ---------------------------------------------------------------
 
@@ -103,6 +134,20 @@ function SF2({ user, goBack }) {
   // records: learnerId -> { "YYYY-MM-DD": "A" | "T" }. Only exceptions stored;
   // a date with no entry for a learner means Present (blank).
   const [records, setRecords] = useState({});
+  // remarksData: learnerId -> a remark string (blank, "Dropped Out - <code>: ...",
+  // "Transferred In", or "Transferred Out").
+  const [remarksData, setRemarksData] = useState({});
+  // summaryInputs: the four MANUAL class-summary number inputs, saved under `summary`.
+  const [summaryInputs, setSummaryInputs] = useState({
+    enrolmentFirstFriday: 0,
+    lateEnrollment: 0,
+    transferredIn: 0,
+    transferredOut: 0,
+  });
+  // adviserName: the class adviser's name, defaulting to the logged-in email.
+  const [adviserName, setAdviserName] = useState(user?.email || "");
+  // showLegend: controls the collapsible "Legend & Guidelines" section (collapsed by default).
+  const [showLegend, setShowLegend] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
 
@@ -155,22 +200,49 @@ function SF2({ user, goBack }) {
     async function loadAttendance() {
       if (!filterValue || !monthValue) {
         setRecords({});
+        setRemarksData({});
+        setSummaryInputs({
+          enrolmentFirstFriday: 0,
+          lateEnrollment: 0,
+          transferredIn: 0,
+          transferredOut: 0,
+        });
+        setAdviserName(user?.email || "");
         return;
       }
       const docId = makeDocumentId(filterValue, monthValue);
       try {
         const snap = await getDoc(doc(db, "attendance", docId));
         if (snap.exists()) {
-          setRecords(snap.data().records || {});
+          const data = snap.data();
+          setRecords(data.records || {});
+          setRemarksData(data.remarks || {});
+          setSummaryInputs({
+            enrolmentFirstFriday: data.summary?.enrolmentFirstFriday ?? 0,
+            lateEnrollment: data.summary?.lateEnrollment ?? 0,
+            transferredIn: data.summary?.transferredIn ?? 0,
+            transferredOut: data.summary?.transferredOut ?? 0,
+          });
+          setAdviserName(data.adviserName || user?.email || "");
         } else {
           setRecords({});
+          setRemarksData({});
+          setSummaryInputs({
+            enrolmentFirstFriday: 0,
+            lateEnrollment: 0,
+            transferredIn: 0,
+            transferredOut: 0,
+          });
+          setAdviserName(user?.email || "");
         }
       } catch (err) {
         console.error("Failed to load attendance:", err);
         setRecords({});
+        setRemarksData({});
       }
     }
     loadAttendance();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterValue, monthValue]);
 
   // Cycles a learner+date cell: "" (Present) -> "A" -> "T" -> "".
@@ -194,6 +266,24 @@ function SF2({ user, goBack }) {
       }
       return next;
     });
+  }
+
+  // Updates the remark (dropout/transfer reason) for one learner.
+  function handleRemarkChange(learnerId, value) {
+    setRemarksData((prev) => {
+      const next = { ...prev };
+      if (value === "") {
+        delete next[learnerId];
+      } else {
+        next[learnerId] = value;
+      }
+      return next;
+    });
+  }
+
+  // Updates one of the four MANUAL class-summary number inputs.
+  function updateSummary(key, value) {
+    setSummaryInputs((prev) => ({ ...prev, [key]: value }));
   }
 
   // Count of "A" values for one learner across the month (summary column).
@@ -247,6 +337,14 @@ function SF2({ user, goBack }) {
         section: selectedSection,
         month: monthValue,
         records: cleaned,
+        remarks: remarksData,
+        summary: {
+          enrolmentFirstFriday: Number(summaryInputs.enrolmentFirstFriday) || 0,
+          lateEnrollment: Number(summaryInputs.lateEnrollment) || 0,
+          transferredIn: Number(summaryInputs.transferredIn) || 0,
+          transferredOut: Number(summaryInputs.transferredOut) || 0,
+        },
+        adviserName: adviserName || user?.email || "",
         updatedAt: serverTimestamp(),
       });
       setStatusMessage("Attendance saved successfully!");
@@ -290,6 +388,25 @@ function SF2({ user, goBack }) {
         })}
         <td style={centerCellStyle}>{learnerAbsentCount(learner.id)}</td>
         <td style={centerCellStyle}>{learnerTardyCount(learner.id)}</td>
+        <td style={centerCellStyle}>
+          <select
+            value={remarksData[learner.id] || ""}
+            onChange={(e) => handleRemarkChange(learner.id, e.target.value)}
+            style={{ padding: "2px", fontSize: "11px", maxWidth: "150px" }}
+          >
+            <option value="">—</option>
+            {DROPOUT_REASONS.map((r) => {
+              const label = dropoutLabel(r.code);
+              return (
+                <option key={r.code} value={label}>
+                  {label}
+                </option>
+              );
+            })}
+            <option value="Transferred In">Transferred In</option>
+            <option value="Transferred Out">Transferred Out</option>
+          </select>
+        </td>
       </tr>
     );
   }
@@ -323,6 +440,7 @@ function SF2({ user, goBack }) {
             ? groupTardyTotal(maleLearners) + groupTardyTotal(femaleLearners)
             : groupTardyTotal(group)}
         </td>
+        <td style={centerCellStyle} />
       </tr>
     );
   }
@@ -343,12 +461,192 @@ function SF2({ user, goBack }) {
         >
           {label}
         </td>
-        <td colSpan={weekdays.length + 2} style={{ border: "1px solid #ccc", padding: "6px" }} />
+        <td colSpan={weekdays.length + 3} style={{ border: "1px solid #ccc", padding: "6px" }} />
       </tr>
     );
   }
 
   const hasSelection = Boolean(filterValue && monthValue);
+
+  const registeredLearners = maleLearners.length + femaleLearners.length;
+  // Auto-computed values for the Class Summary, recalculated live from current state.
+  const numberSchoolDays = weekdays.length;
+  const totalDailyAttendance = weekdays.reduce((sum, w) => {
+    const absentOnDate = [...maleLearners, ...femaleLearners].reduce(
+      (a, l) => a + (records[l.id]?.[w.dateString] === "A" ? 1 : 0),
+      0
+    );
+    return sum + (registeredLearners - absentOnDate);
+  }, 0);
+  const averageDailyAttendance =
+    numberSchoolDays > 0 ? totalDailyAttendance / numberSchoolDays : 0;
+  const enrolmentFirstFriday = Number(summaryInputs.enrolmentFirstFriday) || 0;
+  const pctEnrolment =
+    enrolmentFirstFriday > 0 ? (registeredLearners / enrolmentFirstFriday) * 100 : null;
+  const pctAttendance =
+    registeredLearners > 0 ? (averageDailyAttendance / registeredLearners) * 100 : null;
+
+  // Renders the collapsible "Legend & Guidelines" section (collapsed by default).
+  function renderLegend() {
+    return (
+      <div style={{ marginBottom: "16px", border: "1px solid #ddd", borderRadius: "6px" }}>
+        <button
+          type="button"
+          onClick={() => setShowLegend((v) => !v)}
+          style={{
+            width: "100%",
+            textAlign: "left",
+            padding: "8px 12px",
+            background: "#eceff1",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "13px",
+          }}
+        >
+          {showLegend ? "▼" : "▶"} Legend &amp; Guidelines
+        </button>
+        {showLegend && (
+          <div style={{ padding: "12px 16px", fontSize: "13px", lineHeight: "1.6" }}>
+            <p style={{ margin: "0 0 10px" }}>
+              <strong>Attendance Codes:</strong> (blank) = Present; X = Absent; T = Tardy
+            </p>
+            <p style={{ margin: "0 0 6px", fontWeight: "bold" }}>
+              Reasons/Causes for Non-Literate/Struggling learners (NLS):
+            </p>
+            <p style={{ margin: "2px 0" }}>
+              a. <strong>Domestic-Related Factors:</strong> a1. Had to take care of siblings, a2. Early
+              marriage/pregnancy, a3. Parents&apos; attitude toward schooling, a4. Family problems
+            </p>
+            <p style={{ margin: "2px 0" }}>
+              b. <strong>Individual-Related Factors:</strong> b1. Illness, b2. Overage, b3. Death, b4.
+              Drug Abuse, b5. Poor academic performance, b6. Lack of interest/Distractions, b7.
+              Hunger/Malnutrition
+            </p>
+            <p style={{ margin: "2px 0" }}>
+              c. <strong>School-Related Factors:</strong> c1. Teacher Factor, c2. Physical condition of
+              classroom, c3. Peer influence
+            </p>
+            <p style={{ margin: "2px 0" }}>
+              d. <strong>Geographic/Environmental:</strong> d1. Distance between home and school, d2.
+              Armed conflict, d3. Calamities/Disasters
+            </p>
+            <p style={{ margin: "2px 0" }}>
+              e. <strong>Financial-Related:</strong> e1. Child labor, work
+            </p>
+            <p style={{ margin: "2px 0" }}>f. <strong>Others (Specify)</strong></p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Renders the Class Summary: four MANUAL inputs plus auto-computed read-only values.
+  function renderSummary() {
+    const numberStyle = { width: "90px", padding: "4px", textAlign: "right" };
+    const labelStyle = { fontSize: "12px", fontWeight: "bold" };
+    const compCellStyle = {
+      border: "1px solid #ddd",
+      padding: "4px 8px",
+      textAlign: "left",
+      fontSize: "13px",
+    };
+    const compValueStyle = { ...compCellStyle, fontWeight: "bold", textAlign: "right" };
+
+    const manualFields = [
+      { key: "enrolmentFirstFriday", label: "Enrolment as of 1st Friday of School Year" },
+      { key: "lateEnrollment", label: "Late Enrollment during month" },
+      { key: "transferredIn", label: "Transferred In during month" },
+      { key: "transferredOut", label: "Transferred Out during month" },
+    ];
+
+    return (
+      <div style={{ marginBottom: "20px", borderTop: "1px solid #ddd", paddingTop: "12px" }}>
+        <p style={{ margin: "0 0 8px", fontWeight: "bold", fontSize: "13px" }}>Class Summary</p>
+        <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "12px" }}>
+          {manualFields.map((f) => (
+            <div key={f.key}>
+              <label style={labelStyle}>{f.label}</label>
+              <br />
+              <input
+                type="number"
+                min="0"
+                value={summaryInputs[f.key]}
+                onChange={(e) => updateSummary(f.key, e.target.value)}
+                style={numberStyle}
+              />
+            </div>
+          ))}
+        </div>
+        <table style={{ borderCollapse: "collapse" }}>
+          <tbody>
+            <tr>
+              <td style={compCellStyle}>Registered Learners as of end of month</td>
+              <td style={compValueStyle}>{registeredLearners}</td>
+            </tr>
+            <tr>
+              <td style={compCellStyle}>Number of School Days</td>
+              <td style={compValueStyle}>{numberSchoolDays}</td>
+            </tr>
+            <tr>
+              <td style={compCellStyle}>Total Daily Attendance</td>
+              <td style={compValueStyle}>{totalDailyAttendance}</td>
+            </tr>
+            <tr>
+              <td style={compCellStyle}>Average Daily Attendance</td>
+              <td style={compValueStyle}>{averageDailyAttendance.toFixed(2)}</td>
+            </tr>
+            <tr>
+              <td style={compCellStyle}>Percentage of Enrolment</td>
+              <td style={compValueStyle}>
+                {pctEnrolment === null ? "N/A" : `${pctEnrolment.toFixed(1)}%`}
+              </td>
+            </tr>
+            <tr>
+              <td style={compCellStyle}>Percentage of Attendance for the month</td>
+              <td style={compValueStyle}>
+                {pctAttendance === null ? "N/A" : `${pctAttendance.toFixed(1)}%`}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // Renders the Signatures block: adviser name + read-only school head name.
+  function renderSignatures() {
+    const labelStyle = { fontSize: "12px", fontWeight: "bold" };
+    return (
+      <div style={{ marginBottom: "20px", borderTop: "1px solid #ddd", paddingTop: "12px" }}>
+        <p style={{ margin: "0 0 8px", fontWeight: "bold", fontSize: "13px" }}>Signatures</p>
+        <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
+          <div>
+            <label style={labelStyle}>Adviser Name</label>
+            <br />
+            <input
+              type="text"
+              value={adviserName}
+              placeholder={user?.email || "Adviser name"}
+              onChange={(e) => setAdviserName(e.target.value)}
+              style={{ width: "240px", padding: "4px" }}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>School Head Name</label>
+            <br />
+            <input
+              type="text"
+              value={schoolConfig.principalName}
+              readOnly
+              style={{ width: "240px", padding: "4px", background: "#f0f0f0" }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ fontFamily: "sans-serif", maxWidth: "1100px", margin: "30px auto", padding: "0 16px" }}>
@@ -385,6 +683,21 @@ function SF2({ user, goBack }) {
             style={{ padding: "4px" }}
           />
         </div>
+      </div>
+
+      {/* Legend & Guidelines (collapsible, collapsed by default) */}
+      {renderLegend()}
+
+      {/* Class Summary + Signatures shown once a class with learners is selected */}
+      {!loading && hasSelection && filteredLearners.length > 0 && (
+        <>
+          {renderSummary()}
+          {renderSignatures()}
+        </>
+      )}
+
+      {/* Save button — placed below the summary/signatures sections */}
+      <div style={{ marginBottom: "16px" }}>
         <button onClick={handleSave} disabled={isSaving || !hasSelection} style={{ padding: "6px 14px" }}>
           {isSaving ? "Saving..." : "Save Month"}
         </button>
@@ -425,6 +738,7 @@ function SF2({ user, goBack }) {
                 ))}
                 <th style={centerCellStyle}>Absent</th>
                 <th style={centerCellStyle}>Tardy</th>
+                <th style={centerCellStyle}>Remarks</th>
               </tr>
             </thead>
             <tbody>
