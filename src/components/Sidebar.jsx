@@ -68,7 +68,7 @@ export default function Sidebar({ currentPage, onNavigate, user }) {
       <div className="top-row">
         <div className="brand">
           <img
-            src={'/Tingub%20National%20High%20School.png'}
+            src={'/Tingub%20National%20High%20School%28clear%29.png'}
             alt="Tingub National High School"
             width={44}
             height={44}
