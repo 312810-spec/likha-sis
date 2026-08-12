@@ -188,7 +188,26 @@ function ViewLearners({ user, goBack }) {
               {filteredLearners.map((l) => (
                 <tr key={l.id}>
                   <td style={cellStyle}>{l.lrn || ""}</td>
-                  <td style={cellStyle}>{l.lastName || ""}</td>
+                  <td style={cellStyle}>
+                    {l.lastName || ""}
+                    {l.enrollmentStatus === "transferred-out" && (
+                      <span
+                        style={{
+                          marginLeft: "6px",
+                          padding: "2px 6px",
+                          fontSize: "11px",
+                          fontWeight: "bold",
+                          backgroundColor: "#e5e7eb",
+                          color: "#374151",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "4px",
+                          display: "inline-block",
+                        }}
+                      >
+                        Transferred Out
+                      </span>
+                    )}
+                  </td>
                   <td style={cellStyle}>{l.firstName || ""}</td>
                   <td style={cellStyle}>{l.sex || ""}</td>
                   <td style={cellStyle}>{calculateAge(l.birthDate)}</td>

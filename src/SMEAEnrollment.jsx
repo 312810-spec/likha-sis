@@ -13,10 +13,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
-import { getCurrentTermForSchoolYear } from "./academicCalendar";
+import { academicCalendar, getCurrentTermForSchoolYear } from "./academicCalendar";
 
-// Extendable list of selectable school years. Additional years can be added here later.
-const SCHOOL_YEARS = ["2026-2027"];
+// Selectable school years derived from the academic calendar configuration, sorted descending.
+const SCHOOL_YEARS = Object.keys(academicCalendar).sort((a, b) => b.localeCompare(a));
 
 // Normalize a learner's sex into "Male" | "Female" | "" (unrecognized/empty).
 function normalizeSex(sex) {

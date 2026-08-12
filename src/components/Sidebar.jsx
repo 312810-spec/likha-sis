@@ -11,6 +11,10 @@ import {
   CalendarDays,
   UploadCloud,
   UserCog,
+  ClipboardList,
+  AlertTriangle,
+  HeartPulse,
+  ArrowLeftRight,
 } from 'lucide-react';
 
 const icons = {
@@ -19,7 +23,12 @@ const icons = {
   'School Forms': FileText,
   SF1: FileText,
   SF2: FileText,
+  'Class Record': ClipboardList,
   'View Learners': Users,
+  'LARDO Tracking': AlertTriangle,
+  'Nutrition Status': HeartPulse,
+  Transfers: ArrowLeftRight,
+  'Transfers Log': ArrowLeftRight,
   Certificates: GraduationCap,
   'ID Generator': IdCard,
   SMEA: BarChart3,
@@ -57,7 +66,11 @@ export default function Sidebar({ currentPage, onNavigate }) {
         { label: 'SF2', page: 'sf2' },
       ],
     },
+    { label: 'Class Record', page: 'classRecord' },
     { label: 'View Learners', page: 'viewLearners' },
+    { label: 'LARDO Tracking', page: 'lardoTracking' },
+    { label: 'Nutrition Status', page: 'nutritionStatus' },
+    { label: 'Transfers', page: 'transfersLog' },
     { label: 'Certificates', page: 'certificates' },
     { label: 'ID Generator', page: 'idGenerator' },
     {

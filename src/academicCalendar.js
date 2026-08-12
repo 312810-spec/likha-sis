@@ -1,7 +1,7 @@
 // src/academicCalendar.js
 // Centralized academic calendar configuration (extendable per school year)
 
-const academicCalendar = {
+export const academicCalendar = {
   "2026-2027": {
     schoolYearLabel: "2026-2027",
     terms: [

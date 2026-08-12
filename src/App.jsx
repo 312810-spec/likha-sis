@@ -10,7 +10,9 @@ import DashboardShell from "./components/DashboardShell";
 import Dashboard from "./Dashboard";
 import SF1 from "./SF1";
 import SF2 from "./SF2";
+import ClassRecord from "./ClassRecord";
 import ViewLearners from "./ViewLearners";
+import LardoTracking from "./LardoTracking";
 import CertificateGenerator from "./CertificateGenerator";
 import IDGenerator from "./IDGenerator";
 import SMEAEnrollment from "./SMEAEnrollment";
@@ -18,6 +20,8 @@ import ImportCenter from "./pages/ImportCenter";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
 import UserManagement from "./pages/UserManagement";
+import NutritionStatus from "./NutritionStatus";
+import TransfersLog from "./TransfersLog";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -57,9 +61,25 @@ function App() {
       pageTitle = "School Form 2 - Attendance";
       pageContent = <SF2 user={user} goBack={() => setCurrentPage("dashboard")} />;
       break;
+    case "classRecord":
+      pageTitle = "Class Record";
+      pageContent = <ClassRecord user={user} goBack={() => setCurrentPage("dashboard")} />;
+      break;
     case "viewLearners":
       pageTitle = "View Learners";
       pageContent = <ViewLearners user={user} goBack={() => setCurrentPage("dashboard")} />;
+      break;
+    case "lardoTracking":
+      pageTitle = "LARDO Tracking";
+      pageContent = <LardoTracking user={user} goBack={() => setCurrentPage("dashboard")} />;
+      break;
+    case "nutritionStatus":
+      pageTitle = "Nutrition Status";
+      pageContent = <NutritionStatus user={user} goBack={() => setCurrentPage("dashboard")} />;
+      break;
+    case "transfersLog":
+      pageTitle = "Transfers Log";
+      pageContent = <TransfersLog user={user} goBack={() => setCurrentPage("dashboard")} />;
       break;
     case "certificates":
       pageTitle = "Certificates";
