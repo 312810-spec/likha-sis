@@ -17,6 +17,7 @@ import SMEAEnrollment from "./SMEAEnrollment";
 import ImportCenter from "./pages/ImportCenter";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
+import UserManagement from "./pages/UserManagement";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -44,6 +45,10 @@ function App() {
   let pageContent;
 
   switch (currentPage) {
+    case "userManagement":
+      pageTitle = "User Management";
+      pageContent = <UserManagement user={user} />;
+      break;
     case "sf1":
       pageTitle = "School Form 1 - Learner Information";
       pageContent = <SF1 user={user} goBack={() => setCurrentPage("dashboard")} />;

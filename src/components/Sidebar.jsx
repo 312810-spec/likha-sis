@@ -10,10 +10,12 @@ import {
   Pencil,
   CalendarDays,
   UploadCloud,
+  UserCog,
 } from 'lucide-react';
 
 const icons = {
   Dashboard: LayoutDashboard,
+  'User Management': UserCog,
   'School Forms': FileText,
   SF1: FileText,
   SF2: FileText,
@@ -45,6 +47,8 @@ export default function Sidebar({ currentPage, onNavigate }) {
 
   const nav = [
     { label: 'Dashboard', page: 'dashboard' },
+    // NOTE: Access control for User Management will be restricted to ictCoordinator/principal roles in Phase B.
+    { label: 'User Management', page: 'userManagement' },
     { label: 'Import Center', page: 'importCenter' },
     {
       label: 'School Forms',
