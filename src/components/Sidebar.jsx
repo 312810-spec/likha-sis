@@ -9,6 +9,7 @@ import {
   NotebookPen,
   Pencil,
   CalendarDays,
+  UploadCloud,
 } from 'lucide-react';
 
 const icons = {
@@ -25,6 +26,9 @@ const icons = {
   Academic: NotebookPen,
   Grades: Pencil,
   Attendance: CalendarDays,
+  'Import Center': UploadCloud,
+  'SF1 Bulk Import': UploadCloud,
+  'SF10 Import': UploadCloud,
 };
 
 export default function Sidebar({ currentPage, onNavigate }) {
@@ -41,6 +45,7 @@ export default function Sidebar({ currentPage, onNavigate }) {
 
   const nav = [
     { label: 'Dashboard', page: 'dashboard' },
+    { label: 'Import Center', page: 'importCenter' },
     {
       label: 'School Forms',
       children: [
@@ -55,6 +60,13 @@ export default function Sidebar({ currentPage, onNavigate }) {
       label: 'SMEA',
       children: [
         { label: 'Enrollment', page: 'smeaEnrollment' },
+      ],
+    },
+    {
+      label: 'Imports',
+      children: [
+        { label: 'SF1 Bulk Import', page: 'sf1Import' },
+        { label: 'SF10 Import', page: 'sf10Import' },
       ],
     },
   ];

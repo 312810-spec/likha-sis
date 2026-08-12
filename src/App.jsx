@@ -14,6 +14,9 @@ import ViewLearners from "./ViewLearners";
 import CertificateGenerator from "./CertificateGenerator";
 import IDGenerator from "./IDGenerator";
 import SMEAEnrollment from "./SMEAEnrollment";
+import ImportCenter from "./pages/ImportCenter";
+import SF1Importer from "./pages/SF1Importer";
+import SF10Importer from "./pages/SF10Importer";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -64,6 +67,18 @@ function App() {
     case "smeaEnrollment":
       pageTitle = "SMEA — Enrollment";
       pageContent = <SMEAEnrollment />;
+      break;
+    case "importCenter":
+      pageTitle = "Import Center";
+      pageContent = <ImportCenter onNavigate={setCurrentPage} />;
+      break;
+    case "sf1Import":
+      pageTitle = "Import Center — SF1 Bulk Import";
+      pageContent = <SF1Importer user={user} />;
+      break;
+    case "sf10Import":
+      pageTitle = "Import Center — SF10 Import";
+      pageContent = <SF10Importer user={user} />;
       break;
     default:
   // Dashboard
