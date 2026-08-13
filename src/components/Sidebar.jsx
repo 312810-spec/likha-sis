@@ -133,10 +133,10 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
 
   return (
     <aside
-      className={`${collapsed ? 'w-20' : 'w-64'} ${openMobile ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static top-0 left-0 h-screen bg-primary text-white flex flex-col transition-all duration-200 z-40 dark:bg-gray-950 dark:text-gray-100`}
+      className={`${collapsed ? 'w-20' : 'w-64'} ${openMobile ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static top-0 left-0 h-screen bg-primary text-white flex flex-col transition-all duration-200 z-40 dark:bg-primary-dark dark:text-gray-100`}
       aria-label="Primary"
     >
-      <div className="flex items-center justify-between px-4 py-4 border-b border-white/10 dark:border-gray-700">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-white/10 dark:border-white/20">
         <div className="flex items-center gap-3 min-w-0">
           <img
             src={'/Tingub%20National%20High%20School%28clear%29.png'}
@@ -191,7 +191,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                           currentPage === c.page
                             ? 'bg-accent text-primary-dark font-semibold dark:bg-accent dark:text-primary-dark'
-                            : 'text-white/80 hover:bg-white/10 dark:text-gray-200 dark:hover:bg-gray-800'
+                              : 'text-white/80 hover:bg-white/10 dark:text-gray-200 dark:hover:bg-white/10'
                         }`}
                         onClick={() => handleNavClick(c.page)}
                       >

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
-import { Bell, User as UserIcon, LogOut, Settings, Sun, Moon } from 'lucide-react';
+import { Bell, User as UserIcon, LogOut, Settings, Sun, Moon, Monitor } from 'lucide-react';
 import useDarkMode from '../hooks/useDarkMode';
 import Sidebar from './Sidebar';
 
 export default function DashboardShell({ children, currentPage, onNavigate, user, pageTitle = 'Dashboard', userRoles }) {
-  const [isDark, toggleDarkMode] = useDarkMode();
+  const [mode, resolvedIsDark, setMode] = useDarkMode();
   const [now, setNow] = useState(new Date());
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -73,14 +73,34 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
               <div className="text-xs text-gray-400 dark:text-gray-500">{timeStr}</div>
             </div>
 
-            <button
-              type="button"
-              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              onClick={toggleDarkMode}
-              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-600 dark:hover:bg-gray-800 dark:text-gray-300"
-            >
-              {isDark ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
+            <div role="toolbar" aria-label={`Theme (resolved ${resolvedIsDark ? 'dark' : 'light'})`} className="inline-flex items-center rounded-md overflow-hidden border border-gray-200 dark:border-transparent">
+              <button
+                type="button"
+                aria-label="Set light mode"
+                onClick={() => setMode('light')}
+                className={`w-9 h-9 flex items-center justify-center ${mode === 'light' ? 'bg-primary text-white' : 'hover:bg-gray-100 text-gray-600 dark:text-gray-300'} `}
+              >
+                <Sun size={16} />
+              </button>
+
+              <button
+                type="button"
+                aria-label="Set system mode"
+                onClick={() => setMode('system')}
+                className={`w-9 h-9 flex items-center justify-center ${mode === 'system' ? 'bg-primary text-white' : 'hover:bg-gray-100 text-gray-600 dark:text-gray-300'}`}
+              >
+                <Monitor size={16} />
+              </button>
+
+              <button
+                type="button"
+                aria-label="Set dark mode"
+                onClick={() => setMode('dark')}
+                className={`w-9 h-9 flex items-center justify-center ${mode === 'dark' ? 'bg-primary text-white' : 'hover:bg-gray-100 text-gray-600 dark:text-gray-300'}`}
+              >
+                <Moon size={16} />
+              </button>
+            </div>
 
             {/* Notification bell + dropdown */}
             <div className="relative" ref={notifRef}>
