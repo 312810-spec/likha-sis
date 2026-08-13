@@ -12,6 +12,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import { SUBJECT_WEIGHTS, getSubjectWeights } from "./utils/subjectWeights";
 import { transmuteGrade, getGradeDescription } from "./utils/transmutationTable";
 import {
@@ -23,8 +24,11 @@ import {
 import { Plus, X, Save, ArrowLeft, RefreshCw, BookOpen } from "lucide-react";
 
 export default function ClassRecord({ user, goBack }) {
+  const { config } = useSchoolConfig();
+  const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
+
   // Setup Panel state
-  const [gradeLevel, setGradeLevel] = useState("Grade 4");
+  const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
   const [section, setSection] = useState("");
   const [subject, setSubject] = useState(Object.keys(SUBJECT_WEIGHTS)[0] || "FILIPINO");
   const [term, setTerm] = useState("Term 1");
@@ -43,16 +47,7 @@ export default function ClassRecord({ user, goBack }) {
   const [exHPS, setExHPS] = useState({ st1: 0, st2: 0, te: 0 });
   const [scores, setScores] = useState({});
 
-  // Grade level options (Grade 4 through Grade 10)
-  const GRADE_OPTIONS = [
-    "Grade 4",
-    "Grade 5",
-    "Grade 6",
-    "Grade 7",
-    "Grade 8",
-    "Grade 9",
-    "Grade 10",
-  ];
+  const GRADE_OPTIONS = gradeOptions;
 
   // Subject options from SUBJECT_WEIGHTS
   const SUBJECT_OPTIONS = Object.keys(SUBJECT_WEIGHTS);

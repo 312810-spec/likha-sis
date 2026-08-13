@@ -133,10 +133,10 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
 
   return (
     <aside
-      className={`${collapsed ? 'w-20' : 'w-64'} ${openMobile ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static top-0 left-0 h-screen bg-primary text-white flex flex-col transition-all duration-200 z-40`}
+      className={`${collapsed ? 'w-20' : 'w-64'} ${openMobile ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static top-0 left-0 h-screen bg-primary text-white flex flex-col transition-all duration-200 z-40 dark:bg-gray-950 dark:text-gray-100`}
       aria-label="Primary"
     >
-      <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-white/10 dark:border-gray-700">
         <div className="flex items-center gap-3 min-w-0">
           <img
             src={'/Tingub%20National%20High%20School%28clear%29.png'}
@@ -147,14 +147,14 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
           />
           {!collapsed && (
             <div className="min-w-0">
-              <div className="text-sm font-semibold truncate">Tingub National High School</div>
-              <div className="text-xs text-accent-light">LIKHA-SIS</div>
+              <div className="text-sm font-semibold truncate text-white dark:text-gray-100">Tingub National High School</div>
+              <div className="text-xs text-accent-light dark:text-accent-light">LIKHA-SIS</div>
             </div>
           )}
         </div>
 
         <button
-          className="hidden md:block text-white/70 hover:text-white text-lg"
+          className="hidden md:block text-white/70 hover:text-white text-lg dark:text-gray-300 dark:hover:text-white"
           aria-expanded={!collapsed}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           onClick={toggleCollapsed}
@@ -164,7 +164,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
         </button>
 
         <button
-          className="md:hidden text-white/70 hover:text-white text-lg"
+          className="md:hidden text-white/70 hover:text-white text-lg dark:text-gray-300 dark:hover:text-white"
           aria-label="Toggle sidebar"
           onClick={toggleMobile}
           type="button"
@@ -179,7 +179,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
             item.children ? (
               <li key={item.label}>
                 {!collapsed && (
-                  <h3 className="px-3 pt-3 pb-1 text-xs uppercase tracking-wide text-accent-light font-semibold">
+                  <h3 className="px-3 pt-3 pb-1 text-xs uppercase tracking-wide text-accent-light font-semibold dark:text-accent-light">
                     {item.label}
                   </h3>
                 )}
@@ -190,8 +190,8 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
                         type="button"
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                           currentPage === c.page
-                            ? 'bg-accent text-primary-dark font-semibold'
-                            : 'text-white/80 hover:bg-white/10'
+                            ? 'bg-accent text-primary-dark font-semibold dark:bg-accent dark:text-primary-dark'
+                            : 'text-white/80 hover:bg-white/10 dark:text-gray-200 dark:hover:bg-gray-800'
                         }`}
                         onClick={() => handleNavClick(c.page)}
                       >
@@ -208,8 +208,8 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
                   type="button"
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                     currentPage === item.page
-                      ? 'bg-accent text-primary-dark font-semibold'
-                      : 'text-white/80 hover:bg-white/10'
+                      ? 'bg-accent text-primary-dark font-semibold dark:bg-accent dark:text-primary-dark'
+                      : 'text-white/80 hover:bg-white/10 dark:text-gray-200 dark:hover:bg-gray-800'
                   }`}
                   onClick={() => handleNavClick(item.page)}
                 >
@@ -223,19 +223,19 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
 
         <div className="mt-6">
           {!collapsed && (
-            <h3 className="px-3 pb-1 text-xs uppercase tracking-wide text-accent-light font-semibold">Future</h3>
+            <h3 className="px-3 pb-1 text-xs uppercase tracking-wide text-accent-light font-semibold dark:text-accent-light">Future</h3>
           )}
           <ul className="space-y-1">
             {future.map((sec) => (
               <li key={sec.label}>
                 {!collapsed && (
-                  <h3 className="px-3 pt-2 pb-1 text-xs text-white/60">{sec.label}</h3>
+                  <h3 className="px-3 pt-2 pb-1 text-xs text-white/60 dark:text-gray-400">{sec.label}</h3>
                 )}
                 <ul className="space-y-1">
                   {sec.children.map((c) => (
                     <li key={c.label}>
                       <button
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/50 cursor-not-allowed"
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-white/50 cursor-not-allowed dark:text-gray-500"
                         disabled
                         type="button"
                       >

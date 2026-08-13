@@ -46,49 +46,49 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-primary flex items-center justify-center px-4">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-8">
+    <div className="min-h-screen bg-primary flex items-center justify-center px-4 dark:bg-gray-950">
+      <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-8 dark:bg-gray-900 dark:shadow-gray-950/40">
         <div className="flex flex-col items-center mb-6">
           <img
             src="/Tingub%20National%20High%20School%28clear%29.png"
             alt="Tingub National High School"
             className="w-16 h-16 mb-3"
           />
-          <h1 className="text-xl font-bold text-primary">LIKHA-SIS</h1>
-          <p className="text-sm text-gray-500 mt-1">Tingub National High School</p>
+          <h1 className="text-xl font-bold text-primary dark:text-primary-light">LIKHA-SIS</h1>
+          <p className="text-sm text-gray-500 mt-1 dark:text-gray-300">Tingub National High School</p>
         </div>
 
         <form onSubmit={handleLogin}>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-200">Email</label>
             <div className="relative">
-              <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent bg-white text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
                 placeholder="teacher@tinguibnhs.edu.ph"
               />
             </div>
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-200">Password</label>
             <div className="relative">
-              <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent bg-white text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
                 placeholder="Enter your password"
               />
             </div>
           </div>
 
           {errorMessage && (
-            <p className="text-red-600 text-sm mb-4">{errorMessage}</p>
+            <p className="text-red-600 text-sm mb-4 dark:text-red-400">{errorMessage}</p>
           )}
 
           <button

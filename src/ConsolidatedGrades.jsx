@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import { getSubjectWeights } from "./utils/subjectWeights";
 import { transmuteGrade } from "./utils/transmutationTable";
 import {
@@ -16,8 +17,11 @@ import {
 import { ArrowLeft, Award, RefreshCw, Info } from "lucide-react";
 
 export default function ConsolidatedGrades({ goBack }) {
+  const { config } = useSchoolConfig();
+  const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
+
   // Filter state
-  const [gradeLevel, setGradeLevel] = useState("Grade 4");
+  const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
 
@@ -29,15 +33,7 @@ export default function ConsolidatedGrades({ goBack }) {
   const [learnersData, setLearnersData] = useState([]);
   const [subjectsList, setSubjectsList] = useState([]);
 
-  const GRADE_OPTIONS = [
-    "Grade 4",
-    "Grade 5",
-    "Grade 6",
-    "Grade 7",
-    "Grade 8",
-    "Grade 9",
-    "Grade 10",
-  ];
+  const GRADE_OPTIONS = gradeOptions;
 
   // Pure helper to recompute a single Term Grade from raw scores in a classRecord document
   function computeLearnerTermGrade(record, learnerId) {

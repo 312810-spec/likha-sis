@@ -6,6 +6,7 @@
 import { useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import { getSubjectWeights } from "./utils/subjectWeights";
 import { transmuteGrade } from "./utils/transmutationTable";
 import {
@@ -115,15 +116,15 @@ const SUBJECT_ROWS = [
   { label: "Physical Education and Health", key: "PE AND HEALTH", isHeader: false, isIndented: true },
 ];
 
-const GRADE_OPTIONS = [
-  "Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10",
-];
-
 // ---- Component --------------------------------------------------------------
 
 export default function ReportCard({ goBack }) {
+  const { config } = useSchoolConfig();
+  const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
+  const GRADE_OPTIONS = gradeOptions;
+
   // Filter state
-  const [gradeLevel, setGradeLevel] = useState("Grade 4");
+  const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
 

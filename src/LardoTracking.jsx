@@ -13,6 +13,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import {
   Plus,
   X,
@@ -39,18 +40,10 @@ const FIXED_RISK_FACTORS = [
   "Other",
 ];
 
-const GRADE_OPTIONS = [
-  "All",
-  "Grade 4",
-  "Grade 5",
-  "Grade 6",
-  "Grade 7",
-  "Grade 8",
-  "Grade 9",
-  "Grade 10",
-];
-
 export default function LardoTracking({ user, goBack }) {
+  const { config } = useSchoolConfig();
+  const gradeOptions = ["All", ...(config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"])];
+  const GRADE_OPTIONS = gradeOptions;
   // Filter bar state
   const [gradeLevelFilter, setGradeLevelFilter] = useState("All");
   const [sectionFilter, setSectionFilter] = useState("");

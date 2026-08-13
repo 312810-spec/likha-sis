@@ -4,8 +4,10 @@
 
 import { useState, useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
+import { collection, getDocs, query, limit } from "firebase/firestore";
 import Login from "./Login";
+import SetupWizard from "./SetupWizard";
 import DashboardShell from "./components/DashboardShell";
 import Dashboard from "./Dashboard";
 import SF1 from "./SF1";
@@ -30,6 +32,8 @@ import { useUserProfile } from "./hooks/useUserProfile.js";
 function App() {
   const [user, setUser] = useState(null);
   const [isChecking, setIsChecking] = useState(true);
+  const [usersCheckLoading, setUsersCheckLoading] = useState(true);
+  const [hasAnyUser, setHasAnyUser] = useState(null);
   const [currentPage, setCurrentPage] = useState("dashboard");
 
   const { profile, loading: profileLoading } = useUserProfile(user);
@@ -42,8 +46,30 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  if (isChecking || (user && profileLoading)) {
+  useEffect(() => {
+    async function checkUsers() {
+      setUsersCheckLoading(true);
+      try {
+        const q = query(collection(db, "users"), limit(1));
+        const snap = await getDocs(q);
+        setHasAnyUser(!snap.empty);
+      } catch {
+        // If check fails, assume users exist to avoid forcing setup in error cases
+        setHasAnyUser(true);
+      } finally {
+        setUsersCheckLoading(false);
+      }
+    }
+    checkUsers();
+  }, []);
+
+  if (isChecking || usersCheckLoading || (user && profileLoading)) {
     return <p style={{ textAlign: "center", marginTop: "80px" }}>Loading...</p>;
+  }
+
+  if (!hasAnyUser) {
+    // No users exist yet — run first-time setup
+    return <SetupWizard />;
   }
 
   if (!user) {

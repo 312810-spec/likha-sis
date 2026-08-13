@@ -11,6 +11,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import {
   getAgeInMonths,
   computeBMI,
@@ -26,19 +27,13 @@ import {
   Users,
 } from "lucide-react";
 
-const GRADE_OPTIONS = [
-  "Grade 4",
-  "Grade 5",
-  "Grade 6",
-  "Grade 7",
-  "Grade 8",
-  "Grade 9",
-  "Grade 10",
-];
-
 export default function NutritionStatus({ user, goBack }) {
+  const { config } = useSchoolConfig();
+  const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
+  const GRADE_OPTIONS = gradeOptions;
+
   // Filter state
-  const [gradeLevel, setGradeLevel] = useState("Grade 4");
+  const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
   const [measurementDate, setMeasurementDate] = useState(

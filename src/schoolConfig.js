@@ -13,6 +13,15 @@ const schoolConfig = {
   divisionOffice: "[Division Office Name]",
   district: "[District]",
   municipalityCityProvince: "[Municipality/City], [Province]",
+  gradeLevelsOffered: [
+    "Grade 4",
+    "Grade 5",
+    "Grade 6",
+    "Grade 7",
+    "Grade 8",
+    "Grade 9",
+    "Grade 10",
+  ],
 };
 
 export default schoolConfig;

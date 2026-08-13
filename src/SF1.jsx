@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Fragment } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 
 // Calculates age from a birth date string (YYYY-MM-DD), as of today.
 // Note: official DepEd age is "as of 1st Friday of June" — we're using today's date
@@ -46,7 +47,9 @@ function createBlankLearner() {
 }
 
 function SF1({ user, goBack }) {
-  const [gradeLevel, setGradeLevel] = useState("");
+  const { config } = useSchoolConfig();
+  const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
+  const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
   const [learners, setLearners] = useState([createBlankLearner()]);
@@ -146,7 +149,11 @@ function SF1({ user, goBack }) {
       <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>
         <div>
           <label>Grade Level</label><br />
-          <input value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} placeholder="e.g. Grade 10" />
+          <select value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)}>
+            {gradeOptions.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label>Section</label><br />
