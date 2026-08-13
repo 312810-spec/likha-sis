@@ -9,6 +9,10 @@ const schoolConfig = {
   divisionName: "Department of Education - Division of [Division Name]",
   principalName: "[Principal Full Name]",
   principalPosition: "School Principal",
+  region: "[Region]",
+  divisionOffice: "[Division Office Name]",
+  district: "[District]",
+  municipalityCityProvince: "[Municipality/City], [Province]",
 };
 
 export default schoolConfig;

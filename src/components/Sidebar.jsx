@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { canAccessPage } from '../pageAccess.js';
 import {
   LayoutDashboard,
   FileText,
@@ -15,6 +16,7 @@ import {
   AlertTriangle,
   HeartPulse,
   ArrowLeftRight,
+  Award,
 } from 'lucide-react';
 
 const icons = {
@@ -24,6 +26,8 @@ const icons = {
   SF1: FileText,
   SF2: FileText,
   'Class Record': ClipboardList,
+  'Consolidated Grades': Award,
+  'Report Card (SF9)': FileText,
   'View Learners': Users,
   'LARDO Tracking': AlertTriangle,
   'Nutrition Status': HeartPulse,
@@ -42,7 +46,7 @@ const icons = {
   'SF10 Import': UploadCloud,
 };
 
-export default function Sidebar({ currentPage, onNavigate }) {
+export default function Sidebar({ currentPage, onNavigate, userRoles }) {
   const [collapsed, setCollapsed] = useState(false);
   const [openMobile, setOpenMobile] = useState(false);
 
@@ -67,6 +71,8 @@ export default function Sidebar({ currentPage, onNavigate }) {
       ],
     },
     { label: 'Class Record', page: 'classRecord' },
+    { label: 'Consolidated Grades', page: 'consolidatedGrades' },
+    { label: 'Report Card (SF9)', page: 'reportCard' },
     { label: 'View Learners', page: 'viewLearners' },
     { label: 'LARDO Tracking', page: 'lardoTracking' },
     { label: 'Nutrition Status', page: 'nutritionStatus' },
@@ -87,6 +93,20 @@ export default function Sidebar({ currentPage, onNavigate }) {
       ],
     },
   ];
+
+  const visibleNav = nav
+    .map((item) => {
+      if (item.children) {
+        const allowedChildren = item.children.filter((c) =>
+          canAccessPage(c.page, userRoles)
+        );
+        return allowedChildren.length > 0
+          ? { ...item, children: allowedChildren }
+          : null;
+      }
+      return canAccessPage(item.page, userRoles) ? item : null;
+    })
+    .filter(Boolean);
 
   const future = [
     {
@@ -155,7 +175,7 @@ export default function Sidebar({ currentPage, onNavigate }) {
 
       <nav className="flex-1 overflow-y-auto py-3 px-2">
         <ul className="space-y-1">
-          {nav.map((item) =>
+          {visibleNav.map((item) =>
             item.children ? (
               <li key={item.label}>
                 {!collapsed && (

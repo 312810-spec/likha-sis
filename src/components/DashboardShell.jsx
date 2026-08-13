@@ -4,7 +4,7 @@ import { auth } from '../firebase';
 import { Bell, User as UserIcon, LogOut, Settings } from 'lucide-react';
 import Sidebar from './Sidebar';
 
-export default function DashboardShell({ children, currentPage, onNavigate, user, pageTitle = 'Dashboard' }) {
+export default function DashboardShell({ children, currentPage, onNavigate, user, pageTitle = 'Dashboard', userRoles }) {
   const [now, setNow] = useState(new Date());
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -54,7 +54,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
 
   return (
     <div className="flex min-h-screen bg-gray-50" role="region" aria-label="Dashboard Shell">
-      <Sidebar currentPage={currentPage} onNavigate={onNavigate} user={user} />
+      <Sidebar currentPage={currentPage} onNavigate={onNavigate} user={user} userRoles={userRoles} />
 
       <main className="flex-1 min-w-0 overflow-x-hidden">
         <div className="flex items-start justify-between gap-4 px-6 py-5 bg-white border-b border-gray-200">

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "./firebase";
 import EditLearnerModal from "./EditLearnerModal";
+import { canEditLearners } from "./pageAccess.js";
 
 // Calculates age from a birth date string (YYYY-MM-DD), as of today.
 // Note: official DepEd age is "as of 1st Friday of June" — we're using today's date
@@ -22,7 +23,7 @@ function calculateAge(birthDateString) {
   return age;
 }
 
-function ViewLearners({ user, goBack }) {
+function ViewLearners({ user, goBack, userRoles }) {
   // learners: array of learner objects from Firestore, each with its document id included.
   const [learners, setLearners] = useState([]);
   // loading: true while we're fetching data from Firestore.
@@ -86,6 +87,8 @@ function ViewLearners({ user, goBack }) {
       setTimeout(() => setErrorMessage(""), 5000);
     }
   }
+
+  const isEditable = canEditLearners(userRoles);
 
   // Shared table cell style for visual consistency with SF1.jsx.
   const cellStyle = { border: "1px solid #ccc", padding: "6px", textAlign: "left" };
@@ -181,7 +184,7 @@ function ViewLearners({ user, goBack }) {
                 <th style={cellStyle}>Grade Level</th>
                 <th style={cellStyle}>Section</th>
                 <th style={cellStyle}>Learning Modality</th>
-                <th style={cellStyle}>Actions</th>
+                {isEditable && <th style={cellStyle}>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -214,37 +217,39 @@ function ViewLearners({ user, goBack }) {
                   <td style={cellStyle}>{l.gradeLevel || ""}</td>
                   <td style={cellStyle}>{l.section || ""}</td>
                   <td style={cellStyle}>{l.learningModality || ""}</td>
-                  <td style={cellStyle}>
-                    <button
-                      onClick={() => setEditingLearner(l)}
-                      style={{
-                        padding: "4px 10px",
-                        background: "#e3f2fd",
-                        color: "#1565c0",
-                        border: "1px solid #90caf9",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "13px",
-                        marginRight: "6px",
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(l.id)}
-                      style={{
-                        padding: "4px 10px",
-                        background: "#ffebee",
-                        color: "#c62828",
-                        border: "1px solid #ef9a9a",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        fontSize: "13px",
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </td>
+                  {isEditable && (
+                    <td style={cellStyle}>
+                      <button
+                        onClick={() => setEditingLearner(l)}
+                        style={{
+                          padding: "4px 10px",
+                          background: "#e3f2fd",
+                          color: "#1565c0",
+                          border: "1px solid #90caf9",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          marginRight: "6px",
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(l.id)}
+                        style={{
+                          padding: "4px 10px",
+                          background: "#ffebee",
+                          color: "#c62828",
+                          border: "1px solid #ef9a9a",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
