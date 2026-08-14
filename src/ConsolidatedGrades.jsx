@@ -6,6 +6,7 @@ import { useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
+import useAvailableSections from "./hooks/useAvailableSections";
 import { getSubjectWeights } from "./utils/subjectWeights";
 import { transmuteGrade } from "./utils/transmutationTable";
 import {
@@ -24,6 +25,7 @@ export default function ConsolidatedGrades({ goBack }) {
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
+  const { sections: availableSections, loading } = useAvailableSections(gradeLevel, schoolYear);
 
   // Grid / Data state
   const [isLoaded, setIsLoaded] = useState(false);
@@ -329,13 +331,21 @@ export default function ConsolidatedGrades({ goBack }) {
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Section
               </label>
-              <input
-                type="text"
+              <select
                 value={section}
                 onChange={(e) => setSection(e.target.value)}
-                placeholder="e.g. Diamond"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
-              />
+              >
+                <option value="">Select a section</option>
+                {availableSections.map((sec) => (
+                  <option key={sec} value={sec}>{sec}</option>
+                ))}
+              </select>
+              {availableSections.length === 0 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {loading ? "Loading sections..." : "No sections found. Add learners in SF1 first."}
+                </p>
+              )}
             </div>
           </div>
 

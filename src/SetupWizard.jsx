@@ -1,8 +1,22 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
+import { extractThemeFromImage } from "./utils/extractTheme.js";
+import SF1Importer from "./pages/SF1Importer";
+import SF10Importer from "./pages/SF10Importer";
+import {
+  Upload,
+  Sparkles,
+  Image as ImageIcon,
+  FileSpreadsheet,
+  FileText,
+  ArrowRight,
+  ArrowLeft,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 
 const KEY_STAGE_OPTIONS = [
   {
@@ -38,7 +52,50 @@ function getGradeLevelsFromStages(stages) {
   return gradeLevels;
 }
 
-function SetupWizard() {
+/**
+ * Resizes an image file to max width/height preserving aspect ratio
+ * and returns a compressed JPEG data URL (quality 0.7).
+ */
+function resizeImageToCanvas(file, maxWidth = 200, maxHeight = 200, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    if (!file) return resolve(null);
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.onerror = (err) => reject(err);
+      img.src = readerEvent.target.result;
+    };
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
+}
+
+function SetupWizard({ onComplete }) {
   const { config: initialConfig } = useSchoolConfig();
   const defaultGradeLevels = [
     "Grade 4",
@@ -69,6 +126,17 @@ function SetupWizard() {
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Step 3: Branding State
+  const [uploadedLogoUrl, setUploadedLogoUrl] = useState(null);
+  const [extractedTheme, setExtractedTheme] = useState(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [isSavingBranding, setIsSavingBranding] = useState(false);
+  const [brandingError, setBrandingError] = useState("");
+  const fileInputRef = useRef(null);
+
+  // Step 4: Import Learners State
+  const [activeImporter, setActiveImporter] = useState(null);
 
   function handleKeyStageToggle(stageKey) {
     if (stageKey === "ks1" || stageKey === "ks4") return;
@@ -107,7 +175,7 @@ function SetupWizard() {
     return Object.keys(e).length === 0;
   }
 
-  async function handleFinalSubmit(e) {
+  async function handleStep2Submit(e) {
     e.preventDefault();
     setSubmitError("");
     if (!validateStep2()) return;
@@ -141,7 +209,8 @@ function SetupWizard() {
         setupCompletedAt: serverTimestamp(),
       });
 
-      // Success: Auth automatically signs in the new user. Let app route handle the rest.
+      // Advance to Step 3 (Branding)
+      setStep(3);
     } catch (err) {
       setSubmitError(err.message || "Failed to create account.");
     } finally {
@@ -149,12 +218,127 @@ function SetupWizard() {
     }
   }
 
+  async function handleLogoChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setBrandingError("Please select a valid image file (PNG, JPEG, etc.).");
+      return;
+    }
+
+    setBrandingError("");
+    try {
+      const resizedDataUrl = await resizeImageToCanvas(file, 200, 200, 0.7);
+      setUploadedLogoUrl(resizedDataUrl);
+    } catch (err) {
+      console.error("Failed to process image:", err);
+      setBrandingError("Could not process the selected image. Please try another file.");
+    }
+  }
+
+  async function handleGenerateTheme() {
+    if (!uploadedLogoUrl) {
+      setBrandingError("Please upload a logo first to generate a theme.");
+      return;
+    }
+
+    setBrandingError("");
+    setIsExtracting(true);
+
+    try {
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = uploadedLogoUrl;
+      });
+
+      const theme = await extractThemeFromImage(img);
+      setExtractedTheme(theme);
+    } catch (err) {
+      console.error("Failed to extract theme from logo:", err);
+      setBrandingError("Failed to extract colors from the image. Please try again or use another image.");
+    } finally {
+      setIsExtracting(false);
+    }
+  }
+
+  async function handleSaveBranding() {
+    if (!uploadedLogoUrl && !extractedTheme) {
+      setStep(4);
+      return;
+    }
+
+    setBrandingError("");
+    setIsSavingBranding(true);
+
+    try {
+      const payload = {
+        updatedAt: serverTimestamp(),
+      };
+      if (uploadedLogoUrl) payload.logo = uploadedLogoUrl;
+      if (extractedTheme) payload.theme = extractedTheme;
+
+      await setDoc(doc(db, "settings", "schoolConfig"), payload, { merge: true });
+      setStep(4);
+    } catch (err) {
+      console.error("Failed to save branding:", err);
+      setBrandingError("Failed to save branding settings. Please try again.");
+    } finally {
+      setIsSavingBranding(false);
+    }
+  }
+
+  function handleSkipBranding() {
+    setStep(4);
+  }
+
+  function handleFinishSetup() {
+    if (onComplete) {
+      onComplete();
+      return;
+    }
+    if (typeof window !== "undefined" && window.location?.reload) {
+      try {
+        window.location.reload();
+      } catch {
+        // Fallback for test / non-browser environments
+      }
+    }
+  }
+
+  const importCards = [
+    {
+      key: "sf1",
+      title: "SF1 Bulk Import",
+      description:
+        "Upload existing DepEd SF1 (Learner's Information Sheet) .xls/.xlsx files in a batch. The system analyzes each workbook, detects its structure, extracts and validates learner records, flags duplicates and conflicts, and imports approved records into Firestore.",
+      icon: FileSpreadsheet,
+      accent: "bg-primary",
+      fileNote: ".xls · .xlsx · batch upload",
+    },
+    {
+      key: "sf10",
+      title: "SF10 Import",
+      description:
+        "Upload SF10 (Learner's Permanent Academic Record) files. Extract learner identity and learning-area grades, validate them, then import approved academic records linked to each learner by LRN.",
+      icon: FileText,
+      accent: "bg-leaf",
+      fileNote: ".xls · .xlsx",
+    },
+  ];
+
+  const containerMaxWidth =
+    step === 4 ? "max-w-4xl" : step === 3 ? "max-w-2xl" : "max-w-lg";
+
   return (
-    <div className="min-h-screen bg-primary flex items-center justify-center px-4">
-      <div className="w-full max-w-lg bg-white rounded-xl shadow-lg p-8">
-        <div className="mb-4 text-center">
+    <div className="min-h-screen bg-primary flex items-center justify-center p-4">
+      <div className={`w-full ${containerMaxWidth} bg-white rounded-xl shadow-lg p-6 sm:p-8 transition-all duration-200`}>
+        <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold text-primary">LIKHA-SIS Setup</h2>
-          <p className="text-sm text-gray-500 mt-1">Step {step} of 2</p>
+          <p className="text-sm text-gray-500 mt-1">Step {step} of 4</p>
         </div>
 
         {step === 1 && (
@@ -265,7 +449,7 @@ function SetupWizard() {
         )}
 
         {step === 2 && (
-          <form onSubmit={handleFinalSubmit}>
+          <form onSubmit={handleStep2Submit}>
             <p className="text-sm text-gray-600 mb-4">
               This account will have full ICT Coordinator access to set up the rest of your school's system.
             </p>
@@ -301,10 +485,277 @@ function SetupWizard() {
                 disabled={isSubmitting}
                 className="bg-primary text-white px-4 py-2 rounded"
               >
-                {isSubmitting ? "Creating account..." : "Create account & Finish Setup"}
+                {isSubmitting ? "Creating account..." : "Create account & Continue"}
               </button>
             </div>
           </form>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-6">
+            <p className="text-sm text-gray-600">
+              Upload your school logo to extract brand colors and customize your system theme. You can also configure this later in Branding Settings.
+            </p>
+
+            {brandingError && (
+              <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-800 flex items-start gap-2.5 text-xs font-medium">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                <span>{brandingError}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Logo Upload */}
+              <div className="bg-gray-50/70 p-5 rounded-xl border border-gray-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
+                    1
+                  </span>
+                  <h3 className="text-sm font-semibold text-gray-900">School Logo</h3>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Upload an image file (PNG, JPG). It will be resized client-side to 200x200px.
+                </p>
+
+                <div className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg bg-white space-y-3">
+                  <div className="w-28 h-28 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden p-2">
+                    {uploadedLogoUrl ? (
+                      <img
+                        src={uploadedLogoUrl}
+                        alt="School logo preview"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    ) : (
+                      <ImageIcon size={32} className="text-gray-400" />
+                    )}
+                  </div>
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                    id="setup-logo-input"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition"
+                  >
+                    <Upload size={14} />
+                    {uploadedLogoUrl ? "Change Logo" : "Upload Logo"}
+                  </button>
+                  {uploadedLogoUrl && (
+                    <span className="text-[11px] text-green-600 font-medium flex items-center gap-1">
+                      <CheckCircle2 size={12} /> Ready for theme generation
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Theme Generation */}
+              <div className="bg-gray-50/70 p-5 rounded-xl border border-gray-200 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
+                    2
+                  </span>
+                  <h3 className="text-sm font-semibold text-gray-900">Brand Theme</h3>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Extracts dominant colors from your logo with readable contrast.
+                </p>
+
+                <button
+                  type="button"
+                  disabled={isExtracting || !uploadedLogoUrl}
+                  onClick={handleGenerateTheme}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                >
+                  <Sparkles size={14} />
+                  {isExtracting ? "Extracting Colors..." : "Generate Theme from Logo"}
+                </button>
+
+                {extractedTheme ? (
+                  <div className="space-y-2 pt-1">
+                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
+                      Extracted Palette
+                    </h4>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {/* Primary Swatch */}
+                      <div className="p-2 rounded-lg border border-gray-200 bg-white text-center space-y-1">
+                        <div
+                          className="w-full h-7 rounded shadow-inner"
+                          style={{ backgroundColor: extractedTheme.primary }}
+                        />
+                        <div className="text-[11px] font-bold text-gray-800">Primary</div>
+                        <div className="text-[9px] text-gray-500 font-mono">{extractedTheme.primary}</div>
+                        <div className="flex gap-1 justify-center pt-0.5">
+                          <div
+                            className="w-3 h-3 rounded"
+                            title={`Light: ${extractedTheme.primaryLight}`}
+                            style={{ backgroundColor: extractedTheme.primaryLight }}
+                          />
+                          <div
+                            className="w-3 h-3 rounded"
+                            title={`Dark: ${extractedTheme.primaryDark}`}
+                            style={{ backgroundColor: extractedTheme.primaryDark }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Accent Swatch */}
+                      <div className="p-2 rounded-lg border border-gray-200 bg-white text-center space-y-1">
+                        <div
+                          className="w-full h-7 rounded shadow-inner"
+                          style={{ backgroundColor: extractedTheme.accent }}
+                        />
+                        <div className="text-[11px] font-bold text-gray-800">Accent</div>
+                        <div className="text-[9px] text-gray-500 font-mono">{extractedTheme.accent}</div>
+                        <div className="flex gap-1 justify-center pt-0.5">
+                          <div
+                            className="w-3 h-3 rounded"
+                            title={`Light: ${extractedTheme.accentLight}`}
+                            style={{ backgroundColor: extractedTheme.accentLight }}
+                          />
+                          <div
+                            className="w-3 h-3 rounded"
+                            title={`Dark: ${extractedTheme.accentDark}`}
+                            style={{ backgroundColor: extractedTheme.accentDark }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Leaf Swatch */}
+                      <div className="p-2 rounded-lg border border-gray-200 bg-white text-center space-y-1">
+                        <div
+                          className="w-full h-7 rounded shadow-inner"
+                          style={{ backgroundColor: extractedTheme.leaf }}
+                        />
+                        <div className="text-[11px] font-bold text-gray-800">Leaf</div>
+                        <div className="text-[9px] text-gray-500 font-mono">{extractedTheme.leaf}</div>
+                        <div className="flex gap-1 justify-center pt-0.5">
+                          <div
+                            className="w-3 h-3 rounded"
+                            title={`Light: ${extractedTheme.leafLight}`}
+                            style={{ backgroundColor: extractedTheme.leafLight }}
+                          />
+                          <div
+                            className="w-3 h-3 rounded"
+                            title={`Dark: ${extractedTheme.leafDark}`}
+                            style={{ backgroundColor: extractedTheme.leafDark }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-[11px] text-gray-400 border border-dashed rounded-lg bg-white">
+                    No theme generated yet. Upload a logo and click generate.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={handleSkipBranding}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Skip for Now
+              </button>
+              <button
+                type="button"
+                disabled={isSavingBranding}
+                onClick={handleSaveBranding}
+                className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition shadow-sm disabled:opacity-50"
+              >
+                {isSavingBranding ? "Saving..." : "Save and Continue"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-6">
+            <p className="text-sm text-gray-600">
+              You can bulk-import your student roster now using DepEd SF1 or SF10 spreadsheets, or skip and do this later from the Import Center.
+            </p>
+
+            {!activeImporter ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {importCards.map((card) => {
+                  const Icon = card.icon;
+                  return (
+                    <button
+                      key={card.key}
+                      type="button"
+                      onClick={() => setActiveImporter(card.key)}
+                      className="text-left bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-primary hover:shadow-md transition-all group"
+                    >
+                      <div className="flex items-start gap-3.5">
+                        <div
+                          className={`w-10 h-10 rounded-lg ${card.accent} text-white flex items-center justify-center shrink-0`}
+                        >
+                          <Icon size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-semibold text-gray-900">{card.title}</h3>
+                            <ArrowRight
+                              size={16}
+                              className="text-gray-300 group-hover:text-primary transition-colors"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">{card.description}</p>
+                          <p className="text-[11px] text-gray-400 mt-2 font-medium">{card.fileNote}</p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b pb-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveImporter(null)}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-light"
+                  >
+                    <ArrowLeft size={14} /> Back to Importer Options
+                  </button>
+                  <span className="text-xs text-gray-500 font-medium">
+                    {activeImporter === "sf1" ? "SF1 Bulk Importer" : "SF10 Importer"}
+                  </span>
+                </div>
+
+                <div className="border rounded-xl p-4 bg-gray-50/50">
+                  {activeImporter === "sf1" && <SF1Importer user={auth.currentUser} />}
+                  {activeImporter === "sf10" && <SF10Importer user={auth.currentUser} />}
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={handleFinishSetup}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
+                Skip for Now
+              </button>
+              <button
+                type="button"
+                onClick={handleFinishSetup}
+                className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition shadow-sm"
+              >
+                Finish Setup
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -7,6 +7,7 @@ import { Fragment } from "react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
+import useAvailableSections from "./hooks/useAvailableSections";
 
 // Calculates age from a birth date string (YYYY-MM-DD), as of today.
 // Note: official DepEd age is "as of 1st Friday of June" — we're using today's date
@@ -52,6 +53,9 @@ function SF1({ user, goBack }) {
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
+  const { sections: availableSections } = useAvailableSections(gradeLevel, schoolYear);
+  const [newSection, setNewSection] = useState("");
+  const [showNewSection, setShowNewSection] = useState(false);
   const [learners, setLearners] = useState([createBlankLearner()]);
   // Tracks which row indexes are expanded (showing detail panel).
   // Using a Set for O(1) lookup when rendering.
@@ -183,12 +187,37 @@ function SF1({ user, goBack }) {
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
               Section
             </label>
-            <input
+            <select
               value={section}
-              onChange={(e) => setSection(e.target.value)}
-              placeholder="e.g. Kindness"
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
-            />
+              onChange={(e) => {
+                const selected = e.target.value;
+                if (selected === "+") {
+                  setShowNewSection(true);
+                  setNewSection("");
+                } else {
+                  setSection(selected);
+                  setShowNewSection(false);
+                }
+              }}
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+            >
+              <option value="">Select a section</option>
+              {availableSections.map((sec) => (
+                <option key={sec} value={sec}>{sec}</option>
+              ))}
+              <option value="+">+ Add new section...</option>
+            </select>
+            {showNewSection && (
+              <input
+                value={newSection}
+                onChange={(e) => {
+                  setNewSection(e.target.value);
+                  setSection(e.target.value);
+                }}
+                placeholder="Enter section name..."
+                className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none mt-2 transition-colors"
+              />
+            )}
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">

@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
+import useAvailableSections from "./hooks/useAvailableSections";
 import { SUBJECT_WEIGHTS, getSubjectWeights } from "./utils/subjectWeights";
 import { transmuteGrade, getGradeDescription } from "./utils/transmutationTable";
 import {
@@ -33,6 +34,7 @@ export default function ClassRecord({ user, goBack }) {
   const [subject, setSubject] = useState(Object.keys(SUBJECT_WEIGHTS)[0] || "FILIPINO");
   const [term, setTerm] = useState("Term 1");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
+  const { sections: availableSections, loading } = useAvailableSections(gradeLevel, schoolYear);
 
   // Grid / Data state
   const [isLoaded, setIsLoaded] = useState(false);
@@ -388,14 +390,22 @@ export default function ClassRecord({ user, goBack }) {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
                   Section
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Kindness"
+                <select
                   value={section}
                   onChange={(e) => setSection(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
                   required
-                />
+                >
+                  <option value="">Select a section</option>
+                  {availableSections.map((sec) => (
+                    <option key={sec} value={sec}>{sec}</option>
+                  ))}
+                </select>
+                {availableSections.length === 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {loading ? "Loading sections..." : "No sections found. Add learners in SF1 first."}
+                  </p>
+                )}
               </div>
 
               <div>

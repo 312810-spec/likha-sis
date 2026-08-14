@@ -14,6 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
+import useAvailableSections from "./hooks/useAvailableSections";
 import {
   Plus,
   X,
@@ -48,6 +49,7 @@ export default function LardoTracking({ user, goBack }) {
   const [gradeLevelFilter, setGradeLevelFilter] = useState("All");
   const [sectionFilter, setSectionFilter] = useState("");
   const [schoolYearFilter, setSchoolYearFilter] = useState("2026-2027");
+  const { sections: availableSections, loading } = useAvailableSections(gradeLevelFilter, schoolYearFilter);
 
   // LARDO Records state
   const [records, setRecords] = useState([]);
@@ -393,13 +395,21 @@ export default function LardoTracking({ user, goBack }) {
             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
               Section <span className="text-gray-400 dark:text-gray-500 font-normal">(Optional)</span>
             </label>
-            <input
-              type="text"
-              placeholder="Filter by section..."
+            <select
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
-            />
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+            >
+              <option value="">Select a section</option>
+              {availableSections.map((sec) => (
+                <option key={sec} value={sec}>{sec}</option>
+              ))}
+            </select>
+            {availableSections.length === 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {loading ? "Loading sections..." : "No sections found. Add learners in SF1 first."}
+              </p>
+            )}
           </div>
 
           <div>
