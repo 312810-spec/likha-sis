@@ -12,6 +12,7 @@ import DashboardShell from "./components/DashboardShell";
 import Dashboard from "./Dashboard";
 import SF1 from "./SF1";
 import SF2 from "./SF2";
+import SF4 from "./SF4";
 import ClassRecord from "./ClassRecord";
 import ConsolidatedGrades from "./ConsolidatedGrades";
 import ReportCard from "./ReportCard";
@@ -120,6 +121,10 @@ function App() {
       case "sf2":
         pageTitle = "School Form 2 - Attendance";
         pageContent = <SF2 user={user} goBack={() => setCurrentPage("dashboard")} />;
+        break;
+      case "sf4":
+        pageTitle = "School Form 4 - Monthly Learner Movement Report";
+        pageContent = <SF4 user={user} goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "classRecord":
         pageTitle = "Class Record";

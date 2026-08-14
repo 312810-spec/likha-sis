@@ -28,6 +28,8 @@ const icons = {
   'School Forms': FileText,
   SF1: FileText,
   SF2: FileText,
+  'SF4': FileText,
+  'School Form 4': FileText,
   'Class Record': ClipboardList,
   'Consolidated Grades': Award,
   'Report Card (SF9)': FileText,
@@ -72,6 +74,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
       children: [
         { label: 'SF1', page: 'sf1' },
         { label: 'SF2', page: 'sf2' },
+        { label: 'SF4', page: 'sf4' },
       ],
     },
     { label: 'Class Record', page: 'classRecord' },
