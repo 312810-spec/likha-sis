@@ -17,11 +17,6 @@ import {
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
 
-// Common table cell style, consistent with SF1.jsx / ViewLearners.jsx.
-const cellStyle = { border: "1px solid #ccc", padding: "6px", textAlign: "left" };
-// Center-aligned variant used for the compact weekday date columns.
-const centerCellStyle = { ...cellStyle, textAlign: "center" };
-
 // Dropout reason codes (a1–f) per the DepEd NLS legend. Used both for the
 // "Legend & Guidelines" section and the per-learner Remarks dropdown options.
 const DROPOUT_REASONS = [
@@ -92,29 +87,6 @@ function byName(a, b) {
   const last = (a.lastName || "").toLowerCase().localeCompare((b.lastName || "").toLowerCase());
   if (last !== 0) return last;
   return (a.firstName || "").toLowerCase().localeCompare((b.firstName || "").toLowerCase());
-}
-
-// Style for a single learner×date cell button, depending on its current value.
-function cellButtonStyle(value) {
-  const base = {
-    width: "30px",
-    height: "26px",
-    padding: "0",
-    cursor: "pointer",
-    fontSize: "13px",
-    lineHeight: "1",
-    borderRadius: "3px",
-  };
-  if (value === "A") {
-    // Absent — red, matching the Delete button colors.
-    return { ...base, background: "#ffebee", color: "#c62828", border: "1px solid #ef9a9a" };
-  }
-  if (value === "T") {
-    // Tardy — amber/yellow.
-    return { ...base, background: "#fff8e1", color: "#f57f17", border: "1px solid #ffe082" };
-  }
-  // Blank / Present.
-  return { ...base, background: "#fff", color: "#333", border: "1px solid #ccc" };
 }
 
 // ---- Component -------------------------------------------------------------
@@ -356,28 +328,29 @@ function SF2({ user, goBack }) {
     }
   }
 
-  // Header for each weekday date column: day label on one line, number below.
-  const weekdayHeaderStyle = {
-    ...cellStyle,
-    textAlign: "center",
-    padding: "4px 6px",
-    lineHeight: "1.2",
-  };
-
   // One learner row (reused for both the male and female groups).
   function renderLearnerRow(learner, no) {
     return (
-      <tr key={learner.id}>
-        <td style={centerCellStyle}>{no}</td>
-        <td style={cellStyle}>
+      <tr key={learner.id} className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
+        <td className="p-2 text-center border-r border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 font-mono">
+          {no}
+        </td>
+        <td className="p-2 border-r border-gray-200 dark:border-gray-700 font-medium text-gray-900 dark:text-gray-100">
           {learner.lastName || ""}, {learner.firstName || ""}
         </td>
         {weekdays.map((w) => {
           const value = records[learner.id]?.[w.dateString] || "";
           return (
-            <td key={w.dateString} style={{ ...centerCellStyle, padding: "2px" }}>
+            <td key={w.dateString} className="p-1 text-center border-r border-gray-200 dark:border-gray-700">
               <button
-                style={cellButtonStyle(value)}
+                type="button"
+                className={`w-7 h-6 p-0 text-xs rounded transition-colors duration-150 active:scale-[0.98] inline-flex items-center justify-center font-bold ${
+                  value === "A"
+                    ? "bg-red-500/10 text-red-700 dark:bg-red-500/20 dark:text-red-400 border border-red-300 dark:border-red-800"
+                    : value === "T"
+                    ? "bg-amber-500/10 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-300 dark:border-amber-800"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
                 onClick={() => cycleCell(learner.id, w.dateString)}
                 title={`${w.label} ${w.day}`}
               >
@@ -386,13 +359,29 @@ function SF2({ user, goBack }) {
             </td>
           );
         })}
-        <td style={centerCellStyle}>{learnerAbsentCount(learner.id)}</td>
-        <td style={centerCellStyle}>{learnerTardyCount(learner.id)}</td>
-        <td style={centerCellStyle}>
+        <td className="p-2 text-center border-r border-gray-200 dark:border-gray-700 font-mono font-semibold">
+          {learnerAbsentCount(learner.id) > 0 ? (
+            <span className="inline-block px-1.5 py-0.5 rounded bg-red-500/10 text-red-700 dark:bg-red-500/20 dark:text-red-400">
+              {learnerAbsentCount(learner.id)}
+            </span>
+          ) : (
+            <span className="text-gray-400 dark:text-gray-500">0</span>
+          )}
+        </td>
+        <td className="p-2 text-center border-r border-gray-200 dark:border-gray-700 font-mono font-semibold">
+          {learnerTardyCount(learner.id) > 0 ? (
+            <span className="inline-block px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400">
+              {learnerTardyCount(learner.id)}
+            </span>
+          ) : (
+            <span className="text-gray-400 dark:text-gray-500">0</span>
+          )}
+        </td>
+        <td className="p-1.5 text-center">
           <select
             value={remarksData[learner.id] || ""}
             onChange={(e) => handleRemarkChange(learner.id, e.target.value)}
-            style={{ padding: "2px", fontSize: "11px", maxWidth: "150px" }}
+            className="w-full text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1 focus:ring-1 focus:ring-primary focus:border-primary outline-none transition-colors max-w-[150px]"
           >
             <option value="">—</option>
             {DROPOUT_REASONS.map((r) => {
@@ -414,8 +403,15 @@ function SF2({ user, goBack }) {
   // Subtotal row shown after each group (and a combined one at the end).
   function renderSubtotalRow(label, group, isCombined) {
     return (
-      <tr key={label} style={isCombined ? { background: "#fff8e1" } : { background: "#fafafa" }}>
-        <td colSpan={2} style={{ ...cellStyle, fontWeight: "bold" }}>
+      <tr
+        key={label}
+        className={
+          isCombined
+            ? "bg-primary/10 dark:bg-primary/20 font-bold text-gray-900 dark:text-gray-100 border-t-2 border-gray-300 dark:border-gray-600"
+            : "bg-gray-50 dark:bg-gray-800/60 font-bold text-gray-800 dark:text-gray-200"
+        }
+      >
+        <td colSpan={2} className="p-2 border-r border-gray-200 dark:border-gray-700 font-bold">
           {label}
         </td>
         {weekdays.map((w) => {
@@ -425,22 +421,22 @@ function SF2({ user, goBack }) {
             ? maleCount + femaleCount
             : groupAbsentOnDate(group, w.dateString);
           return (
-            <td key={w.dateString} style={{ ...centerCellStyle, fontWeight: "bold" }}>
+            <td key={w.dateString} className="p-1 text-center border-r border-gray-200 dark:border-gray-700 font-mono font-bold">
               {count}
             </td>
           );
         })}
-        <td style={{ ...centerCellStyle, fontWeight: "bold" }}>
+        <td className="p-2 text-center border-r border-gray-200 dark:border-gray-700 font-mono font-bold text-red-700 dark:text-red-400">
           {isCombined
             ? groupAbsentTotal(maleLearners) + groupAbsentTotal(femaleLearners)
             : groupAbsentTotal(group)}
         </td>
-        <td style={{ ...centerCellStyle, fontWeight: "bold" }}>
+        <td className="p-2 text-center border-r border-gray-200 dark:border-gray-700 font-mono font-bold text-amber-700 dark:text-amber-400">
           {isCombined
             ? groupTardyTotal(maleLearners) + groupTardyTotal(femaleLearners)
             : groupTardyTotal(group)}
         </td>
-        <td style={centerCellStyle} />
+        <td className="p-2 text-center" />
       </tr>
     );
   }
@@ -448,20 +444,14 @@ function SF2({ user, goBack }) {
   // Bold labeled group separator row (MALE / FEMALE) spanning No. + Name columns.
   function renderGroupHeader(label) {
     return (
-      <tr key={label}>
+      <tr key={label} className="bg-gray-100 dark:bg-gray-800/80 font-bold text-gray-700 dark:text-gray-200 tracking-wider">
         <td
           colSpan={2}
-          style={{
-            border: "1px solid #ccc",
-            padding: "6px",
-            fontWeight: "bold",
-            background: "#eceff1",
-            letterSpacing: "1px",
-          }}
+          className="p-2 border-r border-gray-200 dark:border-gray-700 uppercase"
         >
           {label}
         </td>
-        <td colSpan={weekdays.length + 3} style={{ border: "1px solid #ccc", padding: "6px" }} />
+        <td colSpan={weekdays.length + 3} className="p-2 border-t border-b border-gray-200 dark:border-gray-700" />
       </tr>
     );
   }
@@ -489,53 +479,43 @@ function SF2({ user, goBack }) {
   // Renders the collapsible "Legend & Guidelines" section (collapsed by default).
   function renderLegend() {
     return (
-      <div style={{ marginBottom: "16px", border: "1px solid #ddd", borderRadius: "6px" }}>
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
         <button
           type="button"
           onClick={() => setShowLegend((v) => !v)}
-          style={{
-            width: "100%",
-            textAlign: "left",
-            padding: "8px 12px",
-            background: "#eceff1",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "13px",
-          }}
+          className="w-full text-left px-4 py-3 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-semibold text-xs flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors duration-150 active:scale-[0.98]"
         >
-          {showLegend ? "▼" : "▶"} Legend &amp; Guidelines
+          <span>{showLegend ? "▼" : "▶"} Legend &amp; Guidelines</span>
         </button>
         {showLegend && (
-          <div style={{ padding: "12px 16px", fontSize: "13px", lineHeight: "1.6" }}>
-            <p style={{ margin: "0 0 10px" }}>
+          <div className="p-4 text-xs leading-relaxed text-gray-700 dark:text-gray-300 space-y-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+            <p className="font-semibold text-gray-900 dark:text-gray-100">
               <strong>Attendance Codes:</strong> (blank) = Present; X = Absent; T = Tardy
             </p>
-            <p style={{ margin: "0 0 6px", fontWeight: "bold" }}>
+            <p className="font-semibold text-gray-900 dark:text-gray-100 pt-1">
               Reasons/Causes for Non-Literate/Struggling learners (NLS):
             </p>
-            <p style={{ margin: "2px 0" }}>
+            <p>
               a. <strong>Domestic-Related Factors:</strong> a1. Had to take care of siblings, a2. Early
               marriage/pregnancy, a3. Parents&apos; attitude toward schooling, a4. Family problems
             </p>
-            <p style={{ margin: "2px 0" }}>
+            <p>
               b. <strong>Individual-Related Factors:</strong> b1. Illness, b2. Overage, b3. Death, b4.
               Drug Abuse, b5. Poor academic performance, b6. Lack of interest/Distractions, b7.
               Hunger/Malnutrition
             </p>
-            <p style={{ margin: "2px 0" }}>
+            <p>
               c. <strong>School-Related Factors:</strong> c1. Teacher Factor, c2. Physical condition of
               classroom, c3. Peer influence
             </p>
-            <p style={{ margin: "2px 0" }}>
+            <p>
               d. <strong>Geographic/Environmental:</strong> d1. Distance between home and school, d2.
               Armed conflict, d3. Calamities/Disasters
             </p>
-            <p style={{ margin: "2px 0" }}>
+            <p>
               e. <strong>Financial-Related:</strong> e1. Child labor, work
             </p>
-            <p style={{ margin: "2px 0" }}>f. <strong>Others (Specify)</strong></p>
+            <p>f. <strong>Others (Specify)</strong></p>
           </div>
         )}
       </div>
@@ -544,16 +524,6 @@ function SF2({ user, goBack }) {
 
   // Renders the Class Summary: four MANUAL inputs plus auto-computed read-only values.
   function renderSummary() {
-    const numberStyle = { width: "90px", padding: "4px", textAlign: "right" };
-    const labelStyle = { fontSize: "12px", fontWeight: "bold" };
-    const compCellStyle = {
-      border: "1px solid #ddd",
-      padding: "4px 8px",
-      textAlign: "left",
-      fontSize: "13px",
-    };
-    const compValueStyle = { ...compCellStyle, fontWeight: "bold", textAlign: "right" };
-
     const manualFields = [
       { key: "enrolmentFirstFriday", label: "Enrolment as of 1st Friday of School Year" },
       { key: "lateEnrollment", label: "Late Enrollment during month" },
@@ -562,85 +532,83 @@ function SF2({ user, goBack }) {
     ];
 
     return (
-      <div style={{ marginBottom: "20px", borderTop: "1px solid #ddd", paddingTop: "12px" }}>
-        <p style={{ margin: "0 0 8px", fontWeight: "bold", fontSize: "13px" }}>Class Summary</p>
-        <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "12px" }}>
+      <div className="space-y-4">
+        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">Class Summary</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {manualFields.map((f) => (
             <div key={f.key}>
-              <label style={labelStyle}>{f.label}</label>
-              <br />
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">{f.label}</label>
               <input
                 type="number"
                 min="0"
                 value={summaryInputs[f.key]}
                 onChange={(e) => updateSummary(f.key, e.target.value)}
-                style={numberStyle}
+                className="w-full text-sm text-right rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
               />
             </div>
           ))}
         </div>
-        <table style={{ borderCollapse: "collapse" }}>
-          <tbody>
-            <tr>
-              <td style={compCellStyle}>Registered Learners as of end of month</td>
-              <td style={compValueStyle}>{registeredLearners}</td>
-            </tr>
-            <tr>
-              <td style={compCellStyle}>Number of School Days</td>
-              <td style={compValueStyle}>{numberSchoolDays}</td>
-            </tr>
-            <tr>
-              <td style={compCellStyle}>Total Daily Attendance</td>
-              <td style={compValueStyle}>{totalDailyAttendance}</td>
-            </tr>
-            <tr>
-              <td style={compCellStyle}>Average Daily Attendance</td>
-              <td style={compValueStyle}>{averageDailyAttendance.toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td style={compCellStyle}>Percentage of Enrolment</td>
-              <td style={compValueStyle}>
-                {pctEnrolment === null ? "N/A" : `${pctEnrolment.toFixed(1)}%`}
-              </td>
-            </tr>
-            <tr>
-              <td style={compCellStyle}>Percentage of Attendance for the month</td>
-              <td style={compValueStyle}>
-                {pctAttendance === null ? "N/A" : `${pctAttendance.toFixed(1)}%`}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700 max-w-xl">
+          <table className="w-full text-xs">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tr className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">Registered Learners as of end of month</td>
+                <td className="px-3 py-2 font-bold text-right text-gray-900 dark:text-gray-100">{registeredLearners}</td>
+              </tr>
+              <tr className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">Number of School Days</td>
+                <td className="px-3 py-2 font-bold text-right text-gray-900 dark:text-gray-100">{numberSchoolDays}</td>
+              </tr>
+              <tr className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">Total Daily Attendance</td>
+                <td className="px-3 py-2 font-bold text-right text-gray-900 dark:text-gray-100">{totalDailyAttendance}</td>
+              </tr>
+              <tr className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">Average Daily Attendance</td>
+                <td className="px-3 py-2 font-bold text-right text-gray-900 dark:text-gray-100">{averageDailyAttendance.toFixed(2)}</td>
+              </tr>
+              <tr className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">Percentage of Enrolment</td>
+                <td className="px-3 py-2 font-bold text-right text-gray-900 dark:text-gray-100">
+                  {pctEnrolment === null ? "N/A" : `${pctEnrolment.toFixed(1)}%`}
+                </td>
+              </tr>
+              <tr className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                <td className="px-3 py-2 text-gray-700 dark:text-gray-300">Percentage of Attendance for the month</td>
+                <td className="px-3 py-2 font-bold text-right text-gray-900 dark:text-gray-100">
+                  {pctAttendance === null ? "N/A" : `${pctAttendance.toFixed(1)}%`}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }
 
   // Renders the Signatures block: adviser name + read-only school head name.
   function renderSignatures() {
-    const labelStyle = { fontSize: "12px", fontWeight: "bold" };
     return (
-      <div style={{ marginBottom: "20px", borderTop: "1px solid #ddd", paddingTop: "12px" }}>
-        <p style={{ margin: "0 0 8px", fontWeight: "bold", fontSize: "13px" }}>Signatures</p>
-        <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-5">
+        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3">Signatures</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">
           <div>
-            <label style={labelStyle}>Adviser Name</label>
-            <br />
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Adviser Name</label>
             <input
               type="text"
               value={adviserName}
               placeholder={user?.email || "Adviser name"}
               onChange={(e) => setAdviserName(e.target.value)}
-              style={{ width: "240px", padding: "4px" }}
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             />
           </div>
           <div>
-            <label style={labelStyle}>School Head Name</label>
-            <br />
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">School Head Name</label>
             <input
               type="text"
               value={schoolConfig.principalName}
               readOnly
-              style={{ width: "240px", padding: "4px", background: "#f0f0f0" }}
+              className="w-full text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 px-3 py-2 cursor-not-allowed"
             />
           </div>
         </div>
@@ -649,113 +617,148 @@ function SF2({ user, goBack }) {
   }
 
   return (
-    <div style={{ fontFamily: "sans-serif", maxWidth: "1100px", margin: "30px auto", padding: "0 16px" }}>
-      <button onClick={goBack} style={{ marginBottom: "12px" }}>← Back to Dashboard</button>
-      <h1 style={{ marginBottom: "4px" }}>School Form 2 — Daily Attendance</h1>
-      <p style={{ color: "#555", marginTop: 0 }}>
-        Logged in as: <strong>{user.email}</strong>
-      </p>
+    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
+      {/* Header Bar */}
+      <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        {goBack && (
+          <button
+            onClick={goBack}
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
+            type="button"
+          >
+            ← Back to Dashboard
+          </button>
+        )}
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+          School Form 2 — Daily Attendance
+        </h1>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user?.email || ""}</strong>
+        </p>
+      </div>
 
       {/* Class + month pickers */}
-      <div style={{ display: "flex", gap: "16px", marginBottom: "20px", alignItems: "flex-end" }}>
-        <div>
-          <label>Class</label><br />
-          <select
-            value={filterValue}
-            onChange={(e) => setFilterValue(e.target.value)}
-            style={{ minWidth: "220px", padding: "4px" }}
-          >
-            <option value="">-- Select Class --</option>
-            {gradeSectionOptions.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label>Month</label><br />
-          <input
-            type="month"
-            value={monthValue}
-            onChange={(e) => {
-              setMonthValue(e.target.value);
-              setStatusMessage("");
-            }}
-            style={{ padding: "4px" }}
-          />
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Class</label>
+            <select
+              value={filterValue}
+              onChange={(e) => setFilterValue(e.target.value)}
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+            >
+              <option value="">-- Select Class --</option>
+              {gradeSectionOptions.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Month</label>
+            <input
+              type="month"
+              value={monthValue}
+              onChange={(e) => {
+                setMonthValue(e.target.value);
+                setStatusMessage("");
+              }}
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Legend & Guidelines (collapsible, collapsed by default) */}
+      {/* Legend & Guidelines */}
       {renderLegend()}
 
       {/* Class Summary + Signatures shown once a class with learners is selected */}
       {!loading && hasSelection && filteredLearners.length > 0 && (
-        <>
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-6">
           {renderSummary()}
           {renderSignatures()}
-        </>
+        </div>
       )}
 
-      {/* Save button — placed below the summary/signatures sections */}
-      <div style={{ marginBottom: "16px" }}>
-        <button onClick={handleSave} disabled={isSaving || !hasSelection} style={{ padding: "6px 14px" }}>
+      {/* Save button & Status */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={handleSave}
+          disabled={isSaving || !hasSelection}
+          className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
+          type="button"
+        >
           {isSaving ? "Saving..." : "Save Month"}
         </button>
+        {statusMessage && (
+          <span
+            className={`text-xs font-medium px-3 py-1.5 rounded-lg animate-fade-in ${
+              statusMessage.startsWith("Attendance")
+                ? "bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light"
+                : "bg-red-500/10 text-red-700 dark:text-red-400"
+            }`}
+          >
+            {statusMessage}
+          </span>
+        )}
       </div>
 
-      {statusMessage && (
-        <p style={{ marginTop: "12px", color: statusMessage.startsWith("Attendance") ? "green" : "red" }}>
-          {statusMessage}
-        </p>
+      {/* Loading state */}
+      {loading && (
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+        </div>
       )}
 
       {/* Guards: nothing selected vs. no learners for this class */}
-      {loading && <p style={{ color: "#777" }}>Loading learners...</p>}
       {!loading && !hasSelection && (
-        <p style={{ textAlign: "center", color: "#777", marginTop: "40px", fontSize: "16px" }}>
+        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
           Select a class and month to begin
-        </p>
+        </div>
       )}
       {!loading && hasSelection && filteredLearners.length === 0 && (
-        <p style={{ textAlign: "center", color: "#777", marginTop: "40px", fontSize: "16px" }}>
+        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
           No learners found for this class.
-        </p>
+        </div>
       )}
 
       {/* Attendance grid */}
       {!loading && hasSelection && filteredLearners.length > 0 && (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-            <thead>
-              <tr style={{ background: "#f0f0f0" }}>
-                <th style={centerCellStyle}>No.</th>
-                <th style={cellStyle}>Name</th>
-                {weekdays.map((w) => (
-                  <th key={w.dateString} style={weekdayHeaderStyle}>
-                    <div>{w.label}</div>
-                    <div>{w.day}</div>
-                  </th>
-                ))}
-                <th style={centerCellStyle}>Absent</th>
-                <th style={centerCellStyle}>Tardy</th>
-                <th style={centerCellStyle}>Remarks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Male section */}
-              {maleLearners.length > 0 && renderGroupHeader("MALE")}
-              {maleLearners.map((l, i) => renderLearnerRow(l, i + 1))}
-              {maleLearners.length > 0 && renderSubtotalRow("Absent Count", maleLearners, false)}
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+          <div className="overflow-x-auto max-h-[70vh]">
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold sticky top-0 z-10">
+                  <th className="p-2 text-center border-r border-gray-200 dark:border-gray-700 w-10">No.</th>
+                  <th className="p-2 text-left border-r border-gray-200 dark:border-gray-700 min-w-[160px]">Name</th>
+                  {weekdays.map((w) => (
+                    <th key={w.dateString} className="p-1 text-center border-r border-gray-200 dark:border-gray-700 min-w-[32px]">
+                      <div className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">{w.label}</div>
+                      <div className="leading-tight">{w.day}</div>
+                    </th>
+                  ))}
+                  <th className="p-2 text-center border-r border-gray-200 dark:border-gray-700 w-14">Absent</th>
+                  <th className="p-2 text-center border-r border-gray-200 dark:border-gray-700 w-14">Tardy</th>
+                  <th className="p-2 text-center min-w-[140px]">Remarks</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
+                {/* Male section */}
+                {maleLearners.length > 0 && renderGroupHeader("MALE")}
+                {maleLearners.map((l, i) => renderLearnerRow(l, i + 1))}
+                {maleLearners.length > 0 && renderSubtotalRow("Absent Count", maleLearners, false)}
 
-              {/* Female section */}
-              {femaleLearners.length > 0 && renderGroupHeader("FEMALE")}
-              {femaleLearners.map((l, i) => renderLearnerRow(l, maleLearners.length + i + 1))}
-              {femaleLearners.length > 0 && renderSubtotalRow("Absent Count", femaleLearners, false)}
+                {/* Female section */}
+                {femaleLearners.length > 0 && renderGroupHeader("FEMALE")}
+                {femaleLearners.map((l, i) => renderLearnerRow(l, maleLearners.length + i + 1))}
+                {femaleLearners.length > 0 && renderSubtotalRow("Absent Count", femaleLearners, false)}
 
-              {/* Combined subtotal across both groups */}
-              {renderSubtotalRow("COMBINED — Absent Count", [], true)}
-            </tbody>
-          </table>
+                {/* Combined subtotal across both groups */}
+                {renderSubtotalRow("COMBINED — Absent Count", [], true)}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -763,4 +766,3 @@ function SF2({ user, goBack }) {
 }
 
 export default SF2;
-

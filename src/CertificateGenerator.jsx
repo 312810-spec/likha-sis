@@ -121,156 +121,134 @@ function CertificateGenerator({ user, goBack }) {
   // Disable printing until a learner is picked AND a purpose is typed in.
   const canPrint = Boolean(selectedLearner) && purpose.trim().length > 0;
 
-  // Loading screen, same pattern as ViewLearners.jsx.
+  // Loading screen with pulsing skeleton
   if (loading) {
     return (
-      <div style={{ fontFamily: "sans-serif", maxWidth: "1000px", margin: "30px auto", padding: "0 16px" }}>
-        <button onClick={goBack} className="no-print" style={{ marginBottom: "16px", padding: "8px 16px", cursor: "pointer" }}>
-          ← Back to Dashboard
-        </button>
-        <p style={{ textAlign: "center", color: "#555", fontSize: "18px" }}>Loading learners...</p>
+      <div className="space-y-6 max-w-4xl mx-auto my-8 px-4 animate-slide-up">
+        {goBack && (
+          <button
+            onClick={goBack}
+            className="no-print inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
+            type="button"
+          >
+            ← Back to Dashboard
+          </button>
+        )}
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="h-6 w-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+        </div>
       </div>
     );
   }
 
-
   return (
-    <div style={{ fontFamily: "sans-serif", maxWidth: "1000px", margin: "30px auto", padding: "0 16px" }}>
-      {/* Back button at the top, same pattern as SF1.jsx / ViewLearners.jsx */}
-      <button
-        onClick={goBack}
-        className="no-print"
-        style={{
-          marginBottom: "16px",
-          padding: "8px 16px",
-          cursor: "pointer",
-          background: "#f0f0f0",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-        }}
-      >
-        ← Back to Dashboard
-      </button>
-
-      <h1 style={{ marginBottom: "4px" }}>Certificate Generator</h1>
-      <p style={{ color: "#555", marginTop: 0 }}>
-        Logged in as: <strong>{user.email}</strong>
-      </p>
-
-      {/* Error message if Firestore fetch fails */}
-      {errorMessage && (
-        <p style={{ color: "red", marginTop: "12px", marginBottom: "12px" }}>{errorMessage}</p>
-      )}
-
-      {/* ---- Form (hidden when printing) ---- */}
-      <div className="no-print" style={{ display: "flex", flexDirection: "column", gap: "12px", margin: "20px 0" }}>
-        <div>
-          <label style={{ display: "block", marginBottom: "4px", fontSize: "14px", fontWeight: "bold" }}>
-            Learner
-          </label>
-          <select
-            value={selectedLearner ? selectedLearner.id : ""}
-            onChange={(e) => {
-              const found = learners.find((l) => l.id === e.target.value);
-              setSelectedLearner(found || null);
-            }}
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "6px",
-              fontSize: "14px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-            }}
-          >
-            <option value="">-- Select a learner --</option>
-            {learners.map((l) => (
-              <option key={l.id} value={l.id}>
-                {`${l.lastName || ""}, ${l.firstName || ""} — Grade ${l.gradeLevel || ""}, Section ${l.section || ""}`}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label style={{ display: "block", marginBottom: "4px", fontSize: "14px", fontWeight: "bold" }}>
-            Certificate Type
-          </label>
-          <select
-            value={certificateType}
-            onChange={(e) => setCertificateType(e.target.value)}
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "6px",
-              fontSize: "14px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-            }}
-          >
-            <option value="Certificate of Enrollment">Certificate of Enrollment</option>
-            <option value="Good Moral Certificate">Good Moral Certificate</option>
-          </select>
-        </div>
-
-        <div>
-          <label style={{ display: "block", marginBottom: "4px", fontSize: "14px", fontWeight: "bold" }}>
-            Purpose
-          </label>
-          <input
-            type="text"
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            placeholder="e.g. for scholarship application"
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "6px",
-              fontSize: "14px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-            }}
-          />
-        </div>
-
-        <div>
-          <label style={{ display: "block", marginBottom: "4px", fontSize: "14px", fontWeight: "bold" }}>
-            Date Issued
-          </label>
-          <input
-            type="date"
-            value={dateIssued}
-            onChange={(e) => setDateIssued(e.target.value)}
-            style={{
-              padding: "6px",
-              fontSize: "14px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-            }}
-          />
-        </div>
-
-        <div style={{ marginTop: "4px" }}>
-          <button
-            onClick={() => window.print()}
-            disabled={!canPrint}
-            style={{
-              padding: "10px 18px",
-              cursor: canPrint ? "pointer" : "not-allowed",
-              background: canPrint ? "#1565c0" : "#ccc",
-              color: "#fff",
-              border: "none",
-              borderRadius: "4px",
-              fontSize: "14px",
-            }}
-          >
-            Print Certificate
-          </button>
-          {!canPrint && (
-            <span style={{ marginLeft: "12px", color: "#999", fontSize: "12px" }}>
-              Select a learner and enter a purpose to enable printing.
-            </span>
+    <div className="space-y-6 max-w-4xl mx-auto my-8 px-4">
+      {/* ---- Filter / Form Controls (no-print) ---- */}
+      <div className="no-print space-y-4 animate-slide-up">
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          {goBack && (
+            <button
+              onClick={goBack}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
+              type="button"
+            >
+              ← Back to Dashboard
+            </button>
           )}
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+            Certificate Generator
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user.email}</strong>
+          </p>
+        </div>
+
+        {/* Error message if Firestore fetch fails */}
+        {errorMessage && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-medium animate-fade-in">
+            {errorMessage}
+          </div>
+        )}
+
+        {/* Form */}
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Learner
+            </label>
+            <select
+              value={selectedLearner ? selectedLearner.id : ""}
+              onChange={(e) => {
+                const found = learners.find((l) => l.id === e.target.value);
+                setSelectedLearner(found || null);
+              }}
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+            >
+              <option value="">-- Select a learner --</option>
+              {learners.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {`${l.lastName || ""}, ${l.firstName || ""} — Grade ${l.gradeLevel || ""}, Section ${l.section || ""}`}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Certificate Type
+            </label>
+            <select
+              value={certificateType}
+              onChange={(e) => setCertificateType(e.target.value)}
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+            >
+              <option value="Certificate of Enrollment">Certificate of Enrollment</option>
+              <option value="Good Moral Certificate">Good Moral Certificate</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Purpose
+            </label>
+            <input
+              type="text"
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              placeholder="e.g. for scholarship application"
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Date Issued
+            </label>
+            <input
+              type="date"
+              value={dateIssued}
+              onChange={(e) => setDateIssued(e.target.value)}
+              className="w-full sm:w-auto text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <button
+              onClick={() => window.print()}
+              disabled={!canPrint}
+              className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
+              type="button"
+            >
+              Print Certificate
+            </button>
+            {!canPrint && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Select a learner and enter a purpose to enable printing.
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

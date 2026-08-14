@@ -333,27 +333,27 @@ export default function LardoTracking({ user, goBack }) {
     });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
         <div>
           {goBack && (
             <button
               onClick={goBack}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary font-medium mb-2 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98] transition-transform"
               type="button"
             >
               <ArrowLeft size={14} /> Back to Dashboard
             </button>
           )}
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-amber-50 rounded-lg text-amber-600 border border-amber-200">
+            <div className="p-2 bg-accent/10 dark:bg-accent/20 rounded-lg text-accent-dark dark:text-accent-light border border-accent/20">
               <ShieldAlert size={22} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">LARDO Tracking</h1>
-              <p className="text-xs text-gray-500">
-                Learners At Risk of Dropping Out — Monitoring & Intervention System
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">LARDO Tracking</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Learners At Risk of Dropping Out — Monitoring &amp; Intervention System
               </p>
             </div>
           </div>
@@ -361,7 +361,7 @@ export default function LardoTracking({ user, goBack }) {
 
         <button
           onClick={handleOpenForm}
-          className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-light text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition-colors text-sm"
+          className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform text-sm"
           type="button"
         >
           <Plus size={16} /> Flag a Learner
@@ -369,17 +369,17 @@ export default function LardoTracking({ user, goBack }) {
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
           <Filter size={14} /> Filter Records
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Grade Level</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Grade Level</label>
             <select
               value={gradeLevelFilter}
               onChange={(e) => setGradeLevelFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white outline-none"
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             >
               {GRADE_OPTIONS.map((g) => (
                 <option key={g} value={g}>
@@ -390,62 +390,73 @@ export default function LardoTracking({ user, goBack }) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Section <span className="text-gray-400 font-normal">(Optional)</span>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Section <span className="text-gray-400 dark:text-gray-500 font-normal">(Optional)</span>
             </label>
             <input
               type="text"
               placeholder="Filter by section..."
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">School Year</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">School Year</label>
             <input
               type="text"
               placeholder="e.g. 2026-2027"
               value={schoolYearFilter}
               onChange={(e) => setSchoolYearFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
             />
           </div>
         </div>
       </div>
 
       {/* Main List */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
-          <div className="text-sm font-semibold text-gray-800">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
+          <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
             Flagged Learners ({filteredRecords.length})
           </div>
-          {loadingRecords && <span className="text-xs text-gray-400">Loading records...</span>}
+          {loadingRecords && (
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">Loading records...</span>
+            </div>
+          )}
         </div>
 
         {recordsError && (
-          <div className="p-4 bg-red-50 text-red-600 text-sm border-b border-red-100">
+          <div className="animate-fade-in p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 text-sm border-b border-red-100 dark:border-red-800">
             {recordsError}
           </div>
         )}
 
-        {!loadingRecords && filteredRecords.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 space-y-2">
-            <AlertTriangle className="mx-auto text-gray-300" size={40} />
-            <div className="text-sm font-medium">No LARDO records found.</div>
-            <p className="text-xs text-gray-400">
-              No learners have been flagged for the selected filters. Click "+ Flag a Learner" to create a new record.
+        {loadingRecords ? (
+          <div className="p-5 space-y-3">
+            <div className="h-14 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+            <div className="h-14 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+            <div className="h-14 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+          </div>
+        ) : filteredRecords.length === 0 ? (
+          <div className="p-12 text-center text-gray-500 dark:text-gray-400 space-y-2">
+            <AlertTriangle className="mx-auto text-gray-300 dark:text-gray-600" size={40} />
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">No LARDO records found.</div>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              No learners have been flagged for the selected filters. Click &quot;+ Flag a Learner&quot; to create a new record.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredRecords.map((r) => {
               const isExpanded = expandedRecordId === r.id;
               const interventionsList = Array.isArray(r.interventions) ? r.interventions : [];
 
               return (
-                <div key={r.id} className="transition-colors hover:bg-gray-50/40">
+                <div key={r.id} className="transition-colors hover:bg-gray-50/60 dark:hover:bg-gray-800/50">
                   {/* Summary Row */}
                   <div
                     onClick={() => setExpandedRecordId(isExpanded ? null : r.id)}
@@ -453,13 +464,13 @@ export default function LardoTracking({ user, goBack }) {
                   >
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-gray-900 text-sm">{r.learnerName}</span>
+                        <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{r.learnerName}</span>
                         {r.learnerLRN && (
-                          <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">
                             LRN: {r.learnerLRN}
                           </span>
                         )}
-                        <span className="text-xs font-medium text-gray-500 bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200/50">
+                        <span className="text-xs font-medium bg-primary/10 text-primary-dark dark:bg-primary/20 dark:text-primary-light px-2 py-0.5 rounded border border-primary/20">
                           {r.gradeLevel} {r.section ? `- ${r.section}` : ""}
                         </span>
                       </div>
@@ -469,7 +480,7 @@ export default function LardoTracking({ user, goBack }) {
                         {(r.riskFactors || []).map((rf) => (
                           <span
                             key={rf}
-                            className="inline-block bg-primary/10 text-primary border border-primary/20 text-xs px-2 py-0.5 rounded font-medium"
+                            className="inline-block bg-primary/10 text-primary-dark dark:bg-primary/20 dark:text-primary-light border border-primary/20 text-xs px-2 py-0.5 rounded font-medium"
                           >
                             {rf === "Other" && r.otherRiskFactorNote
                               ? `Other: ${r.otherRiskFactorNote}`
@@ -483,29 +494,29 @@ export default function LardoTracking({ user, goBack }) {
                       {/* Status colored badge */}
                       <div>
                         {r.status === "monitoring" && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#F2A93B]/20 text-amber-900 border border-[#F2A93B]">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent/10 text-accent-dark dark:bg-accent/20 dark:text-accent-light border border-accent/20">
                             monitoring
                           </span>
                         )}
                         {r.status === "resolved" && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#1E5C29]/20 text-[#1E5C29] border border-[#1E5C29]">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light border border-leaf/20">
                             resolved
                           </span>
                         )}
                         {r.status === "dropped" && (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-slate-200 text-slate-600 border border-slate-300">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300 border border-gray-300 dark:border-gray-600">
                             dropped
                           </span>
                         )}
                       </div>
 
-                      <div className="text-right hidden sm:block text-xs text-gray-400">
+                      <div className="text-right hidden sm:block text-xs text-gray-400 dark:text-gray-500">
                         <div>Flagged: {r.flaggedDate ? new Date(r.flaggedDate).toLocaleDateString() : "N/A"}</div>
                       </div>
 
                       <button
                         type="button"
-                        className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-200/60"
+                        className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-200/60 dark:hover:bg-gray-700/60 transition-colors"
                         aria-label={isExpanded ? "Collapse" : "Expand"}
                       >
                         {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
@@ -515,9 +526,9 @@ export default function LardoTracking({ user, goBack }) {
 
                   {/* Expanded Interventions & Status Panel */}
                   {isExpanded && (
-                    <div className="bg-gray-50/80 p-4 sm:p-5 border-t border-gray-200/80 space-y-4 text-xs sm:text-sm">
+                    <div className="bg-gray-50/80 dark:bg-gray-800/40 p-4 sm:p-5 border-t border-gray-200/80 dark:border-gray-700 space-y-4 text-xs sm:text-sm">
                       {/* Meta info */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 pb-2 border-b border-gray-200">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400 pb-2 border-b border-gray-200 dark:border-gray-700">
                         <div>
                           <strong>Flagged By:</strong> {r.flaggedByEmail || "N/A"}
                         </div>
@@ -531,13 +542,13 @@ export default function LardoTracking({ user, goBack }) {
                       </div>
 
                       {/* Status Change Selector */}
-                      <div className="flex items-center gap-3 bg-white p-3 rounded-lg border border-gray-200 max-w-xs">
-                        <label className="text-xs font-semibold text-gray-700">Update Status:</label>
+                      <div className="flex items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700 max-w-xs">
+                        <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">Update Status:</label>
                         <select
                           value={r.status || "monitoring"}
                           onChange={(e) => handleStatusChange(r.id, e.target.value)}
                           disabled={updatingRecordId === r.id}
-                          className="text-xs font-semibold rounded border border-gray-300 px-2 py-1 focus:ring-1 focus:ring-primary bg-white outline-none"
+                          className="text-xs font-semibold rounded border border-gray-300 dark:border-gray-700 px-2 py-1 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none"
                         >
                           <option value="monitoring">monitoring</option>
                           <option value="resolved">resolved</option>
@@ -547,28 +558,28 @@ export default function LardoTracking({ user, goBack }) {
 
                       {/* Interventions Log */}
                       <div className="space-y-2">
-                        <div className="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
+                        <div className="text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
                           <MessageSquare size={14} /> Interventions Log ({interventionsList.length})
                         </div>
 
                         {interventionsList.length === 0 ? (
-                          <p className="text-xs text-gray-400 italic">No interventions logged yet.</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500 italic">No interventions logged yet.</p>
                         ) : (
                           <div className="space-y-2">
                             {interventionsList.map((entry, idx) => (
                               <div
                                 key={idx}
-                                className="bg-white p-3 rounded-lg border border-gray-200/80 shadow-2xs space-y-1"
+                                className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200/80 dark:border-gray-700 shadow-2xs space-y-1"
                               >
-                                <div className="flex items-center justify-between text-xs text-gray-400">
+                                <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
                                   <span className="font-mono">
                                     {entry.date ? new Date(entry.date).toLocaleString() : "N/A"}
                                   </span>
-                                  <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                                  <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-700">
                                     Entry #{idx + 1}
                                   </span>
                                 </div>
-                                <p className="text-gray-800 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
+                                <p className="text-gray-800 dark:text-gray-200 text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
                                   {entry.note}
                                 </p>
                               </div>
@@ -579,7 +590,7 @@ export default function LardoTracking({ user, goBack }) {
 
                       {/* Add Note Input */}
                       <div className="pt-2">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Add Intervention Note
                         </label>
                         <div className="flex gap-2">
@@ -596,13 +607,13 @@ export default function LardoTracking({ user, goBack }) {
                                 handleAddNote(r.id);
                               }
                             }}
-                            className="flex-1 text-xs sm:text-sm rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white outline-none"
+                            className="flex-1 text-xs sm:text-sm rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-colors"
                           />
                           <button
                             type="button"
                             onClick={() => handleAddNote(r.id)}
                             disabled={updatingRecordId === r.id || !noteInputs[r.id]?.trim()}
-                            className="inline-flex items-center gap-1.5 bg-primary hover:bg-primary-light disabled:opacity-50 text-white font-medium px-4 py-2 rounded-lg text-xs transition-colors"
+                            className="inline-flex items-center gap-1.5 bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-medium px-4 py-2 rounded-lg text-xs transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm"
                           >
                             <Send size={14} /> Add note
                           </button>
@@ -619,23 +630,23 @@ export default function LardoTracking({ user, goBack }) {
 
       {/* Modal: Flag a Learner */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl max-w-xl w-full p-6 space-y-5 my-8">
-            <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <AlertTriangle className="text-amber-500" size={20} /> Flag a Learner (LARDO)
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-xl w-full p-6 space-y-5 my-8 border border-gray-200 dark:border-gray-700 animate-slide-up">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <AlertTriangle className="text-accent" size={20} /> Flag a Learner (LARDO)
               </h2>
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
             {formError && (
-              <div className="p-3 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100 font-medium">
+              <div className="animate-fade-in p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 text-xs rounded-lg border border-red-100 dark:border-red-800 font-medium">
                 {formError}
               </div>
             )}
@@ -643,31 +654,34 @@ export default function LardoTracking({ user, goBack }) {
             <form onSubmit={handleSaveFlag} className="space-y-4">
               {/* Step 1: Learner selection */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                   Select Learner *
                 </label>
                 {loadingLearners ? (
-                  <div className="text-xs text-gray-400 py-2">Loading learners list...</div>
+                  <div className="space-y-2 py-2">
+                    <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+                    <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <div className="relative">
                       <Search
                         size={16}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
                       />
                       <input
                         type="text"
                         placeholder="Search learner by name or LRN..."
                         value={learnerSearchTerm}
                         onChange={(e) => setLearnerSearchTerm(e.target.value)}
-                        className="w-full text-xs pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                        className="w-full text-xs pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-colors"
                       />
                     </div>
 
                     <select
                       value={selectedLearnerId}
                       onChange={(e) => setSelectedLearnerId(e.target.value)}
-                      className="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white outline-none max-h-40"
+                      className="w-full text-xs border border-gray-300 dark:border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none max-h-40 transition-colors"
                     >
                       <option value="">-- Choose a Learner ({availableLearners.length} available) --</option>
                       {availableLearners.map((l) => {
@@ -689,22 +703,22 @@ export default function LardoTracking({ user, goBack }) {
 
               {/* Step 2: Risk factors checkboxes */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
                   Risk Factors *
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 p-3 rounded-lg border border-gray-200 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 text-xs">
                   {FIXED_RISK_FACTORS.map((factor) => {
                     const isChecked = selectedRiskFactors.includes(factor);
                     return (
                       <label
                         key={factor}
-                        className="flex items-center gap-2 cursor-pointer text-gray-700 hover:text-gray-900"
+                        className="flex items-center gap-2 cursor-pointer text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleRiskFactor(factor)}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                          className="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary bg-white dark:bg-gray-700"
                         />
                         <span>{factor}</span>
                       </label>
@@ -716,7 +730,7 @@ export default function LardoTracking({ user, goBack }) {
               {/* Conditional Other note */}
               {selectedRiskFactors.includes("Other") && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                     Other Risk Factor Details *
                   </label>
                   <input
@@ -724,14 +738,14 @@ export default function LardoTracking({ user, goBack }) {
                     placeholder="Specify other risk factor..."
                     value={otherRiskFactorNote}
                     onChange={(e) => setOtherRiskFactorNote(e.target.value)}
-                    className="w-full text-xs rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                    className="w-full text-xs rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-colors"
                   />
                 </div>
               )}
 
               {/* Step 3: Initial Note */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                   Initial Intervention / Note
                 </label>
                 <textarea
@@ -739,23 +753,23 @@ export default function LardoTracking({ user, goBack }) {
                   placeholder="Enter initial observation or intervention action..."
                   value={initialNote}
                   onChange={(e) => setInitialNote(e.target.value)}
-                  className="w-full text-xs rounded-lg border border-gray-300 p-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                  className="w-full text-xs rounded-lg border border-gray-300 dark:border-gray-700 p-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-colors"
                 />
               </div>
 
               {/* Modal Actions */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-200">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2 text-xs font-medium bg-primary hover:bg-primary-light disabled:opacity-50 text-white rounded-lg transition-colors shadow-sm"
+                  className="px-4 py-2 text-xs font-medium bg-primary hover:bg-primary-dark disabled:opacity-50 text-white rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm"
                 >
                   {isSaving ? "Saving..." : "Save LARDO Record"}
                 </button>

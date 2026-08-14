@@ -51,10 +51,21 @@ export default function useDarkMode() {
     };
   }, [mode]);
 
-  // Apply class on root exactly as before
+  // Apply class on root; also sync colorScheme to suppress browser forced-dark
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle('dark', resolvedIsDark);
+
+    const scheme = resolvedIsDark ? 'dark' : 'light';
+    root.style.colorScheme = scheme;
+
+    let metaTag = document.querySelector('meta[name="color-scheme"]');
+    if (!metaTag) {
+      metaTag = document.createElement('meta');
+      metaTag.setAttribute('name', 'color-scheme');
+      document.head.appendChild(metaTag);
+    }
+    metaTag.setAttribute('content', scheme);
   }, [resolvedIsDark]);
 
   return [mode, resolvedIsDark, setMode];

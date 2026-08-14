@@ -142,211 +142,335 @@ function SF1({ user, goBack }) {
   }
 
   return (
-    <div style={{ fontFamily: "sans-serif", maxWidth: "1000px", margin: "30px auto", padding: "0 16px" }}>
-      <button onClick={goBack} style={{ marginBottom: "12px" }}>← Back to Dashboard</button>
-      <h1>School Form 1 — Learner's Information Sheet</h1>
+    <div className="space-y-6 max-w-6xl mx-auto animate-slide-up">
+      {/* Header Bar */}
+      <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        {goBack && (
+          <button
+            onClick={goBack}
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150"
+            type="button"
+          >
+            ← Back to Dashboard
+          </button>
+        )}
+        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+          School Form 1 — Learner&apos;s Information Sheet
+        </h1>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Master list of learners enrolled in the class with DepEd SF1 standard demographic details
+        </p>
+      </div>
 
-      <div style={{ display: "flex", gap: "16px", marginBottom: "20px" }}>
-        <div>
-          <label>Grade Level</label><br />
-          <select value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)}>
-            {gradeOptions.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label>Section</label><br />
-          <input value={section} onChange={(e) => setSection(e.target.value)} placeholder="e.g. Kindness" />
-        </div>
-        <div>
-          <label>School Year</label><br />
-          <input value={schoolYear} onChange={(e) => setSchoolYear(e.target.value)} placeholder="e.g. 2026-2027" />
+      {/* Filter / Parameters Bar */}
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              Grade Level
+            </label>
+            <select
+              value={gradeLevel}
+              onChange={(e) => setGradeLevel(e.target.value)}
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+            >
+              {gradeOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              Section
+            </label>
+            <input
+              value={section}
+              onChange={(e) => setSection(e.target.value)}
+              placeholder="e.g. Kindness"
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              School Year
+            </label>
+            <input
+              value={schoolYear}
+              onChange={(e) => setSchoolYear(e.target.value)}
+              placeholder="e.g. 2026-2027"
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+            />
+          </div>
         </div>
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-        <thead>
-          <tr style={{ background: "#f0f0f0" }}>
-            <th style={cellStyle}>▼</th>
-            <th style={cellStyle}>LRN (12 digits)</th>
-            <th style={cellStyle}>Last Name</th>
-            <th style={cellStyle}>First Name</th>
-            <th style={cellStyle}>Middle Name</th>
-            <th style={cellStyle}>Sex</th>
-            <th style={cellStyle}>Birth Date</th>
-            <th style={cellStyle}>Age</th>
-            <th style={cellStyle}>Learning Modality</th>
-            <th style={cellStyle}></th>
-          </tr>
-        </thead>
-        <tbody>
-          {learners.map((learner, index) => (
-            <Fragment key={index}>
-              {/* Main learner row */}
-              <tr>
-                {/* Expand/collapse toggle button — first column */}
-                <td style={cellStyle}>
-                  <button
-                    style={{ padding: "2px 8px", fontSize: "12px", cursor: "pointer" }}
-                    onClick={() => toggleExpand(index)}
-                    aria-label={expandedRows.has(index) ? "Collapse details" : "Expand details"}
-                  >
-                    {expandedRows.has(index) ? "▼" : "▶"}
-                  </button>
-                </td>
-                <td style={cellStyle}>
-                  <input style={inputStyle} value={learner.lrn} maxLength={12}
-                    onChange={(e) => updateLearner(index, "lrn", e.target.value.replace(/\D/g, ""))} />
-                </td>
-                <td style={cellStyle}>
-                  <input style={inputStyle} value={learner.lastName}
-                    onChange={(e) => updateLearner(index, "lastName", e.target.value)} />
-                </td>
-                <td style={cellStyle}>
-                  <input style={inputStyle} value={learner.firstName}
-                    onChange={(e) => updateLearner(index, "firstName", e.target.value)} />
-                </td>
-                <td style={cellStyle}>
-                  <input style={inputStyle} value={learner.middleName}
-                    onChange={(e) => updateLearner(index, "middleName", e.target.value)} />
-                </td>
-                <td style={cellStyle}>
-                  <select style={inputStyle} value={learner.sex}
-                    onChange={(e) => updateLearner(index, "sex", e.target.value)}>
-                    <option value="">--</option>
-                    <option value="M">M</option>
-                    <option value="F">F</option>
-                  </select>
-                </td>
-                <td style={cellStyle}>
-                  <input style={inputStyle} type="date" value={learner.birthDate}
-                    onChange={(e) => updateLearner(index, "birthDate", e.target.value)} />
-                </td>
-                <td style={cellStyle}>{calculateAge(learner.birthDate)}</td>
-                <td style={cellStyle}>
-                  <select style={inputStyle} value={learner.learningModality}
-                    onChange={(e) => updateLearner(index, "learningModality", e.target.value)}>
-                    <option>Face to Face</option>
-                    <option>Blended</option>
-                    <option>Online</option>
-                    <option>Modular</option>
-                  </select>
-                </td>
-                <td style={cellStyle}>
-                  <button onClick={() => removeRow(index)} disabled={learners.length === 1}>✕</button>
-                </td>
+      {/* Table Container */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold sticky top-0 z-10">
+                <th className="p-2.5 text-center w-10">▼</th>
+                <th className="p-2.5 min-w-[130px]">LRN (12 digits)</th>
+                <th className="p-2.5 min-w-[120px]">Last Name</th>
+                <th className="p-2.5 min-w-[120px]">First Name</th>
+                <th className="p-2.5 min-w-[120px]">Middle Name</th>
+                <th className="p-2.5 w-16 text-center">Sex</th>
+                <th className="p-2.5 min-w-[130px]">Birth Date</th>
+                <th className="p-2.5 w-12 text-center">Age</th>
+                <th className="p-2.5 min-w-[130px]">Learning Modality</th>
+                <th className="p-2.5 w-10 text-center"></th>
               </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
+              {learners.map((learner, index) => (
+                <Fragment key={index}>
+                  {/* Main learner row */}
+                  <tr className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                    {/* Expand/collapse toggle button — first column */}
+                    <td className="p-2 text-center border-r border-gray-200 dark:border-gray-700">
+                      <button
+                        type="button"
+                        className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs transition-colors duration-150 active:scale-[0.98] transition-transform"
+                        onClick={() => toggleExpand(index)}
+                        aria-label={expandedRows.has(index) ? "Collapse details" : "Expand details"}
+                      >
+                        {expandedRows.has(index) ? "▼" : "▶"}
+                      </button>
+                    </td>
+                    <td className="p-2 border-r border-gray-200 dark:border-gray-700">
+                      <input
+                        className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                        value={learner.lrn}
+                        maxLength={12}
+                        placeholder="12-digit LRN"
+                        onChange={(e) => updateLearner(index, "lrn", e.target.value.replace(/\D/g, ""))}
+                      />
+                    </td>
+                    <td className="p-2 border-r border-gray-200 dark:border-gray-700">
+                      <input
+                        className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                        value={learner.lastName}
+                        placeholder="Last Name"
+                        onChange={(e) => updateLearner(index, "lastName", e.target.value)}
+                      />
+                    </td>
+                    <td className="p-2 border-r border-gray-200 dark:border-gray-700">
+                      <input
+                        className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                        value={learner.firstName}
+                        placeholder="First Name"
+                        onChange={(e) => updateLearner(index, "firstName", e.target.value)}
+                      />
+                    </td>
+                    <td className="p-2 border-r border-gray-200 dark:border-gray-700">
+                      <input
+                        className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                        value={learner.middleName}
+                        placeholder="Middle Name"
+                        onChange={(e) => updateLearner(index, "middleName", e.target.value)}
+                      />
+                    </td>
+                    <td className="p-2 border-r border-gray-200 dark:border-gray-700 text-center">
+                      <select
+                        className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-1 py-1 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                        value={learner.sex}
+                        onChange={(e) => updateLearner(index, "sex", e.target.value)}
+                      >
+                        <option value="">--</option>
+                        <option value="M">M</option>
+                        <option value="F">F</option>
+                      </select>
+                    </td>
+                    <td className="p-2 border-r border-gray-200 dark:border-gray-700">
+                      <input
+                        className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                        type="date"
+                        value={learner.birthDate}
+                        onChange={(e) => updateLearner(index, "birthDate", e.target.value)}
+                      />
+                    </td>
+                    <td className="p-2 border-r border-gray-200 dark:border-gray-700 text-center font-mono font-medium text-gray-700 dark:text-gray-300">
+                      {calculateAge(learner.birthDate)}
+                    </td>
+                    <td className="p-2 border-r border-gray-200 dark:border-gray-700">
+                      <select
+                        className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-1 py-1 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                        value={learner.learningModality}
+                        onChange={(e) => updateLearner(index, "learningModality", e.target.value)}
+                      >
+                        <option>Face to Face</option>
+                        <option>Blended</option>
+                        <option>Online</option>
+                        <option>Modular</option>
+                      </select>
+                    </td>
+                    <td className="p-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => removeRow(index)}
+                        disabled={learners.length === 1}
+                        className="p-1 text-gray-400 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-30 transition-colors duration-150 active:scale-[0.98] transition-transform"
+                        title="Remove row"
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
 
-              {/* Expandable detail panel row — shown when row is expanded */}
-              {expandedRows.has(index) && (
-                <tr style={{ background: "#f7fafd" }}>
-                  {/* Empty cell for the expand column */}
-                  <td style={cellStyle}></td>
-                  {/* Detail panel spanning all data columns (colSpan=9 covers LRN through Actions) */}
-                  <td colSpan={9} style={{ ...cellStyle, padding: "12px" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+                  {/* Expandable detail panel row — shown when row is expanded */}
+                  {expandedRows.has(index) && (
+                    <tr className="bg-primary/5 dark:bg-gray-800/40">
+                      {/* Empty cell for the expand column */}
+                      <td className="p-2 border-r border-gray-200 dark:border-gray-700"></td>
+                      {/* Detail panel spanning all data columns (colSpan=9 covers LRN through Actions) */}
+                      <td colSpan={9} className="p-4 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex flex-wrap gap-4">
 
-                      {/* Address section */}
-                      <fieldset style={{ flex: "1 1 300px", minWidth: "280px", border: "1px solid #ddd", borderRadius: "4px", padding: "8px" }}>
-                        <legend style={{ fontWeight: "bold", color: "#333" }}>Address</legend>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
-                            House / Street / Sitio
-                            <input style={inputStyle} value={learner.houseStreetSitio}
-                              onChange={(e) => updateLearner(index, "houseStreetSitio", e.target.value)} />
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
-                            Barangay
-                            <input style={inputStyle} value={learner.barangay}
-                              onChange={(e) => updateLearner(index, "barangay", e.target.value)} />
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
-                            Municipality / City
-                            <input style={inputStyle} value={learner.municipalityCity}
-                              onChange={(e) => updateLearner(index, "municipalityCity", e.target.value)} />
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
-                            Province
-                            <input style={inputStyle} value={learner.province}
-                              onChange={(e) => updateLearner(index, "province", e.target.value)} />
-                          </label>
+                          {/* Address section */}
+                          <fieldset className="flex-1 min-w-[280px] border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg p-3 shadow-2xs">
+                            <legend className="text-xs font-bold text-gray-800 dark:text-gray-200 px-1">Address</legend>
+                            <div className="flex flex-col gap-2 mt-1">
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                House / Street / Sitio
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.houseStreetSitio}
+                                  onChange={(e) => updateLearner(index, "houseStreetSitio", e.target.value)}
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Barangay
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.barangay}
+                                  onChange={(e) => updateLearner(index, "barangay", e.target.value)}
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Municipality / City
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.municipalityCity}
+                                  onChange={(e) => updateLearner(index, "municipalityCity", e.target.value)}
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Province
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.province}
+                                  onChange={(e) => updateLearner(index, "province", e.target.value)}
+                                />
+                              </label>
+                            </div>
+                          </fieldset>
+
+                          {/* Parents section */}
+                          <fieldset className="flex-1 min-w-[260px] border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg p-3 shadow-2xs">
+                            <legend className="text-xs font-bold text-gray-800 dark:text-gray-200 px-1">Parents</legend>
+                            <div className="flex flex-col gap-2 mt-1">
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Father&apos;s Name
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.fathersName}
+                                  onChange={(e) => updateLearner(index, "fathersName", e.target.value)}
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Mother&apos;s Maiden Name
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.mothersMaidenName}
+                                  onChange={(e) => updateLearner(index, "mothersMaidenName", e.target.value)}
+                                />
+                              </label>
+                            </div>
+                          </fieldset>
+
+                          {/* Guardian section */}
+                          <fieldset className="flex-1 min-w-[260px] border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg p-3 shadow-2xs">
+                            <legend className="text-xs font-bold text-gray-800 dark:text-gray-200 px-1">Guardian (if not parent)</legend>
+                            <div className="flex flex-col gap-2 mt-1">
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Guardian Name
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.guardianName}
+                                  onChange={(e) => updateLearner(index, "guardianName", e.target.value)}
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Relationship to Learner
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.guardianRelationship}
+                                  onChange={(e) => updateLearner(index, "guardianRelationship", e.target.value)}
+                                />
+                              </label>
+                            </div>
+                          </fieldset>
+
+                          {/* Remarks section */}
+                          <fieldset className="flex-1 min-w-[260px] border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg p-3 shadow-2xs">
+                            <legend className="text-xs font-bold text-gray-800 dark:text-gray-200 px-1">Remarks</legend>
+                            <div className="flex flex-col gap-2 mt-1">
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Remarks (indicator codes, notes, etc.)
+                                <textarea
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none min-h-[60px] resize-y"
+                                  value={learner.remarks}
+                                  onChange={(e) => updateLearner(index, "remarks", e.target.value)}
+                                />
+                              </label>
+                            </div>
+                          </fieldset>
+
                         </div>
-                      </fieldset>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-                      {/* Parents section */}
-                      <fieldset style={{ flex: "1 1 280px", minWidth: "260px", border: "1px solid #ddd", borderRadius: "4px", padding: "8px" }}>
-                        <legend style={{ fontWeight: "bold", color: "#333" }}>Parents</legend>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
-                            Father's Name
-                            <input style={inputStyle} value={learner.fathersName}
-                              onChange={(e) => updateLearner(index, "fathersName", e.target.value)} />
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
-                            Mother's Maiden Name
-                            <input style={inputStyle} value={learner.mothersMaidenName}
-                              onChange={(e) => updateLearner(index, "mothersMaidenName", e.target.value)} />
-                          </label>
-                        </div>
-                      </fieldset>
-
-                      {/* Guardian section */}
-                      <fieldset style={{ flex: "1 1 280px", minWidth: "260px", border: "1px solid #ddd", borderRadius: "4px", padding: "8px" }}>
-                        <legend style={{ fontWeight: "bold", color: "#333" }}>Guardian (if not parent)</legend>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
-                            Guardian Name
-                            <input style={inputStyle} value={learner.guardianName}
-                              onChange={(e) => updateLearner(index, "guardianName", e.target.value)} />
-                          </label>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
-                            Relationship to Learner
-                            <input style={inputStyle} value={learner.guardianRelationship}
-                              onChange={(e) => updateLearner(index, "guardianRelationship", e.target.value)} />
-                          </label>
-                        </div>
-                      </fieldset>
-
-                      {/* Remarks section */}
-                      <fieldset style={{ flex: "1 1 280px", minWidth: "260px", border: "1px solid #ddd", borderRadius: "4px", padding: "8px" }}>
-                        <legend style={{ fontWeight: "bold", color: "#333" }}>Remarks</legend>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          <label style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "13px" }}>
-                            Remarks (indicator codes, notes, etc.)
-                            <textarea style={{ ...inputStyle, minHeight: "60px", resize: "vertical" }} value={learner.remarks}
-                              onChange={(e) => updateLearner(index, "remarks", e.target.value)} />
-                          </label>
-                        </div>
-                      </fieldset>
-
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </Fragment>
-          ))}
-        </tbody>
-
-      </table>
-
-      <div style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
-        <button onClick={addRow}>+ Add Learner Row</button>
-        <button onClick={handleSaveAll} disabled={isSaving}>
+      {/* Action Buttons */}
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={addRow}
+          className="px-4 py-2 text-xs font-semibold text-primary dark:text-primary-light bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 border border-primary/20 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform"
+        >
+          + Add Learner Row
+        </button>
+        <button
+          type="button"
+          onClick={handleSaveAll}
+          disabled={isSaving}
+          className="px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary-dark rounded-lg shadow-sm disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform"
+        >
           {isSaving ? "Saving..." : "Save All to Database"}
         </button>
       </div>
 
+      {/* Status Message */}
       {statusMessage && (
-        <p style={{ marginTop: "12px", color: statusMessage.startsWith("Successfully") ? "green" : "red" }}>
+        <div
+          className={`animate-fade-in p-3.5 rounded-lg border text-xs font-medium ${
+            statusMessage.startsWith("Successfully")
+              ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
+              : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
+          }`}
+        >
           {statusMessage}
-        </p>
+        </div>
       )}
     </div>
   );
 }
-
-const cellStyle = { border: "1px solid #ccc", padding: "6px", textAlign: "left" };
-const inputStyle = { width: "100%", boxSizing: "border-box", padding: "4px" };
 
 export default SF1;

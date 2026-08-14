@@ -245,26 +245,26 @@ export default function NutritionStatus({ user, goBack }) {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6 space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-3">
           {goBack && (
             <button
               onClick={goBack}
-              className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform"
               title="Go Back"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
           <div>
-            <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <HeartPulse className="w-6 h-6 text-rose-500" />
               Nutrition Status Tracking
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              DepEd / WHO 2007 Growth Reference (BMI-for-Age) baseline & annual monitoring
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              DepEd / WHO 2007 Growth Reference (BMI-for-Age) baseline &amp; annual monitoring
             </p>
           </div>
         </div>
@@ -273,7 +273,7 @@ export default function NutritionStatus({ user, goBack }) {
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center justify-center gap-2 bg-emerald-600 text-white font-medium px-4 py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors shadow-sm text-sm"
+            className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm"
           >
             {isSaving ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -288,16 +288,16 @@ export default function NutritionStatus({ user, goBack }) {
       {/* Filter Bar */}
       <form
         onSubmit={handleLoad}
-        className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end"
+        className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end"
       >
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1">
+          <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
             Grade Level
           </label>
           <select
             value={gradeLevel}
             onChange={(e) => setGradeLevel(e.target.value)}
-            className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-colors"
           >
             {GRADE_OPTIONS.map((g) => (
               <option key={g} value={g}>
@@ -308,7 +308,7 @@ export default function NutritionStatus({ user, goBack }) {
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1">
+          <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
             Section
           </label>
           <input
@@ -316,31 +316,31 @@ export default function NutritionStatus({ user, goBack }) {
             placeholder="e.g. Kindness"
             value={section}
             onChange={(e) => setSection(e.target.value)}
-            className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1">
+          <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
             School Year
           </label>
           <input
             type="text"
             value={schoolYear}
             onChange={(e) => setSchoolYear(e.target.value)}
-            className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1">
+          <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
             Measurement Date
           </label>
           <input
             type="date"
             value={measurementDate}
             onChange={(e) => setMeasurementDate(e.target.value)}
-            className="w-full text-sm bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+            className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-colors"
           />
         </div>
 
@@ -348,7 +348,7 @@ export default function NutritionStatus({ user, goBack }) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 bg-slate-800 text-white font-medium px-4 py-2 rounded-lg hover:bg-slate-900 disabled:opacity-50 transition-colors shadow-sm text-sm"
+            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm"
           >
             {isLoading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
@@ -362,26 +362,35 @@ export default function NutritionStatus({ user, goBack }) {
 
       {/* Notifications */}
       {errorMessage && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+        <div className="animate-fade-in bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
       {statusMessage && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+        <div className="animate-fade-in bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{statusMessage}</span>
         </div>
       )}
 
+      {/* Loading Skeleton */}
+      {isLoading && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 space-y-3">
+          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+        </div>
+      )}
+
       {/* Grid */}
-      {isLoaded && (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      {isLoaded && !isLoading && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
-                <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-semibold text-xs uppercase tracking-wider">
+                <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold text-xs uppercase tracking-wider sticky top-0 z-10">
                   <th className="py-3 px-4 w-12 text-center">#</th>
                   <th className="py-3 px-4">Learner Name</th>
                   <th className="py-3 px-4">LRN</th>
@@ -394,10 +403,10 @@ export default function NutritionStatus({ user, goBack }) {
                   <th className="py-3 px-4 w-36 text-center">Nutritional Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-800">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
                 {gridData.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-8 text-center text-slate-500">
+                    <td colSpan={10} className="py-8 text-center text-gray-500 dark:text-gray-400">
                       No learners found for Grade {gradeLevel} - {section}.
                     </td>
                   </tr>
@@ -411,24 +420,24 @@ export default function NutritionStatus({ user, goBack }) {
                     const status = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
 
                     return (
-                      <tr key={learner.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3 px-4 text-center text-slate-400 font-mono text-xs">
+                      <tr key={learner.id} className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                        <td className="py-3 px-4 text-center text-gray-400 dark:text-gray-500 font-mono text-xs">
                           {idx + 1}
                         </td>
-                        <td className="py-3 px-4 font-medium text-slate-900">
+                        <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">
                           {learner.lastName}, {learner.firstName}{" "}
                           {learner.middleName ? learner.middleName : ""}
                         </td>
-                        <td className="py-3 px-4 text-slate-600 font-mono text-xs">
+                        <td className="py-3 px-4 text-gray-500 dark:text-gray-400 font-mono text-xs">
                           {learner.lrn || learner.learnerLRN || "—"}
                         </td>
-                        <td className="py-3 px-4 text-slate-700 font-medium">
+                        <td className="py-3 px-4 text-gray-700 dark:text-gray-300 font-medium">
                           {learner.sex || "—"}
                         </td>
-                        <td className="py-3 px-4 text-slate-600 text-xs">
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-400 text-xs">
                           {learner.birthDate || "—"}
                         </td>
-                        <td className="py-3 px-4 text-slate-700 font-mono text-xs">
+                        <td className="py-3 px-4 text-gray-700 dark:text-gray-300 font-mono text-xs">
                           {ageInMonths !== null ? ageInMonths : "—"}
                         </td>
                         <td className="py-3 px-4">
@@ -440,7 +449,7 @@ export default function NutritionStatus({ user, goBack }) {
                             placeholder="e.g. 1.45"
                             value={heightM}
                             onChange={(e) => handleHeightChange(idx, e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono"
+                            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2.5 py-1 text-sm text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none font-mono"
                           />
                         </td>
                         <td className="py-3 px-4">
@@ -452,43 +461,27 @@ export default function NutritionStatus({ user, goBack }) {
                             placeholder="e.g. 35.5"
                             value={weightKg}
                             onChange={(e) => handleWeightChange(idx, e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1 text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono"
+                            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2.5 py-1 text-sm text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary focus:border-primary focus:outline-none font-mono"
                           />
                         </td>
-                        <td className="py-3 px-4 font-mono font-semibold text-slate-800">
+                        <td className="py-3 px-4 font-mono font-semibold text-gray-800 dark:text-gray-200">
                           {bmi !== null ? bmi.toFixed(2) : "—"}
                         </td>
                         <td className="py-3 px-4 text-center">
                           {status === "Severely Wasted" || status === "Wasted" ? (
-                            <span className="inline-block bg-red-100 text-red-800 border border-red-300 font-semibold px-2.5 py-1 rounded-full text-xs">
+                            <span className="inline-block bg-red-500/10 text-red-700 dark:bg-red-500/20 dark:text-red-300 border border-red-500/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
                               {status}
                             </span>
                           ) : status === "Normal" ? (
-                            <span
-                              className="inline-block font-semibold px-2.5 py-1 rounded-full text-xs"
-                              style={{
-                                backgroundColor: "rgba(30, 92, 41, 0.12)",
-                                color: "#1E5C29",
-                                borderColor: "rgba(30, 92, 41, 0.3)",
-                                borderWidth: "1px",
-                              }}
-                            >
+                            <span className="inline-block bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light border border-leaf/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
                               {status}
                             </span>
                           ) : status === "Overweight" || status === "Obese" ? (
-                            <span
-                              className="inline-block font-semibold px-2.5 py-1 rounded-full text-xs"
-                              style={{
-                                backgroundColor: "rgba(242, 169, 59, 0.18)",
-                                color: "#B87A14",
-                                borderColor: "rgba(242, 169, 59, 0.4)",
-                                borderWidth: "1px",
-                              }}
-                            >
+                            <span className="inline-block bg-accent/10 text-accent-dark dark:bg-accent/20 dark:text-accent-light border border-accent/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
                               {status}
                             </span>
                           ) : (
-                            <span className="text-slate-400 font-mono">—</span>
+                            <span className="text-gray-400 dark:text-gray-500 font-mono">—</span>
                           )}
                         </td>
                       </tr>
@@ -502,75 +495,54 @@ export default function NutritionStatus({ user, goBack }) {
       )}
 
       {/* Summary Panel */}
-      {isLoaded && gridData.length > 0 && (
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
-          <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-            <Users className="w-4 h-4 text-slate-600" />
+      {isLoaded && !isLoading && gridData.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+          <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-2">
+            <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             Nutritional Status Summary
           </h2>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-              <span className="block text-xs font-semibold text-red-700">Severely Wasted</span>
-              <span className="text-2xl font-bold text-red-800">{summaryCounts.severelyWasted}</span>
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/60 rounded-lg p-3 text-center">
+              <span className="block text-xs font-semibold text-red-700 dark:text-red-300">Severely Wasted</span>
+              <span className="text-2xl font-bold text-red-800 dark:text-red-200">{summaryCounts.severelyWasted}</span>
             </div>
 
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-              <span className="block text-xs font-semibold text-red-700">Wasted</span>
-              <span className="text-2xl font-bold text-red-800">{summaryCounts.wasted}</span>
+            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/60 rounded-lg p-3 text-center">
+              <span className="block text-xs font-semibold text-red-700 dark:text-red-300">Wasted</span>
+              <span className="text-2xl font-bold text-red-800 dark:text-red-200">{summaryCounts.wasted}</span>
             </div>
 
-            <div
-              className="rounded-lg p-3 text-center"
-              style={{
-                backgroundColor: "rgba(30, 92, 41, 0.08)",
-                borderColor: "rgba(30, 92, 41, 0.25)",
-                borderWidth: "1px",
-              }}
-            >
-              <span className="block text-xs font-semibold" style={{ color: "#1E5C29" }}>
+            <div className="bg-leaf/10 dark:bg-leaf/20 border border-leaf/20 rounded-lg p-3 text-center">
+              <span className="block text-xs font-semibold text-leaf-dark dark:text-leaf-light">
                 Normal
               </span>
-              <span className="text-2xl font-bold" style={{ color: "#1E5C29" }}>
+              <span className="text-2xl font-bold text-leaf-dark dark:text-leaf-light">
                 {summaryCounts.normal}
               </span>
             </div>
 
-            <div
-              className="rounded-lg p-3 text-center"
-              style={{
-                backgroundColor: "rgba(242, 169, 59, 0.12)",
-                borderColor: "rgba(242, 169, 59, 0.35)",
-                borderWidth: "1px",
-              }}
-            >
-              <span className="block text-xs font-semibold" style={{ color: "#B87A14" }}>
+            <div className="bg-accent/10 dark:bg-accent/20 border border-accent/20 rounded-lg p-3 text-center">
+              <span className="block text-xs font-semibold text-accent-dark dark:text-accent-light">
                 Overweight
               </span>
-              <span className="text-2xl font-bold" style={{ color: "#B87A14" }}>
+              <span className="text-2xl font-bold text-accent-dark dark:text-accent-light">
                 {summaryCounts.overweight}
               </span>
             </div>
 
-            <div
-              className="rounded-lg p-3 text-center"
-              style={{
-                backgroundColor: "rgba(242, 169, 59, 0.12)",
-                borderColor: "rgba(242, 169, 59, 0.35)",
-                borderWidth: "1px",
-              }}
-            >
-              <span className="block text-xs font-semibold" style={{ color: "#B87A14" }}>
+            <div className="bg-accent/10 dark:bg-accent/20 border border-accent/20 rounded-lg p-3 text-center">
+              <span className="block text-xs font-semibold text-accent-dark dark:text-accent-light">
                 Obese
               </span>
-              <span className="text-2xl font-bold" style={{ color: "#B87A14" }}>
+              <span className="text-2xl font-bold text-accent-dark dark:text-accent-light">
                 {summaryCounts.obese}
               </span>
             </div>
 
-            <div className="bg-slate-100 border border-slate-200 rounded-lg p-3 text-center">
-              <span className="block text-xs font-semibold text-slate-600">Pending / Unmeasured</span>
-              <span className="text-2xl font-bold text-slate-700">{summaryCounts.unclassified}</span>
+            <div className="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-center">
+              <span className="block text-xs font-semibold text-gray-600 dark:text-gray-400">Pending / Unmeasured</span>
+              <span className="text-2xl font-bold text-gray-700 dark:text-gray-300">{summaryCounts.unclassified}</span>
             </div>
           </div>
         </div>

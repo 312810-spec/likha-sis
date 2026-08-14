@@ -257,26 +257,26 @@ export default function TransfersLog({ user, goBack }) {
     });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
         <div>
           {goBack && (
             <button
               onClick={goBack}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary font-medium mb-2 transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98] transition-transform"
               type="button"
             >
               <ArrowLeft size={14} /> Back to Dashboard
             </button>
           )}
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-emerald-50 rounded-lg text-emerald-700 border border-emerald-200">
+            <div className="p-2 bg-leaf/10 dark:bg-leaf/20 rounded-lg text-leaf-dark dark:text-leaf-light border border-leaf/20">
               <ArrowLeftRight size={22} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">Transfers Tracking</h1>
-              <p className="text-xs text-gray-500">
+              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Transfers Tracking</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Record and manage learner transfers in and out of the school
               </p>
             </div>
@@ -285,7 +285,7 @@ export default function TransfersLog({ user, goBack }) {
 
         <button
           onClick={handleOpenForm}
-          className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-light text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition-colors text-sm"
+          className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform text-sm"
           type="button"
         >
           <Plus size={16} /> Record a Transfer
@@ -294,24 +294,24 @@ export default function TransfersLog({ user, goBack }) {
 
       {/* Global Status Message */}
       {statusMessage && (
-        <div className="p-4 bg-emerald-50 text-emerald-800 text-sm rounded-xl border border-emerald-200 flex items-center gap-2">
-          <CheckCircle2 size={18} className="text-emerald-600 flex-shrink-0" />
+        <div className="animate-fade-in p-4 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 text-sm rounded-xl border border-emerald-200 dark:border-emerald-800 flex items-center gap-2">
+          <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
           <span>{statusMessage}</span>
         </div>
       )}
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
           <Filter size={14} /> Filter Records
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Grade Level</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Grade Level</label>
             <select
               value={gradeLevelFilter}
               onChange={(e) => setGradeLevelFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white outline-none"
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             >
               {GRADE_OPTIONS.map((g) => (
                 <option key={g} value={g}>
@@ -322,97 +322,108 @@ export default function TransfersLog({ user, goBack }) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Section <span className="text-gray-400 font-normal">(Optional)</span>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Section <span className="text-gray-400 dark:text-gray-500 font-normal">(Optional)</span>
             </label>
             <input
               type="text"
               placeholder="Filter by section..."
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1">School Year</label>
+            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">School Year</label>
             <input
               type="text"
               placeholder="e.g. 2026-2027"
               value={schoolYearFilter}
               onChange={(e) => setSchoolYearFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
             />
           </div>
         </div>
       </div>
 
       {/* Main List Table */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between bg-gray-50/50">
-          <div className="text-sm font-semibold text-gray-800">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
+          <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
             Transfers ({filteredTransfers.length})
           </div>
-          {loadingTransfers && <span className="text-xs text-gray-400">Loading transfers...</span>}
+          {loadingTransfers && (
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">Loading transfers...</span>
+            </div>
+          )}
         </div>
 
         {transfersError && (
-          <div className="p-4 bg-red-50 text-red-600 text-sm border-b border-red-100">
+          <div className="animate-fade-in p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 text-sm border-b border-red-100 dark:border-red-800">
             {transfersError}
           </div>
         )}
 
-        {!loadingTransfers && filteredTransfers.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 space-y-2">
-            <AlertTriangle className="mx-auto text-gray-300" size={40} />
-            <div className="text-sm font-medium">No transfer records found.</div>
-            <p className="text-xs text-gray-400">
-              No transfers match the selected filters. Click "+ Record a Transfer" to add one.
+        {loadingTransfers ? (
+          <div className="p-5 space-y-3">
+            <div className="h-12 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+            <div className="h-12 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+            <div className="h-12 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+          </div>
+        ) : filteredTransfers.length === 0 ? (
+          <div className="p-12 text-center text-gray-500 dark:text-gray-400 space-y-2">
+            <AlertTriangle className="mx-auto text-gray-300 dark:text-gray-600" size={40} />
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">No transfer records found.</div>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              No transfers match the selected filters. Click &quot;+ Record a Transfer&quot; to add one.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider sticky top-0 z-10">
                   <th className="px-4 py-3">Learner Name</th>
-                  <th className="px-4 py-3">Grade & Section</th>
+                  <th className="px-4 py-3">Grade &amp; Section</th>
                   <th className="px-4 py-3">Transfer Type</th>
                   <th className="px-4 py-3">Other School</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Reason</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredTransfers.map((t) => {
                   const isIn = t.transferType === "in";
                   return (
-                    <tr key={t.id} className="hover:bg-gray-50/60 transition-colors">
-                      <td className="px-4 py-3.5 font-medium text-gray-900">
+                    <tr key={t.id} className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
+                      <td className="px-4 py-3.5 font-medium text-gray-900 dark:text-gray-100">
                         <div>{t.learnerName}</div>
                         {t.learnerLRN && (
-                          <div className="text-xs text-gray-400 font-mono">LRN: {t.learnerLRN}</div>
+                          <div className="text-xs text-gray-400 dark:text-gray-500 font-mono">LRN: {t.learnerLRN}</div>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-gray-600">
+                      <td className="px-4 py-3.5 text-gray-600 dark:text-gray-300">
                         {t.gradeLevel} {t.section ? `- ${t.section}` : ""}
                       </td>
                       <td className="px-4 py-3.5">
                         {isIn ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#1E5C29] text-white">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light border border-leaf/20">
                             Transferred In
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-700 border border-gray-300">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300 border border-gray-300 dark:border-gray-600">
                             Transferred Out
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-gray-700">{t.otherSchool || "—"}</td>
-                      <td className="px-4 py-3.5 text-gray-600 whitespace-nowrap">
+                      <td className="px-4 py-3.5 text-gray-700 dark:text-gray-300">{t.otherSchool || "—"}</td>
+                      <td className="px-4 py-3.5 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         {t.transferDate ? t.transferDate : "—"}
                       </td>
-                      <td className="px-4 py-3.5 text-gray-600 max-w-xs truncate">
+                      <td className="px-4 py-3.5 text-gray-600 dark:text-gray-400 max-w-xs truncate">
                         {t.reason || "—"}
                       </td>
                     </tr>
@@ -426,23 +437,23 @@ export default function TransfersLog({ user, goBack }) {
 
       {/* Modal: Record a Transfer */}
       {isFormOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-xl max-w-xl w-full p-6 space-y-5 my-8">
-            <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <ArrowLeftRight className="text-emerald-600" size={20} /> Record a Transfer
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-xl w-full p-6 space-y-5 my-8 border border-gray-200 dark:border-gray-700 animate-slide-up">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <ArrowLeftRight className="text-leaf-dark dark:text-leaf-light" size={20} /> Record a Transfer
               </h2>
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
             {formError && (
-              <div className="p-3 bg-red-50 text-red-600 text-xs rounded-lg border border-red-100 font-medium">
+              <div className="animate-fade-in p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 text-xs rounded-lg border border-red-100 dark:border-red-800 font-medium">
                 {formError}
               </div>
             )}
@@ -450,13 +461,13 @@ export default function TransfersLog({ user, goBack }) {
             <form onSubmit={handleSaveTransfer} className="space-y-4">
               {/* Transfer Type */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                   Transfer Type *
                 </label>
                 <select
                   value={transferType}
                   onChange={(e) => setTransferType(e.target.value)}
-                  className="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white outline-none font-medium"
+                  className="w-full text-xs border border-gray-300 dark:border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none font-medium transition-colors"
                 >
                   <option value="in">Transferred In</option>
                   <option value="out">Transferred Out</option>
@@ -465,31 +476,34 @@ export default function TransfersLog({ user, goBack }) {
 
               {/* Learner selection */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                   Select Learner *
                 </label>
                 {loadingLearners ? (
-                  <div className="text-xs text-gray-400 py-2">Loading learners list...</div>
+                  <div className="space-y-2 py-2">
+                    <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+                    <div className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <div className="relative">
                       <Search
                         size={16}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
                       />
                       <input
                         type="text"
                         placeholder="Search learner by name or LRN..."
                         value={learnerSearchTerm}
                         onChange={(e) => setLearnerSearchTerm(e.target.value)}
-                        className="w-full text-xs pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                        className="w-full text-xs pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-colors"
                       />
                     </div>
 
                     <select
                       value={selectedLearnerId}
                       onChange={(e) => setSelectedLearnerId(e.target.value)}
-                      className="w-full text-xs border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white outline-none"
+                      className="w-full text-xs border border-gray-300 dark:border-gray-700 rounded-lg p-2.5 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none transition-colors"
                     >
                       <option value="">-- Choose a Learner ({availableLearners.length} available) --</option>
                       {availableLearners.map((l) => {
@@ -509,7 +523,7 @@ export default function TransfersLog({ user, goBack }) {
 
               {/* Other School */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                   Other School *
                 </label>
                 <input
@@ -517,50 +531,50 @@ export default function TransfersLog({ user, goBack }) {
                   placeholder="Name of school coming from or going to..."
                   value={otherSchool}
                   onChange={(e) => setOtherSchool(e.target.value)}
-                  className="w-full text-xs rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                  className="w-full text-xs rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-colors"
                 />
               </div>
 
               {/* Transfer Date */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                   Transfer Date *
                 </label>
                 <input
                   type="date"
                   value={transferDate}
                   onChange={(e) => setTransferDate(e.target.value)}
-                  className="w-full text-xs rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white"
+                  className="w-full text-xs rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors"
                 />
               </div>
 
               {/* Reason */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Reason <span className="text-gray-400 font-normal">(Optional)</span>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Reason <span className="text-gray-400 dark:text-gray-500 font-normal">(Optional)</span>
                 </label>
                 <input
                   type="text"
                   placeholder="Reason for transfer..."
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  className="w-full text-xs rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                  className="w-full text-xs rounded-lg border border-gray-300 dark:border-gray-700 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-colors"
                 />
               </div>
 
               {/* Modal Actions */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-200">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2 text-xs font-medium bg-primary hover:bg-primary-light disabled:opacity-50 text-white rounded-lg transition-colors shadow-sm"
+                  className="px-4 py-2 text-xs font-medium bg-primary hover:bg-primary-dark disabled:opacity-50 text-white rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm"
                 >
                   {isSaving ? "Saving..." : "Save Transfer"}
                 </button>

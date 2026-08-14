@@ -26,6 +26,7 @@ import SF10Importer from "./pages/SF10Importer";
 import UserManagement from "./pages/UserManagement";
 import NutritionStatus from "./NutritionStatus";
 import TransfersLog from "./TransfersLog";
+import BrandingSettings from "./BrandingSettings";
 import { canAccessPage } from "./pageAccess.js";
 import { useUserProfile } from "./hooks/useUserProfile.js";
 
@@ -177,6 +178,10 @@ function App() {
       case "sf10Import":
         pageTitle = "Import Center — SF10 Import";
         pageContent = <SF10Importer user={user} />;
+        break;
+      case "brandingSettings":
+        pageTitle = "School Branding & Theme";
+        pageContent = <BrandingSettings user={user} goBack={() => setCurrentPage("dashboard")} />;
         break;
       default:
         // Dashboard

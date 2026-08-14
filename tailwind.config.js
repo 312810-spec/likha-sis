@@ -9,20 +9,28 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#1A2FA0",
-          light: "#2E45C7",
-          dark: "#101D6B",
+          DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)',
+          light: 'rgb(var(--color-primary-light) / <alpha-value>)',
+          dark: 'rgb(var(--color-primary-dark) / <alpha-value>)',
         },
         accent: {
-          DEFAULT: "#F2A93B",
-          light: "#F5C168",
-          dark: "#D48C1F",
+          DEFAULT: 'rgb(var(--color-accent) / <alpha-value>)',
+          light: 'rgb(var(--color-accent-light) / <alpha-value>)',
+          dark: 'rgb(var(--color-accent-dark) / <alpha-value>)',
         },
         leaf: {
-          DEFAULT: "#1E5C29",
-          light: "#2E7D3A",
-          dark: "#123D1A",
+          DEFAULT: 'rgb(var(--color-leaf) / <alpha-value>)',
+          light: 'rgb(var(--color-leaf-light) / <alpha-value>)',
+          dark: 'rgb(var(--color-leaf-dark) / <alpha-value>)',
         },
+      },
+      keyframes: {
+        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+        slideUp: { '0%': { opacity: '0', transform: 'translateY(6px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+      },
+      animation: {
+        'fade-in': 'fadeIn 200ms ease-out',
+        'slide-up': 'slideUp 200ms ease-out',
       },
     },
   },

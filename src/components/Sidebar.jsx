@@ -17,11 +17,14 @@ import {
   HeartPulse,
   ArrowLeftRight,
   Award,
+  Palette,
 } from 'lucide-react';
 
 const icons = {
   Dashboard: LayoutDashboard,
   'User Management': UserCog,
+  Branding: Palette,
+  'Branding Settings': Palette,
   'School Forms': FileText,
   SF1: FileText,
   SF2: FileText,
@@ -62,6 +65,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles }) {
     { label: 'Dashboard', page: 'dashboard' },
     // NOTE: Access control for User Management will be restricted to ictCoordinator/principal roles in Phase B.
     { label: 'User Management', page: 'userManagement' },
+    { label: 'Branding', page: 'brandingSettings' },
     { label: 'Import Center', page: 'importCenter' },
     {
       label: 'School Forms',

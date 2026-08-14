@@ -3,9 +3,11 @@ import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { Bell, User as UserIcon, LogOut, Settings, Sun, Moon, Monitor } from 'lucide-react';
 import useDarkMode from '../hooks/useDarkMode';
+import useBrandTheme from '../hooks/useBrandTheme';
 import Sidebar from './Sidebar';
 
 export default function DashboardShell({ children, currentPage, onNavigate, user, pageTitle = 'Dashboard', userRoles }) {
+  useBrandTheme();
   const [mode, resolvedIsDark, setMode] = useDarkMode();
   const [now, setNow] = useState(new Date());
   const [notifOpen, setNotifOpen] = useState(false);

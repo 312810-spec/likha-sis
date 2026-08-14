@@ -31,6 +31,10 @@ describe('useDarkMode (3-way)', () => {
   beforeEach(() => {
     localStorage.clear();
     document.documentElement.className = '';
+    document.documentElement.style.colorScheme = '';
+    // Reset the meta tag content to a neutral state
+    const existing = document.querySelector('meta[name="color-scheme"]');
+    if (existing) existing.setAttribute('content', 'light dark');
     matchMediaMatches = false;
     installMockMatchMedia();
   });
@@ -93,4 +97,27 @@ describe('useDarkMode (3-way)', () => {
     const { result: r2 } = renderHook(() => useDarkMode());
     expect(r2.current[0]).toBe('dark');
   });
+
+  it('sets colorScheme style and meta tag to "dark" in explicit dark mode', () => {
+    localStorage.setItem(STORAGE_KEY, 'dark');
+    matchMediaMatches = false;
+    renderHook(() => useDarkMode());
+
+    expect(document.documentElement.style.colorScheme).toBe('dark');
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    expect(meta).not.toBeNull();
+    expect(meta.getAttribute('content')).toBe('dark');
+  });
+
+  it('sets colorScheme style and meta tag to "light" in explicit light mode', () => {
+    localStorage.setItem(STORAGE_KEY, 'light');
+    matchMediaMatches = true; // OS is dark but mode overrides to light
+    renderHook(() => useDarkMode());
+
+    expect(document.documentElement.style.colorScheme).toBe('light');
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    expect(meta).not.toBeNull();
+    expect(meta.getAttribute('content')).toBe('light');
+  });
 });
+

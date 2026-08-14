@@ -32,6 +32,13 @@ describe("pageAccess", () => {
       expect(canAccessPage("userManagement", ["principal"])).toBe(true);
       expect(canAccessPage("userManagement", ["adviser"])).toBe(false);
 
+      // brandingSettings: ["ictCoordinator", "principal"]
+      expect(canAccessPage("brandingSettings", ["ictCoordinator"])).toBe(true);
+      expect(canAccessPage("brandingSettings", ["principal"])).toBe(true);
+      expect(canAccessPage("brandingSettings", ["adviser"])).toBe(false);
+      expect(canAccessPage("brandingSettings", ["subjectTeacher"])).toBe(false);
+      expect(canAccessPage("brandingSettings", ["stakeholder"])).toBe(false);
+
       // consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"]
       expect(canAccessPage("consolidatedGrades", ["subjectTeacher"])).toBe(true);
       expect(canAccessPage("consolidatedGrades", ["adviser"])).toBe(true);

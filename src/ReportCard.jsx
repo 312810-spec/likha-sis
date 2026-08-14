@@ -358,12 +358,12 @@ export default function ReportCard({ goBack }) {
       `}</style>
 
       {/* ---- Filter / Controls (no-print) ---- */}
-      <div className="no-print space-y-4">
+      <div className="no-print space-y-4 animate-slide-up">
         <div className="flex items-center gap-3">
           {goBack && (
             <button
               onClick={goBack}
-              className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 active:scale-[0.98]"
               title="Back"
               type="button"
             >
@@ -371,15 +371,15 @@ export default function ReportCard({ goBack }) {
             </button>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Report Card (SF9)</h1>
-            <p className="text-sm text-slate-500">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Report Card (SF9)</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Learner&apos;s Performance Report per DO 15, s.2026, Annex G
             </p>
           </div>
         </div>
 
         {errorMessage && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium">
+          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-medium animate-fade-in">
             {errorMessage}
           </div>
         )}
@@ -387,18 +387,18 @@ export default function ReportCard({ goBack }) {
         {!isLoaded ? (
           <form
             onSubmit={handleLoadClass}
-            className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-xl space-y-4"
+            className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-xl space-y-4"
           >
-            <h2 className="text-lg font-semibold text-slate-900">Select Section</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Select Section</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                   Grade Level
                 </label>
                 <select
                   value={gradeLevel}
                   onChange={(e) => setGradeLevel(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
                 >
                   {GRADE_OPTIONS.map((g) => (
                     <option key={g} value={g}>{g}</option>
@@ -406,7 +406,7 @@ export default function ReportCard({ goBack }) {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                   Section
                 </label>
                 <input
@@ -414,12 +414,12 @@ export default function ReportCard({ goBack }) {
                   value={section}
                   onChange={(e) => setSection(e.target.value)}
                   placeholder="e.g. Diamond"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 School Year
               </label>
               <input
@@ -427,35 +427,49 @@ export default function ReportCard({ goBack }) {
                 value={schoolYear}
                 onChange={(e) => setSchoolYear(e.target.value)}
                 placeholder="2026-2027"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
               />
             </div>
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2.5 px-4 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-2.5 px-4 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {isLoading ? "Loading..." : "Load Class"}
+              {isLoading ? (
+                <>
+                  <RefreshCw className="animate-spin" size={16} />
+                  Loading...
+                </>
+              ) : (
+                "Load Class"
+              )}
             </button>
+
+            {isLoading && (
+              <div className="space-y-3 pt-2">
+                <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+                <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+              </div>
+            )}
           </form>
         ) : (
-          <div className="flex flex-wrap items-center gap-3 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+          <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setIsLoaded(false)}
-              className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2"
+              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 active:scale-[0.98] flex items-center gap-2"
               type="button"
             >
               <RefreshCw size={16} />
               Change Class
             </button>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Select Learner
               </label>
               <select
                 value={selectedLearnerId}
                 onChange={(e) => setSelectedLearnerId(e.target.value)}
-                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white min-w-[280px]"
+                className="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors min-w-[280px]"
               >
                 {learnersList.map((l) => (
                   <option key={l.id} value={l.id}>
@@ -471,7 +485,7 @@ export default function ReportCard({ goBack }) {
             <button
               onClick={() => window.print()}
               disabled={!selectedLearnerId}
-              className="ml-auto px-4 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="ml-auto px-4 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] flex items-center gap-2 disabled:opacity-50"
               type="button"
             >
               <Printer size={18} />

@@ -255,14 +255,14 @@ export default function ConsolidatedGrades({ goBack }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
       {/* Top Banner / Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {goBack && (
             <button
               onClick={goBack}
-              className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition-colors"
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 active:scale-[0.98]"
               title="Back to Dashboard"
               type="button"
             >
@@ -270,11 +270,11 @@ export default function ConsolidatedGrades({ goBack }) {
             </button>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Award className="text-primary" size={26} />
               Consolidated Grades
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
               Consolidated Final Grades and General Average per DO 15, s.2026.
             </p>
           </div>
@@ -283,7 +283,7 @@ export default function ConsolidatedGrades({ goBack }) {
         {isLoaded && (
           <button
             onClick={() => setIsLoaded(false)}
-            className="px-3 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex items-center gap-2"
+            className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 active:scale-[0.98] flex items-center gap-2"
             type="button"
           >
             <RefreshCw size={16} />
@@ -294,7 +294,7 @@ export default function ConsolidatedGrades({ goBack }) {
 
       {/* Error Banner */}
       {errorMessage && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium">
+        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-medium animate-fade-in">
           {errorMessage}
         </div>
       )}
@@ -303,19 +303,19 @@ export default function ConsolidatedGrades({ goBack }) {
       {!isLoaded ? (
         <form
           onSubmit={handleLoad}
-          className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 max-w-xl space-y-4"
+          className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-xl space-y-4"
         >
-          <h2 className="text-lg font-semibold text-slate-900 mb-2">Select Section Setup</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Select Section Setup</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Grade Level
               </label>
               <select
                 value={gradeLevel}
                 onChange={(e) => setGradeLevel(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary bg-white"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
               >
                 {GRADE_OPTIONS.map((g) => (
                   <option key={g} value={g}>
@@ -326,7 +326,7 @@ export default function ConsolidatedGrades({ goBack }) {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Section
               </label>
               <input
@@ -334,13 +334,13 @@ export default function ConsolidatedGrades({ goBack }) {
                 value={section}
                 onChange={(e) => setSection(e.target.value)}
                 placeholder="e.g. Diamond"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
               School Year
             </label>
             <input
@@ -348,23 +348,37 @@ export default function ConsolidatedGrades({ goBack }) {
               value={schoolYear}
               onChange={(e) => setSchoolYear(e.target.value)}
               placeholder="2026-2027"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-2.5 px-4 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-2.5 px-4 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            {isLoading ? "Loading Records..." : "Load Consolidated Grades"}
+            {isLoading ? (
+              <>
+                <RefreshCw className="animate-spin" size={16} />
+                Loading Records...
+              </>
+            ) : (
+              "Load Consolidated Grades"
+            )}
           </button>
+
+          {isLoading && (
+            <div className="space-y-3 pt-2">
+              <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+              <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+            </div>
+          )}
         </form>
       ) : (
         <div className="space-y-4">
           {/* Muted Helper Legend */}
-          <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
-            <Info size={16} className="text-slate-400 flex-shrink-0" />
+          <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-600 dark:text-gray-300">
+            <Info size={16} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
             <span>
               Final Grade is the average of completed terms. A learner with fewer than 3 completed
               terms shows a partial average.
@@ -372,15 +386,15 @@ export default function ConsolidatedGrades({ goBack }) {
           </div>
 
           {/* Consolidated Table Container */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
               <div>
-                <h2 className="text-lg font-bold text-slate-900">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
                   {gradeLevel} - {section}
                 </h2>
-                <p className="text-xs text-slate-500">School Year: {schoolYear}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">School Year: {schoolYear}</p>
               </div>
-              <div className="text-xs text-slate-500 font-medium">
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                 {learnersData.length} Learner{learnersData.length !== 1 ? "s" : ""} |{" "}
                 {subjectsList.length} Subject{subjectsList.length !== 1 ? "s" : ""}
               </div>
@@ -389,8 +403,8 @@ export default function ConsolidatedGrades({ goBack }) {
             <div className="overflow-x-auto max-h-[70vh]">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-primary text-white sticky top-0 z-20 text-xs font-semibold uppercase tracking-wider border-b border-primary-dark">
-                    <th className="px-4 py-3 sticky left-0 z-30 bg-primary min-w-[220px]">
+                  <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 sticky top-0 z-20 text-xs font-semibold uppercase tracking-wider">
+                    <th className="px-4 py-3 sticky left-0 z-30 bg-gray-50 dark:bg-gray-800 min-w-[220px]">
                       Learner Name
                     </th>
                     <th className="px-3 py-3 text-center min-w-[60px]">Sex</th>
@@ -399,18 +413,18 @@ export default function ConsolidatedGrades({ goBack }) {
                         {subj}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-center bg-accent text-primary-dark font-bold min-w-[120px]">
+                    <th className="px-4 py-3 text-center bg-accent/15 text-accent-dark dark:bg-accent/25 dark:text-accent-light font-bold min-w-[120px]">
                       General Average
                     </th>
-                    <th className="px-4 py-3 text-center bg-primary-dark min-w-[80px]">Rank</th>
+                    <th className="px-4 py-3 text-center min-w-[80px]">Rank</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 text-sm">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-sm text-gray-800 dark:text-gray-200">
                   {learnersData.length === 0 ? (
                     <tr>
                       <td
                         colSpan={subjectsList.length + 4}
-                        className="px-4 py-12 text-center text-slate-500"
+                        className="px-4 py-12 text-center text-gray-500 dark:text-gray-400"
                       >
                         No learners found matching Grade Level &quot;{gradeLevel}&quot; and Section
                         &quot;{section}&quot;.
@@ -420,15 +434,13 @@ export default function ConsolidatedGrades({ goBack }) {
                     learnersData.map((learner, idx) => (
                       <tr
                         key={learner.id}
-                        className={`hover:bg-blue-50/50 transition-colors ${
-                          idx % 2 === 0 ? "bg-white" : "bg-slate-50/70"
-                        }`}
+                        className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150 bg-white dark:bg-gray-900"
                       >
-                        <td className="px-4 py-2.5 font-medium text-slate-900 sticky left-0 z-10 bg-inherit truncate max-w-[240px]">
-                          <span className="text-slate-400 font-normal mr-2">{idx + 1}.</span>
+                        <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-gray-100 sticky left-0 z-10 bg-white dark:bg-gray-900 group-hover:bg-inherit truncate max-w-[240px]">
+                          <span className="text-gray-400 dark:text-gray-500 font-normal mr-2">{idx + 1}.</span>
                           {learner.name}
                         </td>
-                        <td className="px-3 py-2.5 text-center text-slate-600 font-mono">
+                        <td className="px-3 py-2.5 text-center text-gray-600 dark:text-gray-400 font-mono">
                           {learner.sex}
                         </td>
                         {subjectsList.map((subj) => {
@@ -436,17 +448,19 @@ export default function ConsolidatedGrades({ goBack }) {
                           return (
                             <td
                               key={subj}
-                              className="px-3 py-2.5 text-center font-mono text-slate-800"
+                              className="px-3 py-2.5 text-center font-mono text-gray-800 dark:text-gray-200"
                             >
                               {grade}
                             </td>
                           );
                         })}
-                        <td className="px-4 py-2.5 text-center font-mono font-bold text-primary-dark bg-amber-50/80">
+                        <td className="px-4 py-2.5 text-center font-mono font-bold text-accent-dark dark:text-accent-light bg-accent/10 dark:bg-accent/20">
                           {learner.genAvg}
                         </td>
-                        <td className="px-4 py-2.5 text-center font-mono font-semibold text-slate-700 bg-slate-100/50">
-                          {learner.rank}
+                        <td className="px-4 py-2.5 text-center font-mono font-semibold">
+                          <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary-dark dark:bg-primary/20 dark:text-primary-light">
+                            {learner.rank}
+                          </span>
                         </td>
                       </tr>
                     ))
