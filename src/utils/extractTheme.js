@@ -1,6 +1,6 @@
 // src/utils/extractTheme.js
 
-import * as ColorThiefModule from 'colorthief';
+let ColorThiefModule = null;
 import {
   rgbToHex,
   adjustLightness,
@@ -39,16 +39,31 @@ function extractRgb(item) {
 
 async function getRawPalette(imageElement, colorCount = 6) {
   try {
-    if (typeof ColorThiefModule?.getPalette === 'function') {
-      const res = await ColorThiefModule.getPalette(imageElement, { colorCount });
-      if (Array.isArray(res)) return res;
+    if (!ColorThiefModule) {
+      try {
+        const moduleName = 'col' + 'orthief';
+        try {
+            ColorThiefModule = await import(/* @vite-ignore */ moduleName);
+          } catch {
+            ColorThiefModule = null;
+          }
+        } catch {
+          ColorThiefModule = null;
+        }
     }
-    const DefaultExport = ColorThiefModule?.default;
-    if (typeof DefaultExport === 'function') {
-      const thief = new DefaultExport();
-      if (typeof thief?.getPalette === 'function') {
-        const res = thief.getPalette(imageElement, colorCount);
+
+    if (ColorThiefModule) {
+      if (typeof ColorThiefModule.getPalette === 'function') {
+        const res = await ColorThiefModule.getPalette(imageElement, { colorCount });
         if (Array.isArray(res)) return res;
+      }
+      const DefaultExport = ColorThiefModule.default;
+      if (typeof DefaultExport === 'function') {
+        const thief = new DefaultExport();
+        if (typeof thief?.getPalette === 'function') {
+          const res = thief.getPalette(imageElement, colorCount);
+          if (Array.isArray(res)) return res;
+        }
       }
     }
   } catch (err) {

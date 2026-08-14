@@ -18,6 +18,7 @@ import {
   computeBMI,
   classifyNutritionalStatus,
 } from "./utils/nutritionComputations";
+import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import {
   Save,
   RefreshCw,
@@ -49,6 +50,7 @@ export default function NutritionStatus({ user, goBack }) {
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [gridData, setGridData] = useState([]);
+  const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
 
   // Load learners and matching nutrition records
   async function handleLoad(e) {
@@ -191,6 +193,32 @@ export default function NutritionStatus({ user, goBack }) {
 
         await setDoc(doc(db, "nutritionRecords", docId), recordPayload, { merge: true });
         savedCount++;
+
+        // Auto-flag check based on nutrition status only
+          try {
+          const trigger = checkAutoFlagTriggers({ generalAverage: null, subjectFinalGrades: null, nutritionStatus: nutritionalStatus });
+          if (trigger) {
+            const lardoDocId = `${learner.id}_${schoolYear.trim()}`;
+            const existing = await getDoc(doc(db, "lardoRecords", lardoDocId));
+            const existsMonitoring = existing.exists() && existing.data()?.status === "monitoring";
+            if (!existsMonitoring) {
+              setPendingFlagCandidates((prev) => {
+                if (prev.find((p) => p.docId === lardoDocId)) return prev;
+                return [
+                  ...prev,
+                  {
+                    docId: lardoDocId,
+                    learner,
+                    schoolYear: schoolYear.trim(),
+                    trigger,
+                  },
+                ];
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Auto-flag check failed:", err);
+        }
       }
 
       setStatusMessage(`✓ Nutrition status records saved successfully for ${savedCount} learner(s).`);
@@ -384,6 +412,69 @@ export default function NutritionStatus({ user, goBack }) {
           <span>{statusMessage}</span>
         </div>
       )}
+
+      {/* Auto-flag confirmation banners */}
+      {pendingFlagCandidates.map((c) => (
+        <div key={c.docId} className="animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4">
+          <AlertCircle className="w-4 h-4 shrink-0 text-yellow-700" />
+          <div className="flex-1">
+            <div className="font-medium">This learner's nutrition status suggests a LARDO risk flag.</div>
+            <div className="text-xs mt-0.5">Flag {c.learner.lastName}, {c.learner.firstName} for monitoring?</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  const nowIso = new Date().toISOString();
+                  const lastName = c.learner.lastName || "";
+                  const firstName = c.learner.firstName || "";
+                  const learnerName = `${lastName}, ${firstName}`.trim();
+                  const learnerLRN = c.learner.lrn || c.learner.learnerLRN || "";
+                  const gradeLvl = c.learner.gradeLevel || gradeLevel;
+                  const sectionName = c.learner.section || section;
+
+                  const newRecordData = {
+                    learnerId: c.learner.id,
+                    learnerLRN,
+                    learnerName,
+                    gradeLevel: gradeLvl,
+                    section: sectionName,
+                    schoolYear: c.schoolYear,
+                    riskFactors: c.trigger.riskFactors,
+                    status: "monitoring",
+                    interventions: [
+                      {
+                        date: nowIso,
+                        note: c.trigger.suggestedNote,
+                      },
+                    ],
+                    flaggedDate: nowIso,
+                    flaggedByEmail: user?.email || "",
+                    updatedAt: serverTimestamp(),
+                  };
+
+                  await setDoc(doc(db, "lardoRecords", c.docId), newRecordData, { merge: true });
+
+                  setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId));
+                  setStatusMessage("LARDO record created for learner.");
+                } catch (err) {
+                  console.error("Failed to create LARDO record:", err);
+                  setErrorMessage("Failed to create LARDO record. Please try again.");
+                }
+              }}
+              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+            >
+              Confirm
+            </button>
+            <button
+              onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ))}
 
       {/* Loading Skeleton */}
       {isLoading && (

@@ -3,7 +3,7 @@
 // Computes each learner's Final Grade per subject and General Average across terms, per DO 15, s.2026.
 
 import { useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, getDoc, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
@@ -17,7 +17,9 @@ import {
 } from "./utils/gradeComputations";
 import { ArrowLeft, Award, RefreshCw, Info } from "lucide-react";
 
-export default function ConsolidatedGrades({ goBack }) {
+import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
+
+export default function ConsolidatedGrades({ goBack, user }) {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 
@@ -34,6 +36,7 @@ export default function ConsolidatedGrades({ goBack }) {
 
   const [learnersData, setLearnersData] = useState([]);
   const [subjectsList, setSubjectsList] = useState([]);
+  const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
 
   const GRADE_OPTIONS = gradeOptions;
 
@@ -248,6 +251,43 @@ export default function ConsolidatedGrades({ goBack }) {
 
       setLearnersData(finalLearners);
       setIsLoaded(true);
+
+      // After computing learners, run the auto-flag checks per learner
+      (async () => {
+        try {
+          await Promise.all(
+            finalLearners.map(async (l) => {
+              const numericGrades = subjects
+                .map((s) => l.subjectFinalGrades[s])
+                .filter((g) => typeof g === "number");
+
+              const trigger = checkAutoFlagTriggers({ generalAverage: typeof l.genAvg === "number" ? l.genAvg : null, subjectFinalGrades: numericGrades, nutritionStatus: null });
+              if (trigger) {
+                const docId = `${l.id}_${schoolYear.trim()}`;
+                const existing = await getDoc(doc(db, "lardoRecords", docId));
+                const existsMonitoring = existing.exists() && existing.data()?.status === "monitoring";
+                if (!existsMonitoring) {
+                  setPendingFlagCandidates((prev) => {
+                    if (prev.find((p) => p.docId === docId)) return prev;
+                    return [
+                      ...prev,
+                      {
+                        docId,
+                        learner: l,
+                        learnerId: l.id,
+                        schoolYear: schoolYear.trim(),
+                        trigger,
+                      },
+                    ];
+                  });
+                }
+              }
+            })
+          );
+        } catch (err) {
+          console.error("Auto-flag checks failed:", err);
+        }
+      })();
     } catch (err) {
       console.error("Error loading consolidated grades:", err);
       setErrorMessage("Failed to load consolidated grades. Please try again.");
@@ -300,6 +340,60 @@ export default function ConsolidatedGrades({ goBack }) {
           {errorMessage}
         </div>
       )}
+
+      {/* Auto-flag confirmation banners */}
+      {pendingFlagCandidates.map((c) => (
+        <div key={c.docId} className="animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4">
+          <Info className="w-4 h-4 shrink-0 text-yellow-700" />
+          <div className="flex-1">
+            <div className="font-medium">This learner's grades suggest a LARDO risk flag.</div>
+            <div className="text-xs mt-0.5">Flag {c.learner.name} for monitoring?</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  const nowIso = new Date().toISOString();
+                  const newRecordData = {
+                    learnerId: c.learnerId,
+                    learnerLRN: "",
+                    learnerName: c.learner.name,
+                    gradeLevel: gradeLevel,
+                    section: section,
+                    schoolYear: c.schoolYear,
+                    riskFactors: c.trigger.riskFactors,
+                    status: "monitoring",
+                    interventions: [
+                      {
+                        date: nowIso,
+                        note: c.trigger.suggestedNote,
+                      },
+                    ],
+                    flaggedDate: nowIso,
+                    flaggedByEmail: user?.email || "",
+                    updatedAt: serverTimestamp(),
+                  };
+
+                  await setDoc(doc(db, "lardoRecords", c.docId), newRecordData, { merge: true });
+                  setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId));
+                } catch (err) {
+                  console.error("Failed to create LARDO record:", err);
+                  setErrorMessage("Failed to create LARDO record. Please try again.");
+                }
+              }}
+              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+            >
+              Confirm
+            </button>
+            <button
+              onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ))}
 
       {/* Setup / Filter Card */}
       {!isLoaded ? (
