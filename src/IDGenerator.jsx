@@ -108,18 +108,25 @@ function IDCardFront({ learner, adviserName }) {
         {/* School name band */}
         <div style={nameBandStyle}>{schoolConfig.schoolName}</div>
 
-        {/* Photo, with the QR code badged onto its corner */}
-        <div style={photoPlaceholderStyle}>
-          <User size={32} strokeWidth={1.2} color="#9ca3af" />
-          <div style={{ fontSize: "6px", color: "#9ca3af", marginTop: "3px", letterSpacing: "0.4px" }}>PHOTO</div>
+        {/* Photo and QR, matched in size and placed side by side so the QR
+            stays large enough to scan reliably */}
+        <div style={photoQrRowStyle}>
+          <div style={photoPlaceholderStyle}>
+            <User size={26} strokeWidth={1.2} color="#9ca3af" />
+            <div style={{ fontSize: "5.5px", color: "#9ca3af", marginTop: "2px", letterSpacing: "0.4px" }}>PHOTO</div>
+          </div>
 
           {learner.lrn ? (
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(learner.lrn)}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(learner.lrn)}`}
               alt="QR code"
-              style={qrBadgeStyle}
+              style={qrPlaceholderStyle}
             />
-          ) : null}
+          ) : (
+            <div style={qrPlaceholderStyle}>
+              <div style={{ fontSize: "5.5px", color: "#9ca3af" }}>NO QR</div>
+            </div>
+          )}
         </div>
 
         <div style={{ textAlign: "center", marginTop: "6px" }}>
@@ -541,11 +548,20 @@ const nameBandStyle = {
   marginTop: "4px",
 };
 
+// Photo and QR sit side by side at matching size, so the QR stays large
+// enough to scan reliably instead of being shrunk into a corner badge.
+const photoQrRowStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "center",
+  gap: "10px",
+  marginTop: "10px",
+  padding: "0 10px",
+};
+
 const photoPlaceholderStyle = {
-  position: "relative",
-  width: "88px",
-  height: "108px",
-  margin: "10px auto 0",
+  width: "78px",
+  height: "78px",
   border: "1px dashed #cbd5e1",
   borderRadius: "6px",
   backgroundColor: "rgba(248, 250, 252, 0.85)",
@@ -556,17 +572,16 @@ const photoPlaceholderStyle = {
   flexShrink: 0,
 };
 
-// QR badge overlapping the photo's bottom-right corner.
-const qrBadgeStyle = {
-  position: "absolute",
-  bottom: "-8px",
-  right: "-8px",
-  width: "36px",
-  height: "36px",
-  border: "2px solid #fff",
+const qrPlaceholderStyle = {
+  width: "78px",
+  height: "78px",
+  border: "1px solid #ddd",
   borderRadius: "4px",
   backgroundColor: "#fff",
-  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.25)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
 };
 
 const pillGroupStyle = {
