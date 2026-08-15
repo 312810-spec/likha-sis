@@ -108,10 +108,18 @@ function IDCardFront({ learner, adviserName }) {
         {/* School name band */}
         <div style={nameBandStyle}>{schoolConfig.schoolName}</div>
 
-        {/* Photo */}
+        {/* Photo, with the QR code badged onto its corner */}
         <div style={photoPlaceholderStyle}>
           <User size={32} strokeWidth={1.2} color="#9ca3af" />
           <div style={{ fontSize: "6px", color: "#9ca3af", marginTop: "3px", letterSpacing: "0.4px" }}>PHOTO</div>
+
+          {learner.lrn ? (
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(learner.lrn)}`}
+              alt="QR code"
+              style={qrBadgeStyle}
+            />
+          ) : null}
         </div>
 
         <div style={{ textAlign: "center", marginTop: "6px" }}>
@@ -159,14 +167,7 @@ function IDCardBack({ learner, principalName, principalPosition }) {
         </p>
 
         <div style={backSignoffStyle}>
-          {learner.lrn ? (
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(learner.lrn)}`}
-              alt="QR code"
-              style={{ width: "48px", height: "48px", border: "1px solid #ddd", background: "#fff" }}
-            />
-          ) : null}
-          <div style={{ fontSize: "9.5px", fontWeight: "bold", color: "#111", marginTop: "6px" }}>{principalName}</div>
+          <div style={{ fontSize: "9.5px", fontWeight: "bold", color: "#111" }}>{principalName}</div>
           <div style={{ fontSize: "7px", color: "#555" }}>{principalPosition}</div>
         </div>
 
@@ -541,6 +542,7 @@ const nameBandStyle = {
 };
 
 const photoPlaceholderStyle = {
+  position: "relative",
   width: "88px",
   height: "108px",
   margin: "10px auto 0",
@@ -552,6 +554,19 @@ const photoPlaceholderStyle = {
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
+};
+
+// QR badge overlapping the photo's bottom-right corner.
+const qrBadgeStyle = {
+  position: "absolute",
+  bottom: "-8px",
+  right: "-8px",
+  width: "36px",
+  height: "36px",
+  border: "2px solid #fff",
+  borderRadius: "4px",
+  backgroundColor: "#fff",
+  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.25)",
 };
 
 const pillGroupStyle = {
