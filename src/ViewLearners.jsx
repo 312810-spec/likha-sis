@@ -7,6 +7,7 @@ import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "./firebase";
 import EditLearnerModal from "./EditLearnerModal";
 import { canEditLearners } from "./pageAccess.js";
+import { ArrowLeft, Users, Pencil, Trash2, AlertCircle, UserSearch } from "lucide-react";
 
 // Calculates age from a birth date string (YYYY-MM-DD), as of today.
 // Note: official DepEd age is "as of 1st Friday of June" — we're using today's date
@@ -90,172 +91,145 @@ function ViewLearners({ user, goBack, userRoles }) {
 
   const isEditable = canEditLearners(userRoles);
 
-  // Shared table cell style for visual consistency with SF1.jsx.
-  const cellStyle = { border: "1px solid #ccc", padding: "6px", textAlign: "left" };
-
-  // Style for the filter dropdown to match input fields in SF1.jsx.
-  const selectStyle = {
-    width: "100%",
-    boxSizing: "border-box",
-    padding: "4px",
-    fontSize: "14px",
-  };
+  const thClass = "px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 whitespace-nowrap";
+  const tdClass = "px-3 py-2.5 text-gray-700 dark:text-gray-200 whitespace-nowrap";
 
   // Show a loading message while data is being fetched.
   if (loading) {
     return (
-      <div style={{ fontFamily: "sans-serif", maxWidth: "1100px", margin: "40px auto", padding: "0 16px" }}>
-        <button onClick={goBack} style={{ marginBottom: "16px", padding: "8px 16px", cursor: "pointer" }}>
-          ← Back to Dashboard
+      <div className="max-w-6xl mx-auto animate-slide-up">
+        <button
+          onClick={goBack}
+          className="mb-4 flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+        >
+          <ArrowLeft size={16} /> Back to Dashboard
         </button>
-        <p style={{ textAlign: "center", color: "#555", fontSize: "18px" }}>Loading learners...</p>
+        <div className="flex flex-col items-center justify-center gap-3 py-24 text-gray-400 dark:text-gray-500">
+          <div className="w-8 h-8 border-2 border-gray-200 dark:border-gray-700 border-t-primary rounded-full animate-spin" />
+          <p className="text-sm">Loading learners...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ fontFamily: "sans-serif", maxWidth: "1100px", margin: "40px auto", padding: "0 16px" }}>
-      {/* Back button at the top, same pattern as SF1.jsx */}
+    <div className="max-w-6xl mx-auto animate-slide-up">
       <button
         onClick={goBack}
-        style={{
-          marginBottom: "16px",
-          padding: "8px 16px",
-          cursor: "pointer",
-          background: "#f0f0f0",
-          border: "1px solid #ccc",
-          borderRadius: "4px",
-        }}
+        className="mb-4 flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
       >
-        ← Back to Dashboard
+        <ArrowLeft size={16} /> Back to Dashboard
       </button>
 
-      <h1 style={{ marginBottom: "4px" }}>Saved Learners</h1>
-      <p style={{ color: "#555", marginTop: 0 }}>
-        Logged in as: <strong>{user.email}</strong>
-      </p>
-      <p style={{ color: "#555", marginTop: 0 }}>
-        Viewing {filteredLearners.length} of {learners.length} learner(s)
-      </p>
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
+              <Users className="text-primary" size={24} />
+              Saved Learners
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Logged in as <span className="font-medium text-gray-700 dark:text-gray-200">{user.email}</span> — viewing {filteredLearners.length} of {learners.length} learner{learners.length === 1 ? "" : "s"}
+            </p>
+          </div>
 
-      {/* Error message display (e.g. if delete fails) */}
-      {errorMessage && (
-        <p style={{ color: "red", marginTop: "12px", marginBottom: "12px" }}>{errorMessage}</p>
-      )}
-
-      {/* Filter dropdown: "Filter by Grade & Section" */}
-      <div style={{ marginBottom: "16px", maxWidth: "300px" }}>
-        <label style={{ display: "block", marginBottom: "4px", fontWeight: "bold" }}>
-          Filter by Grade & Section
-        </label>
-        <select
-          value={filterValue}
-          onChange={(e) => setFilterValue(e.target.value)}
-          style={selectStyle}
-        >
-          {gradeSectionOptions.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* If no learners exist at all (or after filtering), show a friendly message. */}
-      {filteredLearners.length === 0 && (
-        <p style={{ textAlign: "center", color: "#777", marginTop: "40px", fontSize: "16px" }}>
-          {learners.length === 0
-            ? "No learners saved yet."
-            : "No learners match the selected filter."}
-        </p>
-      )}
-
-      {/* Table with learner data */}
-      {filteredLearners.length > 0 && (
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-            <thead>
-              <tr style={{ background: "#f5f5f5" }}>
-                <th style={cellStyle}>LRN</th>
-                <th style={cellStyle}>Last Name</th>
-                <th style={cellStyle}>First Name</th>
-                <th style={cellStyle}>Sex</th>
-                <th style={cellStyle}>Age</th>
-                <th style={cellStyle}>Grade Level</th>
-                <th style={cellStyle}>Section</th>
-                <th style={cellStyle}>Learning Modality</th>
-                {isEditable && <th style={cellStyle}>Actions</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLearners.map((l) => (
-                <tr key={l.id}>
-                  <td style={cellStyle}>{l.lrn || ""}</td>
-                  <td style={cellStyle}>
-                    {l.lastName || ""}
-                    {l.enrollmentStatus === "transferred-out" && (
-                      <span
-                        style={{
-                          marginLeft: "6px",
-                          padding: "2px 6px",
-                          fontSize: "11px",
-                          fontWeight: "bold",
-                          backgroundColor: "#e5e7eb",
-                          color: "#374151",
-                          border: "1px solid #d1d5db",
-                          borderRadius: "4px",
-                          display: "inline-block",
-                        }}
-                      >
-                        Transferred Out
-                      </span>
-                    )}
-                  </td>
-                  <td style={cellStyle}>{l.firstName || ""}</td>
-                  <td style={cellStyle}>{l.sex || ""}</td>
-                  <td style={cellStyle}>{calculateAge(l.birthDate)}</td>
-                  <td style={cellStyle}>{l.gradeLevel || ""}</td>
-                  <td style={cellStyle}>{l.section || ""}</td>
-                  <td style={cellStyle}>{l.learningModality || ""}</td>
-                  {isEditable && (
-                    <td style={cellStyle}>
-                      <button
-                        onClick={() => setEditingLearner(l)}
-                        style={{
-                          padding: "4px 10px",
-                          background: "#e3f2fd",
-                          color: "#1565c0",
-                          border: "1px solid #90caf9",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          fontSize: "13px",
-                          marginRight: "6px",
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(l.id)}
-                        style={{
-                          padding: "4px 10px",
-                          background: "#ffebee",
-                          color: "#c62828",
-                          border: "1px solid #ef9a9a",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          fontSize: "13px",
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  )}
-                </tr>
+          <div className="w-full sm:w-64">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
+              Filter by Grade & Section
+            </label>
+            <select
+              value={filterValue}
+              onChange={(e) => setFilterValue(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            >
+              {gradeSectionOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
               ))}
-            </tbody>
-          </table>
+            </select>
+          </div>
         </div>
-      )}
+
+        {errorMessage && (
+          <div className="mt-4 flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400 animate-fade-in">
+            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {filteredLearners.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl mt-4">
+            <UserSearch size={24} className="text-gray-300 dark:text-gray-600" />
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              {learners.length === 0
+                ? "No learners saved yet."
+                : "No learners match the selected filter."}
+            </p>
+          </div>
+        )}
+
+        {filteredLearners.length > 0 && (
+          <div className="overflow-x-auto mt-4 -mx-5 px-5">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-800/60 border-y border-gray-200 dark:border-gray-700">
+                  <th className={thClass}>LRN</th>
+                  <th className={thClass}>Last Name</th>
+                  <th className={thClass}>First Name</th>
+                  <th className={thClass}>Sex</th>
+                  <th className={thClass}>Age</th>
+                  <th className={thClass}>Grade Level</th>
+                  <th className={thClass}>Section</th>
+                  <th className={thClass}>Learning Modality</th>
+                  {isEditable && <th className={thClass}>Actions</th>}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {filteredLearners.map((l) => (
+                  <tr key={l.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                    <td className={tdClass}>{l.lrn || ""}</td>
+                    <td className={tdClass}>
+                      <span className="flex items-center gap-2">
+                        {l.lastName || ""}
+                        {l.enrollmentStatus === "transferred-out" && (
+                          <span className="px-2 py-0.5 text-[11px] font-semibold bg-gray-100 text-gray-600 border border-gray-200 rounded-full dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
+                            Transferred Out
+                          </span>
+                        )}
+                      </span>
+                    </td>
+                    <td className={tdClass}>{l.firstName || ""}</td>
+                    <td className={tdClass}>{l.sex || ""}</td>
+                    <td className={tdClass}>{calculateAge(l.birthDate)}</td>
+                    <td className={tdClass}>{l.gradeLevel || ""}</td>
+                    <td className={tdClass}>{l.section || ""}</td>
+                    <td className={tdClass}>{l.learningModality || ""}</td>
+                    {isEditable && (
+                      <td className={tdClass}>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingLearner(l)}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/15 active:scale-[0.98] transition-all dark:bg-primary-light/10 dark:text-primary-light dark:border-primary-light/20"
+                          >
+                            <Pencil size={13} /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(l.id)}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 active:scale-[0.98] transition-all dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50"
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* Edit learner modal: shown when an Edit button is clicked. */}
       {editingLearner && (

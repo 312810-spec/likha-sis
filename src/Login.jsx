@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
-import { Mail, Lock, LogIn } from "lucide-react";
+import { Mail, Lock, LogIn, AlertCircle } from "lucide-react";
 
 function Login() {
   // "State" is like a sticky note React watches — whenever it changes, the screen re-draws automatically.
@@ -46,56 +46,63 @@ function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-primary flex items-center justify-center px-4 dark:bg-gray-950">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-lg p-8 dark:bg-gray-900 dark:shadow-gray-950/40">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-primary via-primary to-primary-dark flex items-center justify-center px-4 dark:from-gray-950 dark:via-gray-950 dark:to-black">
+      {/* Decorative ambient glow */}
+      <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-accent/20 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-leaf/20 blur-3xl" />
+
+      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl shadow-black/20 p-8 dark:bg-gray-900 dark:shadow-black/50 animate-slide-up">
         <div className="flex flex-col items-center mb-6">
           <img
             src="/Tingub%20National%20High%20School%28clear%29.png"
             alt="Tingub National High School"
-            className="w-16 h-16 mb-3"
+            className="w-16 h-16 mb-3 rounded-full ring-4 ring-primary/10 dark:ring-primary-light/20"
           />
-          <h1 className="text-xl font-bold text-primary dark:text-primary-light">LIKHA-SIS</h1>
-          <p className="text-sm text-gray-500 mt-1 dark:text-gray-300">Tingub National High School</p>
+          <h1 className="text-xl font-bold text-primary tracking-tight dark:text-primary-light">LIKHA-SIS</h1>
+          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">Tingub National High School</p>
         </div>
 
-        <form onSubmit={handleLogin}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-200">Email</label>
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5 dark:text-gray-200">Email</label>
             <div className="relative">
               <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent bg-white text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
+                className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white transition-colors text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:bg-gray-800"
                 placeholder="teacher@tinguibnhs.edu.ph"
               />
             </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1 dark:text-gray-200">Password</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5 dark:text-gray-200">Password</label>
             <div className="relative">
               <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent bg-white text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
+                className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white transition-colors text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:bg-gray-800"
                 placeholder="Enter your password"
               />
             </div>
           </div>
 
           {errorMessage && (
-            <p className="text-red-600 text-sm mb-4 dark:text-red-400">{errorMessage}</p>
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400 animate-fade-in">
+              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
           )}
 
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-semibold text-white transition-colors ${
-              isLoading ? "bg-primary-light cursor-not-allowed" : "bg-primary hover:bg-primary-light"
+            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold text-white shadow-sm transition-all duration-150 active:scale-[0.99] ${
+              isLoading ? "bg-primary-light cursor-not-allowed opacity-80" : "bg-primary hover:bg-primary-light hover:shadow-md"
             }`}
           >
             <LogIn size={18} />
