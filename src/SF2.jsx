@@ -92,6 +92,36 @@ function byName(a, b) {
   return (a.firstName || "").toLowerCase().localeCompare((b.firstName || "").toLowerCase());
 }
 
+// Formats a "YYYY-MM" month string into a human-readable label, e.g. "2026-08" -> "August 2026".
+function formatMonthLabel(monthValue) {
+  if (!monthValue) return "";
+  const [year, month] = monthValue.split("-");
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const monthName = monthNames[Number(month) - 1];
+  return monthName && year ? `${monthName} ${year}` : monthValue;
+}
+
+// Derives the DepEd school year (June–May) that contains the given "YYYY-MM" month.
+function schoolYearFromMonth(monthValue) {
+  if (!monthValue) return "";
+  const year = Number(monthValue.slice(0, 4));
+  const month = Number(monthValue.slice(5, 7));
+  return month >= 6 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+}
+
 // ---- Component -------------------------------------------------------------
 
 function SF2({ user, goBack }) {
@@ -125,6 +155,8 @@ function SF2({ user, goBack }) {
   const [showLegend, setShowLegend] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  // showPrintArea: renders the printable SF2 report block and triggers window.print().
+  const [showPrintArea, setShowPrintArea] = useState(false);
   // pendingFlagCandidates: learners whose attendance rate auto-flagged a LARDO
   // risk during the last save, awaiting explicit confirmation (same shape as
   // ConsolidatedGrades): { docId, learner, learnerId, schoolYear, trigger }.
@@ -507,6 +539,177 @@ function SF2({ user, goBack }) {
     );
   }
 
+// ---- Printable Daily Attendance Report (SF2) -----------------------------
+
+  // One learner row for the printable grid: X = Absent, shaded cell = Tardy, blank = Present.
+  function renderPrintLearnerRow(learner, no) {
+    return (
+      <tr key={learner.id}>
+        <td>{no}</td>
+        <td className="sf2-cell-left">
+          {learner.lastName || ""}, {learner.firstName || ""}
+        </td>
+        {weekdays.map((w) => {
+          const value = records[learner.id]?.[w.dateString] || "";
+          return (
+            <td key={w.dateString} className={value === "T" ? "sf2-tardy" : ""}>
+              {value === "A" ? "X" : ""}
+            </td>
+          );
+        })}
+        <td className="sf2-cell-total">{learnerAbsentCount(learner.id)}</td>
+      </tr>
+    );
+  }
+
+  // Full attendance grid for the printout: Male/Female learner groups, a per-day
+  // total row for each group, and a combined per-day total row.
+  function renderPrintGrid() {
+    const combinedOnDate = (dateString) =>
+      groupAbsentOnDate(maleLearners, dateString) +
+      groupAbsentOnDate(femaleLearners, dateString);
+    const combinedTotal = () =>
+      groupAbsentTotal(maleLearners) + groupAbsentTotal(femaleLearners);
+
+    return (
+      <table className="sf2-table">
+        <thead>
+          <tr>
+            <th>No.</th>
+            <th className="sf2-cell-left">Name</th>
+            {weekdays.map((w) => (
+              <th key={w.dateString}>
+                {w.label}
+                <br />
+                {w.day}
+              </th>
+            ))}
+            <th className="sf2-cell-total">
+              Total for the Month
+              <br />
+              (Absent count)
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {maleLearners.map((l, i) => renderPrintLearnerRow(l, i + 1))}
+          <tr className="sf2-subtotal">
+            <td colSpan={2} className="sf2-cell-left">
+              {"<== MALE | TOTAL Per Day ===>"}
+            </td>
+            {weekdays.map((w) => (
+              <td key={w.dateString}>{groupAbsentOnDate(maleLearners, w.dateString)}</td>
+            ))}
+            <td className="sf2-cell-total">{groupAbsentTotal(maleLearners)}</td>
+          </tr>
+          {femaleLearners.map((l, i) => renderPrintLearnerRow(l, i + 1))}
+          <tr className="sf2-subtotal">
+            <td colSpan={2} className="sf2-cell-left">
+              {"<== FEMALE | TOTAL Per Day ===>"}
+            </td>
+            {weekdays.map((w) => (
+              <td key={w.dateString}>{groupAbsentOnDate(femaleLearners, w.dateString)}</td>
+            ))}
+            <td className="sf2-cell-total">{groupAbsentTotal(femaleLearners)}</td>
+          </tr>
+          <tr className="sf2-combined">
+            <td colSpan={2} className="sf2-cell-left">
+              Combined TOTAL Per Day
+            </td>
+            {weekdays.map((w) => (
+              <td key={w.dateString}>{combinedOnDate(w.dateString)}</td>
+            ))}
+            <td className="sf2-cell-total">{combinedTotal()}</td>
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+
+  // Summary block under the grid: codes box + enrolment table + formula lines.
+  function renderPrintSummary() {
+    return (
+      <div>
+        <div className="sf2-summary-row">
+          <div className="sf2-codes-box">
+            <div className="sf2-box-title">1. CODES FOR CHECKING ATTENDANCE</div>
+            <div>
+              (blank) - Present; (x) - Absent; Tardy (half shaded = Upper for Late
+              Comer, Lower for Cutting Classes)
+            </div>
+          </div>
+          <table className="sf2-table sf2-summary-table">
+            <tbody>
+              <tr>
+                <td className="sf2-cell-left">Month</td>
+                <td colSpan={2}>{formatMonthLabel(monthValue)}</td>
+              </tr>
+              <tr>
+                <td className="sf2-cell-left">No. of Days of Classes</td>
+                <td colSpan={2}>{numberSchoolDays}</td>
+              </tr>
+              <tr>
+                <th>M</th>
+                <th>F</th>
+                <th>Total</th>
+              </tr>
+              <tr>
+                <td>{maleLearners.length}</td>
+                <td>{femaleLearners.length}</td>
+                <td>{registeredLearners}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div className="sf2-formulas">
+          <div>
+            Percentage of Enrolment:{" "}
+            <strong>
+              {pctEnrolment === null || pctEnrolment === undefined
+                ? "—"
+                : `${pctEnrolment.toFixed(2)}%`}
+            </strong>
+          </div>
+          <div>
+            Average Daily Attendance:{" "}
+            <strong>
+              {averageDailyAttendance === null || averageDailyAttendance === undefined
+                ? "—"
+                : averageDailyAttendance.toFixed(2)}
+            </strong>
+          </div>
+          <div>
+            Percentage of Attendance for the month:{" "}
+            <strong>
+              {pctAttendance === null || pctAttendance === undefined
+                ? "—"
+                : `${pctAttendance.toFixed(2)}%`}
+            </strong>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Certification + signature lines for the printout.
+  function renderPrintSignature() {
+    return (
+      <div>
+        <div className="sf2-cert">I certify that this is a true and correct report.</div>
+        <div className="sf2-sig">
+          <div className="sf2-sig-box">
+            <div className="sf2-sig-line">{adviserName || user?.email || ""}</div>
+            <div className="sf2-sig-label">(Signature of Adviser over Printed Name)</div>
+          </div>
+          <div className="sf2-sig-box">
+            <div className="sf2-sig-label sf2-sig-head-label">Attested by:</div>
+            <div className="sf2-sig-line" />
+            <div className="sf2-sig-label">(Signature of School Head over Printed Name)</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   const hasSelection = Boolean(filterValue && monthValue);
 
   const registeredLearners = maleLearners.length + femaleLearners.length;
@@ -669,8 +872,71 @@ function SF2({ user, goBack }) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
+      {/* Print CSS — screen chrome hides, the printable SF2 report stays plain. */}
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body * { visibility: hidden; }
+          .sf2-print-area, .sf2-print-area * { visibility: visible; }
+          .sf2-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            color: #000;
+            background: #fff;
+          }
+          @page { size: landscape; }
+        }
+        .sf2-table { border-collapse: collapse; width: 100%; }
+        .sf2-table th, .sf2-table td {
+          border: 1px solid #000;
+          padding: 1px 2px;
+          font-size: 7.5pt;
+          text-align: center;
+          line-height: 1.15;
+          color: #000;
+          background: #fff;
+        }
+        .sf2-table th { background: #e8e8e8; font-weight: bold; }
+        .sf2-cell-left { text-align: left !important; }
+        .sf2-cell-total { white-space: nowrap; font-weight: bold; }
+        .sf2-tardy { background: #b9b9b9 !important; font-weight: bold; }
+        .sf2-subtotal td { background: #e8e8e8 !important; font-weight: bold; }
+        .sf2-combined td { background: #cfcfcf !important; font-weight: bold; }
+        .sf2-title { font-weight: bold; font-size: 12pt; text-align: center; margin-bottom: 6px; }
+        .sf2-header { margin-bottom: 8px; font-size: 8.5pt; line-height: 1.5; color: #000; }
+        .sf2-summary-row { display: flex; gap: 8px; align-items: stretch; margin-top: 8px; }
+        .sf2-codes-box {
+          flex: 1 1 58%;
+          border: 1px solid #000;
+          padding: 4px 6px;
+          font-size: 7.5pt;
+          line-height: 1.4;
+          color: #000;
+        }
+        .sf2-box-title { font-weight: bold; font-size: 8pt; margin-bottom: 3px; }
+        .sf2-summary-table { flex: 1 1 42%; }
+        .sf2-formulas { margin-top: 6px; font-size: 7.5pt; line-height: 1.5; color: #000; }
+        .sf2-cert { font-weight: bold; font-size: 9pt; text-align: center; margin-top: 12px; margin-bottom: 8px; color: #000; }
+        .sf2-sig { display: flex; gap: 50px; margin-top: 8px; color: #000; }
+        .sf2-sig-box { flex: 1; text-align: center; }
+        .sf2-sig-line {
+          border-bottom: 1px solid #000;
+          min-height: 24px;
+          padding-top: 10px;
+          font-weight: bold;
+          font-size: 9pt;
+        }
+        .sf2-sig-label { font-size: 7pt; margin-top: 2px; }
+        .sf2-sig-head-label { margin-bottom: 18px; margin-top: 0; }
+      `}</style>
+
       {/* Header Bar */}
-      <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="no-print bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
         {goBack && (
           <button
             onClick={goBack}
@@ -689,7 +955,7 @@ function SF2({ user, goBack }) {
       </div>
 
       {/* Class + month pickers */}
-      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="no-print bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Class</label>
@@ -720,18 +986,18 @@ function SF2({ user, goBack }) {
       </div>
 
       {/* Legend & Guidelines */}
-      {renderLegend()}
+      <div className="no-print">{renderLegend()}</div>
 
       {/* Class Summary + Signatures shown once a class with learners is selected */}
       {!loading && hasSelection && filteredLearners.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-6">
+        <div className="no-print bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-6">
           {renderSummary()}
           {renderSignatures()}
         </div>
       )}
 
-      {/* Save button & Status */}
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Save button, Print Report & Status */}
+      <div className="no-print flex flex-wrap items-center gap-3">
         <button
           onClick={handleSave}
           disabled={isSaving || !hasSelection}
@@ -740,6 +1006,18 @@ function SF2({ user, goBack }) {
         >
           {isSaving ? "Saving..." : "Save Month"}
         </button>
+        {hasSelection && (
+          <button
+            onClick={() => {
+              setShowPrintArea(true);
+              setTimeout(() => window.print(), 150);
+            }}
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98]"
+            type="button"
+          >
+            🖨 Print Report
+          </button>
+        )}
         {statusMessage && (
           <span
             className={`text-xs font-medium px-3 py-1.5 rounded-lg animate-fade-in ${
@@ -755,7 +1033,7 @@ function SF2({ user, goBack }) {
 
       {/* Auto-flag confirmation banners */}
       {pendingFlagCandidates.map((c) => (
-        <div key={c.docId} className="animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4">
+        <div key={c.docId} className="no-print animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4">
           <Info className="w-4 h-4 shrink-0 text-yellow-700" />
           <div className="flex-1">
             <div className="font-medium">This learner's attendance suggests a LARDO risk flag.</div>
@@ -816,7 +1094,7 @@ function SF2({ user, goBack }) {
 
       {/* Loading state */}
       {loading && (
-        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="no-print space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
@@ -825,19 +1103,19 @@ function SF2({ user, goBack }) {
 
       {/* Guards: nothing selected vs. no learners for this class */}
       {!loading && !hasSelection && (
-        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
+        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
           Select a class and month to begin
         </div>
       )}
       {!loading && hasSelection && filteredLearners.length === 0 && (
-        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
+        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
           No learners found for this class.
         </div>
       )}
 
       {/* Attendance grid */}
       {!loading && hasSelection && filteredLearners.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="no-print bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="overflow-x-auto max-h-[70vh]">
             <table className="w-full border-collapse text-xs">
               <thead>
@@ -870,6 +1148,50 @@ function SF2({ user, goBack }) {
                 {renderSubtotalRow("COMBINED — Absent Count", [], true)}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+{/* Printable Daily Attendance Report — only rendered while printing. */}
+      {showPrintArea && hasSelection && filteredLearners.length > 0 && (
+        <div className="sf2-print-area">
+          <div
+            style={{
+              padding: "0.35in 0.4in",
+              fontFamily: "Arial, Helvetica, sans-serif",
+            }}
+          >
+            {/* Header */}
+            <div className="sf2-header">
+              <div className="sf2-title">
+                School Form 2 (SF2) Daily Attendance Report of Learners
+              </div>
+              <div>
+                School ID: <strong>{schoolConfig.schoolId || ""}</strong>
+              </div>
+              <div>
+                School Name: <strong>{schoolConfig.schoolName}</strong>
+              </div>
+              <div>
+                School Year: <strong>{schoolYearFromMonth(monthValue)}</strong>
+              </div>
+              <div>
+                Report for the Month of{" "}
+                <strong>{formatMonthLabel(monthValue)}</strong>
+              </div>
+              <div>
+                Grade Level: <strong>{selectedGradeLevel}</strong> &nbsp;&nbsp;{" "}
+                Section: <strong>{selectedSection}</strong>
+              </div>
+            </div>
+
+            {/* Attendance grid */}
+            {renderPrintGrid()}
+
+            {/* Summary block */}
+            {renderPrintSummary()}
+
+            {/* Signature block */}
+            {renderPrintSignature()}
           </div>
         </div>
       )}
