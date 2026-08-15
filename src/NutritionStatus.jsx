@@ -27,7 +27,33 @@ import {
   AlertCircle,
   CheckCircle2,
   Users,
+  Printer,
 } from "lucide-react";
+
+// Normalizes a learner's sex value ("M"/"F"/"Male"/"Female") to "M" | "F" | "" so
+// the SF8 printout can group rows by Male / Female reliably regardless of how the
+// learner doc stores the field.
+function normalizeSex(sex) {
+  const s = String(sex || "").trim().toUpperCase();
+  if (s === "M" || s === "MALE") return "M";
+  if (s === "F" || s === "FEMALE") return "F";
+  return "";
+}
+
+// Converts an age in months to the "X yrs Y mos" convention used on the SF8 report.
+function formatAgeLabel(ageInMonths) {
+  if (
+    ageInMonths === null ||
+    ageInMonths === undefined ||
+    Number.isNaN(Number(ageInMonths))
+  ) {
+    return "—";
+  }
+  const totalMonths = Math.floor(Number(ageInMonths));
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
+  return months > 0 ? `${years} yrs ${months} mos` : `${years} yrs`;
+}
 
 export default function NutritionStatus({ user, goBack }) {
   const { config } = useSchoolConfig();
@@ -51,6 +77,8 @@ export default function NutritionStatus({ user, goBack }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [gridData, setGridData] = useState([]);
   const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
+  // Renders the printable SF8 block while printing (same pattern as SF1/SF2).
+  const [showPrintArea, setShowPrintArea] = useState(false);
 
   // Load learners and matching nutrition records
   async function handleLoad(e) {
@@ -274,8 +302,130 @@ export default function NutritionStatus({ user, goBack }) {
     }
   });
 
+  // ---- Printable SF8 report data ------------------------------------------
+  // School info fallbacks: use whichever config fields exist, dash otherwise.
+  const sf8SchoolName = config?.schoolName || "—";
+  const sf8District = config?.district || "—";
+  const sf8Division = config?.division || config?.divisionName || config?.divisionOffice || "—";
+  const sf8Region = config?.region || "—";
+  const sf8SchoolId = config?.schoolId || "—";
+
+  // Group rows by sex: all Male rows first, then Female rows, then any rows with
+  // no sex value — matching the sex-grouped style of the SF1 printable register.
+  const maleSf8Rows = gridData.filter((item) => normalizeSex(item.learner.sex) === "M");
+  const femaleSf8Rows = gridData.filter((item) => normalizeSex(item.learner.sex) === "F");
+  const unlabelledSf8Rows = gridData.filter((item) => normalizeSex(item.learner.sex) === "");
+
+  // Ordered print rows with continuous numbering across the sex groups.
+  const sf8PrintRows = [];
+  let sf8RowNumber = 0;
+  for (const group of [
+    { label: "MALE", rows: maleSf8Rows },
+    { label: "FEMALE", rows: femaleSf8Rows },
+    { label: "SEX NOT INDICATED", rows: unlabelledSf8Rows },
+  ]) {
+    if (group.rows.length === 0) continue;
+    sf8PrintRows.push({ groupHeader: true, label: group.label });
+    for (const item of group.rows) {
+      sf8RowNumber += 1;
+      sf8PrintRows.push({ groupHeader: false, item, number: sf8RowNumber });
+    }
+  }
+
+  // Summary counts per BMI category — reuses summaryCounts, no recomputation.
+  const sf8SummaryRows = [
+    { label: "Severely Wasted", count: summaryCounts.severelyWasted },
+    { label: "Wasted", count: summaryCounts.wasted },
+    { label: "Normal", count: summaryCounts.normal },
+    { label: "Overweight", count: summaryCounts.overweight },
+    { label: "Obese", count: summaryCounts.obese },
+  ];
+
+  function handlePrintReport() {
+    setShowPrintArea(true);
+    setTimeout(() => window.print(), 150);
+  }
+
+  // One printable SF8 data row, computed exactly the way handleSave does.
+  function renderSf8Row(item, rowNumber) {
+    const { learner, heightM, weightKg } = item;
+    const h = parseFloat(heightM);
+    const w = parseFloat(weightKg);
+    const isValid = !isNaN(h) && h > 0 && !isNaN(w) && w > 0;
+
+    const fullName = `${learner.lastName || ""}, ${learner.firstName || ""}${
+      learner.middleName ? " " + learner.middleName : ""
+    }`.trim();
+    const lrn = learner.lrn || learner.learnerLRN || "—";
+    const ageInMonths = getAgeInMonths(learner.birthDate, measurementDate);
+    const bmi = computeBMI(w, h);
+    const status = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
+
+    return (
+      <tr key={rowNumber}>
+        <td>{rowNumber}</td>
+        <td className="sf8-cell-left">{lrn}</td>
+        <td className="sf8-cell-left">{fullName || "—"}</td>
+        <td>{learner.birthDate || "—"}</td>
+        <td>{formatAgeLabel(ageInMonths)}</td>
+        <td>{isValid ? String(w) : "—"}</td>
+        <td>{isValid ? String(h) : "—"}</td>
+        <td>{isValid ? (h * h).toFixed(2) : "—"}</td>
+        <td>{bmi !== null && bmi !== undefined ? bmi.toFixed(2) : "—"}</td>
+        <td>{status || "—"}</td>
+        <td>—</td>
+        <td>{learner.remarks || "—"}</td>
+      </tr>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
+      {/* Print CSS — screen chrome hides, the printable SF8 report stays plain. */}
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body * { visibility: hidden; }
+          .sf8-print-area, .sf8-print-area * { visibility: visible; }
+          .sf8-print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            color: #000;
+            background: #fff;
+          }
+        }
+        @page { size: A4 landscape; margin: 8mm; }
+        .sf8-table { border-collapse: collapse; width: 100%; }
+        .sf8-table th, .sf8-table td {
+          border: 1px solid #000;
+          padding: 2px 3px;
+          font-size: 7pt;
+          text-align: center;
+          line-height: 1.2;
+          color: #000;
+          background: #fff;
+        }
+        .sf8-table th { background: #e8e8e8; font-weight: bold; }
+        .sf8-cell-left { text-align: left !important; }
+        .sf8-table td.sf8-group-header {
+          background: #e8e8e8;
+          font-weight: bold;
+          text-align: left;
+        }
+        .sf8-hdr-label, .sf8-hdr-value {
+          border: 1px solid #000;
+          padding: 3px 6px;
+          color: #000;
+          background: #fff;
+        }
+        .sf8-hdr-label { font-weight: bold; white-space: nowrap; }
+        .sf8-hdr-value { text-align: left; }
+      `}</style>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-3">
@@ -300,18 +450,28 @@ export default function NutritionStatus({ user, goBack }) {
         </div>
 
         {isLoaded && gridData.length > 0 && (
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm"
-          >
-            {isSaving ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            {isSaving ? "Saving..." : "Save Nutrition Records"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm"
+            >
+              {isSaving ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {isSaving ? "Saving..." : "Save Nutrition Records"}
+            </button>
+            <button
+              type="button"
+              onClick={handlePrintReport}
+              className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm"
+            >
+              <Printer className="w-4 h-4" />
+              Print Report
+            </button>
+          </div>
         )}
       </div>
 
@@ -644,6 +804,131 @@ export default function NutritionStatus({ user, goBack }) {
             <div className="bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-center">
               <span className="block text-xs font-semibold text-gray-600 dark:text-gray-400">Pending / Unmeasured</span>
               <span className="text-2xl font-bold text-gray-700 dark:text-gray-300">{summaryCounts.unclassified}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Printable SF8 Health and Nutrition Report — only rendered while printing. */}
+      {showPrintArea && gridData.length > 0 && (
+        <div className="sf8-print-area">
+          <div style={{ padding: "0.4in 0.5in", fontFamily: "Arial, Helvetica, sans-serif" }}>
+            {/* Title */}
+            <div style={{ textAlign: "center", color: "#000" }}>
+              <div style={{ fontWeight: "bold", fontSize: "13pt", lineHeight: 1.3 }}>
+                School Form 8 (SF8) Learner&apos;s Basic Health and Nutrition Report
+              </div>
+              <div style={{ fontSize: "10pt", marginTop: "2px" }}>
+                (For All Grade Levels)
+              </div>
+            </div>
+
+            {/* School info header */}
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                margin: "10px 0 8px",
+                fontSize: "8.5pt",
+                color: "#000",
+              }}
+            >
+              <tbody>
+                <tr>
+                  <td className="sf8-hdr-label" style={{ width: "10%" }}>School Name:</td>
+                  <td className="sf8-hdr-value" style={{ width: "15%" }}>{sf8SchoolName}</td>
+                  <td className="sf8-hdr-label" style={{ width: "9%" }}>District:</td>
+                  <td className="sf8-hdr-value" style={{ width: "16%" }}>{sf8District}</td>
+                  <td className="sf8-hdr-label" style={{ width: "9%" }}>Division:</td>
+                  <td className="sf8-hdr-value" style={{ width: "20%" }}>{sf8Division}</td>
+                  <td className="sf8-hdr-label" style={{ width: "8%" }}>Region:</td>
+                  <td className="sf8-hdr-value" style={{ width: "13%" }}>{sf8Region}</td>
+                </tr>
+                <tr>
+                  <td className="sf8-hdr-label">School ID:</td>
+                  <td className="sf8-hdr-value">{sf8SchoolId}</td>
+                  <td className="sf8-hdr-label">Grade:</td>
+                  <td className="sf8-hdr-value">{gradeLevel}</td>
+                  <td className="sf8-hdr-label">Section:</td>
+                  <td className="sf8-hdr-value">{section}</td>
+                  <td className="sf8-hdr-label">School Year:</td>
+                  <td className="sf8-hdr-value">{schoolYear}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* Nutrition table */}
+            <table className="sf8-table">
+              <thead>
+                <tr>
+                  <th style={{ width: "4%" }}>No.</th>
+                  <th style={{ width: "10%" }}>LRN</th>
+                  <th style={{ width: "20%" }}>
+                    Learner&apos;s Name (Last, First, Name Extension, Middle)
+                  </th>
+                  <th style={{ width: "9%" }}>Birthdate</th>
+                  <th style={{ width: "7%" }}>Age</th>
+                  <th style={{ width: "7%" }}>Weight (kg)</th>
+                  <th style={{ width: "7%" }}>Height (m)</th>
+                  <th style={{ width: "7%" }}>Height&sup2; (m&sup2;)</th>
+                  <th style={{ width: "8%" }}>BMI (kg/m&sup2;)</th>
+                  <th style={{ width: "11%" }}>BMI Category</th>
+                  <th style={{ width: "11%" }}>Height for Age (HFA)</th>
+                  <th style={{ width: "8%" }}>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sf8PrintRows.map((entry) =>
+                  entry.groupHeader ? (
+                    <tr key={entry.label}>
+                      <td className="sf8-group-header" colSpan={12}>
+                        {entry.label}
+                      </td>
+                    </tr>
+                  ) : (
+                    renderSf8Row(entry.item, entry.number)
+                  )
+                )}
+              </tbody>
+            </table>
+
+            {/* Summary box */}
+            <div style={{ marginTop: "14px", color: "#000" }}>
+              <div
+                style={{
+                  fontWeight: "bold",
+                  fontSize: "9pt",
+                  textAlign: "center",
+                  marginBottom: "4px",
+                }}
+              >
+                SUMMARY — Number of Learners per BMI Nutritional Status
+              </div>
+              <table
+                className="sf8-table"
+                style={{ maxWidth: "540px", marginLeft: "auto", marginRight: "auto" }}
+              >
+                <thead>
+                  <tr>
+                    <th className="sf8-cell-left">BMI Category</th>
+                    <th style={{ width: "35%" }}>Number of Learners</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sf8SummaryRows.map((row) => (
+                    <tr key={row.label}>
+                      <td className="sf8-cell-left">{row.label}</td>
+                      <td>{row.count}</td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td className="sf8-cell-left" style={{ fontWeight: "bold" }}>
+                      Total
+                    </td>
+                    <td style={{ fontWeight: "bold" }}>{gridData.length}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
