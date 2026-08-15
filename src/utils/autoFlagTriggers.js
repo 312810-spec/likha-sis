@@ -1,7 +1,7 @@
 // src/utils/autoFlagTriggers.js
 // Utility to determine whether a learner should be auto-flagged for LARDO monitoring
 
-export function checkAutoFlagTriggers({ generalAverage = null, subjectFinalGrades = null, nutritionStatus = null, attendanceRate = null }) {
+export function checkAutoFlagTriggers({ generalAverage = null, subjectFinalGrades = null, initialGrade = null, nutritionStatus = null, attendanceRate = null }) {
   const riskFactors = [];
   const reasons = [];
 
@@ -9,6 +9,14 @@ export function checkAutoFlagTriggers({ generalAverage = null, subjectFinalGrade
   if (typeof generalAverage === "number" && !isNaN(generalAverage) && generalAverage < 75) {
     riskFactors.push("Academic difficulty");
     reasons.push(`General Average ${generalAverage} below passing mark`);
+  }
+
+  // Academic: Initial Grade (Class Record, pre-transmutation) below the DO 15
+  // s.2026 intervention threshold -- catches risk earlier than the
+  // consolidated general-average check above.
+  if (typeof initialGrade === "number" && !isNaN(initialGrade) && initialGrade < 70) {
+    if (!riskFactors.includes("Academic difficulty")) riskFactors.push("Academic difficulty");
+    reasons.push(`Initial Grade ${initialGrade.toFixed(2)} below the 70 intervention threshold`);
   }
 
   // Academic: any subject final grade below passing

@@ -22,7 +22,8 @@ import {
   computeExamPS,
   computeInitialGrade,
 } from "./utils/gradeComputations";
-import { Plus, X, Save, ArrowLeft, RefreshCw, BookOpen } from "lucide-react";
+import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
+import { Plus, X, Save, ArrowLeft, RefreshCw, BookOpen, Info } from "lucide-react";
 
 export default function ClassRecord({ user, goBack }) {
   const { config } = useSchoolConfig();
@@ -48,6 +49,7 @@ export default function ClassRecord({ user, goBack }) {
   const [ptItems, setPtItems] = useState([{ id: "pt1", hps: 0 }]);
   const [exHPS, setExHPS] = useState({ st1: 0, st2: 0, te: 0 });
   const [scores, setScores] = useState({});
+  const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
 
   const GRADE_OPTIONS = gradeOptions;
 
@@ -166,6 +168,31 @@ export default function ClassRecord({ user, goBack }) {
 
       setStatusMessage("Class record saved successfully!");
       setTimeout(() => setStatusMessage(""), 4000);
+
+      // DO 15 s.2026 closed-loop check: Initial Grade below the 70
+      // intervention threshold suggests a LARDO risk flag.
+      await Promise.all(
+        learners.map(async (learner) => {
+          const { initialGrade } = computeLearnerGrade(learner);
+          const trigger = checkAutoFlagTriggers({ initialGrade });
+          if (!trigger) return;
+
+          const lardoDocId = `${learner.id}_${schoolYear.trim()}`;
+          try {
+            const existing = await getDoc(doc(db, "lardoRecords", lardoDocId));
+            const existsMonitoring = existing.exists() && existing.data()?.status === "monitoring";
+            if (existsMonitoring) return;
+
+            setPendingFlagCandidates((prev) => {
+              if (prev.find((p) => p.docId === lardoDocId)) return prev;
+              const nameDisplay = `${learner.lastName || ""}, ${learner.firstName || ""}`.trim();
+              return [...prev, { docId: lardoDocId, learner, learnerId: learner.id, learnerName: nameDisplay, trigger }];
+            });
+          } catch (err) {
+            console.error("Auto-flag check failed for learner:", learner.id, err);
+          }
+        })
+      );
     } catch (err) {
       console.error("Failed to save class record:", err);
       setErrorMessage("Failed to save class record. Please try again.");
@@ -299,6 +326,45 @@ export default function ClassRecord({ user, goBack }) {
 
   const subjectWeights = getSubjectWeights(subject) || { ww: 0.2, pt: 0.5, ex: 0.3 };
 
+  // Shared by the live grid render and the post-save auto-flag check, so the
+  // Initial Grade used for both never drifts apart.
+  function computeLearnerGrade(learner) {
+    const learnerScore = scores[learner.id] || {};
+
+    const wwRaw = wwItems.map((item) => {
+      const val = learnerScore.ww?.[item.id];
+      return typeof val === "number" && !isNaN(val) ? val : 0;
+    });
+    const wwHPSArr = wwItems.map((item) => Number(item.hps) || 0);
+    const wwPS = computeComponentPS(wwRaw, wwHPSArr);
+    const wwWS = computeWeightedScore(wwPS, subjectWeights.ww);
+
+    const ptRaw = ptItems.map((item) => {
+      const val = learnerScore.pt?.[item.id];
+      return typeof val === "number" && !isNaN(val) ? val : 0;
+    });
+    const ptHPSArr = ptItems.map((item) => Number(item.hps) || 0);
+    const ptPS = computeComponentPS(ptRaw, ptHPSArr);
+    const ptWS = computeWeightedScore(ptPS, subjectWeights.pt);
+
+    const st1Raw = typeof learnerScore.st1 === "number" && !isNaN(learnerScore.st1) ? learnerScore.st1 : 0;
+    const st2Raw = typeof learnerScore.st2 === "number" && !isNaN(learnerScore.st2) ? learnerScore.st2 : 0;
+    const teRaw = typeof learnerScore.te === "number" && !isNaN(learnerScore.te) ? learnerScore.te : 0;
+
+    const st1HPS = Number(exHPS.st1) || 0;
+    const st2HPS = Number(exHPS.st2) || 0;
+    const teHPS = Number(exHPS.te) || 0;
+
+    const exPS = computeExamPS(st1Raw, st1HPS, st2Raw, st2HPS, teRaw, teHPS);
+    const exWS = computeWeightedScore(exPS, subjectWeights.ex);
+
+    const initialGrade = computeInitialGrade(wwWS, ptWS, exWS);
+    const termGrade = transmuteGrade(initialGrade);
+    const description = getGradeDescription(termGrade);
+
+    return { wwPS, wwWS, ptPS, ptWS, exPS, exWS, initialGrade, termGrade, description };
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
       {/* Top Banner / Navigation */}
@@ -359,6 +425,65 @@ export default function ClassRecord({ user, goBack }) {
           {errorMessage}
         </div>
       )}
+
+      {/* Auto-flag confirmation banners (Initial Grade below 70) */}
+      {pendingFlagCandidates.map((c) => (
+        <div
+          key={c.docId}
+          className="animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4"
+        >
+          <Info className="w-4 h-4 shrink-0 text-yellow-700" />
+          <div className="flex-1">
+            <div className="font-medium">This learner's Initial Grade suggests a LARDO risk flag.</div>
+            <div className="text-xs mt-0.5">Flag {c.learnerName || "this learner"} for monitoring?</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const nowIso = new Date().toISOString();
+                  const newRecordData = {
+                    learnerId: c.learnerId,
+                    learnerLRN: c.learner.lrn || c.learner.learnerLRN || "",
+                    learnerName: c.learnerName || "Unknown Learner",
+                    gradeLevel,
+                    section: section.trim(),
+                    schoolYear: schoolYear.trim(),
+                    riskFactors: c.trigger.riskFactors,
+                    status: "monitoring",
+                    interventions: [
+                      {
+                        date: nowIso,
+                        note: c.trigger.suggestedNote,
+                      },
+                    ],
+                    flaggedDate: nowIso,
+                    flaggedByEmail: user?.email || "",
+                    updatedAt: serverTimestamp(),
+                  };
+
+                  await setDoc(doc(db, "lardoRecords", c.docId), newRecordData, { merge: true });
+                  setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId));
+                } catch (err) {
+                  console.error("Failed to create LARDO record:", err);
+                  setErrorMessage("Failed to create LARDO record. Please try again.");
+                }
+              }}
+              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+            >
+              Confirm
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ))}
 
       {/* SETUP PANEL */}
       {!isLoaded ? (
@@ -708,41 +833,8 @@ export default function ClassRecord({ user, goBack }) {
                   ) : (
                     learners.map((learner, index) => {
                       const learnerScore = scores[learner.id] || {};
-
-                      // Compute WW
-                      const wwRaw = wwItems.map((item) => {
-                        const val = learnerScore.ww?.[item.id];
-                        return typeof val === "number" && !isNaN(val) ? val : 0;
-                      });
-                      const wwHPSArr = wwItems.map((item) => Number(item.hps) || 0);
-                      const wwPS = computeComponentPS(wwRaw, wwHPSArr);
-                      const wwWS = computeWeightedScore(wwPS, subjectWeights.ww);
-
-                      // Compute PT
-                      const ptRaw = ptItems.map((item) => {
-                        const val = learnerScore.pt?.[item.id];
-                        return typeof val === "number" && !isNaN(val) ? val : 0;
-                      });
-                      const ptHPSArr = ptItems.map((item) => Number(item.hps) || 0);
-                      const ptPS = computeComponentPS(ptRaw, ptHPSArr);
-                      const ptWS = computeWeightedScore(ptPS, subjectWeights.pt);
-
-                      // Compute EX
-                      const st1Raw = typeof learnerScore.st1 === "number" && !isNaN(learnerScore.st1) ? learnerScore.st1 : 0;
-                      const st2Raw = typeof learnerScore.st2 === "number" && !isNaN(learnerScore.st2) ? learnerScore.st2 : 0;
-                      const teRaw = typeof learnerScore.te === "number" && !isNaN(learnerScore.te) ? learnerScore.te : 0;
-
-                      const st1HPS = Number(exHPS.st1) || 0;
-                      const st2HPS = Number(exHPS.st2) || 0;
-                      const teHPS = Number(exHPS.te) || 0;
-
-                      const exPS = computeExamPS(st1Raw, st1HPS, st2Raw, st2HPS, teRaw, teHPS);
-                      const exWS = computeWeightedScore(exPS, subjectWeights.ex);
-
-                      // Compute Final
-                      const initialGrade = computeInitialGrade(wwWS, ptWS, exWS);
-                      const termGrade = transmuteGrade(initialGrade);
-                      const description = getGradeDescription(termGrade);
+                      const { wwPS, wwWS, ptPS, ptWS, exPS, exWS, initialGrade, termGrade, description } =
+                        computeLearnerGrade(learner);
 
                       const nameDisplay = `${learner.lastName || ""}, ${learner.firstName || ""} ${learner.middleName ? learner.middleName.charAt(0) + "." : ""}`;
 

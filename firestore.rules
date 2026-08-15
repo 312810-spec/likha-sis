@@ -54,8 +54,11 @@ service cloud.firestore {
     // ---- lardoRecords ----
     // Mirrors the lardoTracking entry in pageAccess.js — anyone who can open
     // the LARDO Tracking page must also be able to read/write its records.
+    // subjectTeacher is included too: it can't open the LARDO Tracking page,
+    // but it can confirm an auto-flag banner from Class Record / Consolidated
+    // Grades, which needs write access to the specific record confirmed.
     match /lardoRecords/{recordId} {
-      allow read, write: if hasAnyRole(["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"]);
+      allow read, write: if hasAnyRole(["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance", "subjectTeacher"]);
     }
 
     // ---- nutritionRecords ----

@@ -56,4 +56,21 @@ describe("checkAutoFlagTriggers", () => {
     expect(res.riskFactors).toEqual(["Attendance concern"]);
     expect(res.riskFactors).not.toContain("Academic difficulty");
   });
+
+  it("flags when Initial Grade is below 70", () => {
+    const res = checkAutoFlagTriggers({ initialGrade: 65.333 });
+    expect(res).not.toBeNull();
+    expect(res.riskFactors).toContain("Academic difficulty");
+    expect(res.reasons[0]).toBe("Initial Grade 65.33 below the 70 intervention threshold");
+  });
+
+  it("does not flag at Initial Grade boundary exactly 70", () => {
+    expect(checkAutoFlagTriggers({ initialGrade: 70 })).toBeNull();
+  });
+
+  it("does not duplicate Academic difficulty when both Initial Grade and general average trigger", () => {
+    const res = checkAutoFlagTriggers({ generalAverage: 68, initialGrade: 65 });
+    expect(res.riskFactors).toEqual(["Academic difficulty"]);
+    expect(res.reasons).toHaveLength(2);
+  });
 });
