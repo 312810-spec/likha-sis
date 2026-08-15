@@ -43,17 +43,17 @@ export default function PreviewTable({ records = [], columns = [], emptyText = "
   }, [records]);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-100">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
         {FILTERS.map((f) => (
           <button
             key={f.key}
             type="button"
             onClick={() => setFilter(f.key)}
-            className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
               filter === f.key
                 ? "bg-primary text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
             }`}
           >
             {f.label} ({counts[f.key]})
@@ -64,7 +64,7 @@ export default function PreviewTable({ records = [], columns = [], emptyText = "
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr className="bg-gray-50 dark:bg-gray-800/60 text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
               {columns.map((c) => (
                 <th key={c.key} className="px-4 py-2 font-medium">{c.label}</th>
               ))}
@@ -72,7 +72,7 @@ export default function PreviewTable({ records = [], columns = [], emptyText = "
               <th className="px-4 py-2" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
             {filtered.map((r) => (
               <PreviewRow
                 key={r._id}
@@ -87,7 +87,7 @@ export default function PreviewTable({ records = [], columns = [], emptyText = "
       </div>
 
       {filtered.length === 0 && (
-        <p className="px-4 py-6 text-center text-sm text-gray-400">{emptyText}</p>
+        <p className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">{emptyText}</p>
       )}
     </div>
   );
@@ -98,29 +98,29 @@ function PreviewRow({ record, columns, expanded, onToggle }) {
   return (
     <>
       <tr
-        className={`hover:bg-gray-50 cursor-pointer ${
+        className={`hover:bg-gray-50 dark:hover:bg-gray-800/40 cursor-pointer transition-colors ${
           record.severity === "error"
-            ? "bg-red-50/40"
+            ? "bg-red-50/40 dark:bg-red-950/20"
             : record.severity === "warning"
-            ? "bg-amber-50/40"
+            ? "bg-amber-50/40 dark:bg-amber-950/20"
             : ""
         }`}
         onClick={onToggle}
       >
         {columns.map((c) => (
-          <td key={c.key} className="px-4 py-2.5">
+          <td key={c.key} className="px-4 py-2.5 text-gray-700 dark:text-gray-200">
             {c.render ? c.render(record) : record.learner?.[c.key] ?? "—"}
           </td>
         ))}
         <td className="px-4 py-2.5">
           <ImportBadge status={record.severity} />
         </td>
-        <td className="px-4 py-2.5 text-right text-gray-400">{expanded ? "▴" : "▾"}</td>
+        <td className="px-4 py-2.5 text-right text-gray-400 dark:text-gray-500">{expanded ? "▴" : "▾"}</td>
       </tr>
       {expanded && (
-        <tr className="bg-gray-50">
+        <tr className="bg-gray-50 dark:bg-gray-800/40">
           <td colSpan={columns.length + 2} className="px-4 py-3">
-            <div className="text-xs text-gray-500 mb-1">{name}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">{name}</div>
             <IssueList issues={record.issues || []} />
           </td>
         </tr>

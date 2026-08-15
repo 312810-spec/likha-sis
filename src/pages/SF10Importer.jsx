@@ -136,16 +136,16 @@ export default function SF10Importer({ user }) {
 
   // ---- Render -------------------------------------------------------------
   return (
-    <div className="max-w-6xl mx-auto space-y-5">
+    <div className="max-w-6xl mx-auto space-y-5 animate-slide-up">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">SF10 Import</h2>
-        <p className="text-sm text-gray-500">Learner's Permanent Academic Record (.xls / .xlsx)</p>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SF10 Import</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Learner's Permanent Academic Record (.xls / .xlsx)</p>
       </div>
 
       <StepIndicator steps={STEPS} current={step} />
 
       {error && (
-        <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+        <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl px-4 py-3 text-sm animate-fade-in">
           <AlertTriangle size={18} className="mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>
@@ -197,14 +197,14 @@ export default function SF10Importer({ user }) {
 // ---------------------------------------------------------------------------
 function SF10SelectStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
       <label
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
           if (e.dataTransfer.files?.length) onAdd(e.dataTransfer.files);
         }}
-        className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg py-12 px-4 cursor-pointer hover:border-leaf transition-colors text-center"
+        className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl py-12 px-4 cursor-pointer hover:border-leaf dark:hover:border-leaf-light transition-colors text-center"
       >
         <input
           ref={inputRef}
@@ -217,15 +217,15 @@ function SF10SelectStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) {
             e.target.value = "";
           }}
         />
-        <div className="w-14 h-14 rounded-full bg-leaf/10 text-leaf flex items-center justify-center mb-3">
+        <div className="w-14 h-14 rounded-full bg-leaf/10 dark:bg-leaf/20 text-leaf dark:text-leaf-light flex items-center justify-center mb-3">
           <Upload size={26} />
         </div>
-        <p className="text-sm font-medium text-gray-700">
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
           Drag &amp; drop SF10 files here, or click to browse
         </p>
-        <p className="text-xs text-gray-400 mt-1">.xls / .xlsx — one learner per form</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">.xls / .xlsx — one learner per form</p>
         <span
-          className="mt-4 px-4 py-2 rounded-md bg-leaf text-white text-sm hover:bg-leaf-light"
+          className="mt-4 px-4 py-2 rounded-lg bg-leaf text-white text-sm font-medium shadow-sm hover:bg-leaf-light transition-colors"
           onClick={(e) => {
             e.preventDefault();
             inputRef.current && inputRef.current.click();
@@ -240,13 +240,13 @@ function SF10SelectStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) {
           {files.map((f, i) => (
             <li
               key={`${f.name}-${i}`}
-              className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-md px-3 py-2 text-sm"
+              className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"
             >
-              <span className="truncate text-gray-700">{f.name}</span>
+              <span className="truncate text-gray-700 dark:text-gray-200">{f.name}</span>
               <button
                 type="button"
                 onClick={() => onRemove(i)}
-                className="text-gray-400 hover:text-red-500 ml-3"
+                className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 ml-3"
                 aria-label={`Remove ${f.name}`}
               >
                 <X size={16} />
@@ -261,7 +261,7 @@ function SF10SelectStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) {
           type="button"
           disabled={busy || files.length === 0}
           onClick={onAnalyze}
-          className="inline-flex items-center gap-2 bg-leaf text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-leaf-light disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 bg-leaf text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-leaf-light active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <CheckCircle2 size={16} /> Analyze Files
         </button>
@@ -272,12 +272,12 @@ function SF10SelectStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) {
 
 function SF10AnalyzingStep({ importing = false }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-12 shadow-sm flex flex-col items-center justify-center text-center">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-12 shadow-sm flex flex-col items-center justify-center text-center">
       <Loader2 size={32} className="animate-spin text-leaf mb-3" />
-      <p className="text-sm font-medium text-gray-700">
+      <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
         {importing ? "Importing approved academic records…" : "Analyzing SF10 workbooks…"}
       </p>
-      <p className="text-xs text-gray-400 mt-1">
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
         Detecting identity header · extracting learning areas &amp; grades · validating
       </p>
     </div>
@@ -288,8 +288,8 @@ function SF10ReviewStep({ batch, fileModels, onConfirm, onBack, busy, priorImpor
   const allRecords = fileModels.flatMap((f) => f.records || []);
   return (
     <div className="space-y-5">
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">Import Summary</h3>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Import Summary</h3>
         <div className="flex flex-wrap gap-3">
           <StatCard label="Files selected" value={batch.fileCount} />
           <StatCard label="Files analyzed" value={batch.filesAnalyzed} tone="success" />
@@ -299,7 +299,7 @@ function SF10ReviewStep({ batch, fileModels, onConfirm, onBack, busy, priorImpor
           <StatCard label="Errors" value={batch.errorCount} tone="error" />
         </div>
         {priorImport && (
-          <div className="mt-4 flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg px-4 py-3 text-sm">
+          <div className="mt-4 flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 rounded-xl px-4 py-3 text-sm">
             <AlertTriangle size={18} className="mt-0.5 shrink-0" />
             <span>
               One or more of these files appears to have already been imported
@@ -310,8 +310,8 @@ function SF10ReviewStep({ batch, fileModels, onConfirm, onBack, busy, priorImpor
         )}
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">File Summary</h3>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">File Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {fileModels.map((f, i) => (
             <FileSummaryCard
@@ -325,30 +325,30 @@ function SF10ReviewStep({ batch, fileModels, onConfirm, onBack, busy, priorImpor
       </div>
 
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-gray-900">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
           Academic Record Preview
-          <span className="font-normal text-gray-400 ml-2">Click a row to inspect issues.</span>
+          <span className="font-normal text-gray-400 dark:text-gray-500 ml-2">Click a row to inspect issues.</span>
         </h3>
         <PreviewTable records={allRecords} columns={COLUMNS} />
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
           onClick={onBack}
-          className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm hover:bg-gray-50"
+          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           ← Back to file selection
         </button>
         <div className="flex items-center gap-3">
           {batch.blockingErrors && (
-            <span className="text-xs text-red-600">Fix blocking errors before importing.</span>
+            <span className="text-xs text-red-600 dark:text-red-400">Fix blocking errors before importing.</span>
           )}
           <button
             type="button"
             disabled={busy || !batch.canImport}
             onClick={onConfirm}
-            className="inline-flex items-center gap-2 bg-leaf text-white px-6 py-2.5 rounded-md text-sm font-medium hover:bg-leaf-light disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 bg-leaf text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-leaf-light active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CheckCircle2 size={16} /> Confirm Import
           </button>
@@ -362,39 +362,39 @@ function SF10ResultStep({ result, onDone }) {
   const ok = result && result.status === "success";
   const blocked = result && result.status === "blocked";
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm text-center">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8 shadow-sm text-center animate-fade-in">
       <div
         className={`mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center ${
           blocked
-            ? "bg-red-100 text-red-600"
+            ? "bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400"
             : ok
-            ? "bg-green-100 text-green-600"
-            : "bg-amber-100 text-amber-600"
+            ? "bg-green-100 text-green-600 dark:bg-green-950/40 dark:text-green-400"
+            : "bg-amber-100 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
         }`}
       >
         {blocked ? <AlertTriangle size={30} /> : <CheckCircle2 size={30} />}
       </div>
       {blocked ? (
         <>
-          <h3 className="text-lg font-semibold text-gray-900">Import Blocked</h3>
-          <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">{result.error}</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import Blocked</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 max-w-md mx-auto">{result.error}</p>
         </>
       ) : ok ? (
         <>
-          <h3 className="text-lg font-semibold text-gray-900">Import Complete</h3>
-          <p className="text-sm text-gray-500 mt-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import Complete</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
             {result.written} academic record(s) imported.{" "}
             {result.skipped > 0 && `${result.skipped} already-existing record(s) skipped.`}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Import ID: {result.importId}</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Import ID: {result.importId}</p>
         </>
       ) : (
-        <p className="text-sm text-gray-500">No import result available.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">No import result available.</p>
       )}
       <button
         type="button"
         onClick={onDone}
-        className="mt-6 inline-flex items-center gap-2 bg-leaf text-white px-6 py-2.5 rounded-md text-sm font-medium hover:bg-leaf-light"
+        className="mt-6 inline-flex items-center gap-2 bg-leaf text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-leaf-light active:scale-[0.99] transition-all"
       >
         <Upload size={16} /> Import More Files
       </button>
