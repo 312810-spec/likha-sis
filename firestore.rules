@@ -1,98 +1,110 @@
 rules_version = '2';
 
-// LIKHA-SIS Firestore security rules.
-// Access follows the LIKHA-SIS role convention: a user's roles live on their
-// own /users/{uid} profile document, and myRoles() reads that document for the
-// signed-in request.
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---- Shared helpers ---------------------------------------------------
-
+    // Helper: true if someone is logged in.
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // Roles array from the signed-in user's profile document.
+    // Helper: reads the caller's own user doc and returns their roles array.
+    // Returns an empty list if the doc doesn't exist yet (e.g. brand new
+    // account created but Firestore doc not written), so checks fail closed.
     function myRoles() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles;
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles
+        : [];
     }
 
-    function hasAnyRole(expected) {
-      return isSignedIn()
-        && myRoles() != null
-        && myRoles().toSet().hasAny(expected);
+    // Helper: true if the caller has at least one of the given roles.
+    function hasAnyRole(roles) {
+      return myRoles().hasAny(roles);
     }
 
-    // Any authenticated school staff role (the learner role "stakeholder" is not
-    // staff and is intentionally excluded).
-    function isStaff() {
-      return hasAnyRole(['adviser', 'subjectTeacher', 'masterTeacher', 'ictCoordinator', 'principal', 'smeaCoordinator']);
+    // Helper: true once first-run setup has actually finished. Firestore
+    // rules can't check "is this collection empty", so we use a sentinel
+    // field on a single known document instead. Before setup finishes,
+    // this document either doesn't exist yet or lacks setupCompletedAt.
+    function isSetupComplete() {
+      return exists(/databases/$(database)/documents/settings/schoolConfig) &&
+        ('setupCompletedAt' in get(/databases/$(database)/documents/settings/schoolConfig).data);
     }
 
-    // DO 006, s. 2026 (Safe Environment / LRP): LARDO risk data. Mirrors the
-    // lardoTracking entry in pageAccess.js — anyone who can open the LARDO
-    // Tracking page must also be able to read/write its records.
-    function isLardoStaff() {
-      return hasAnyRole(['smeaCoordinator', 'principal', 'guidance', 'adviser', 'masterTeacher']);
-    }
-
-    // ---- Users -------------------------------------------------------------
-
-    // Each user manages their own profile. Reading users/{uid} is allowed for
-    // any signed-in user so the myRoles() role check above works.
-    match /users/{uid} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == uid;
-    }
-
-    // ---- Learners (SF1 imports, ViewLearners, SMEA) ------------------------
-    // Readable / writable by authenticated staff roles.
+    // ---- learners ----
+    // Read: everyone signed in except stakeholder (matches ViewLearners access).
+    // Create: adviser, ictCoordinator, principal (matches SF1 access).
+    // Update/delete: adviser only (matches ViewLearners edit permission).
     match /learners/{learnerId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
+      allow read: if isSignedIn() && !hasAnyRole(["stakeholder"]);
+      allow create: if hasAnyRole(["adviser", "ictCoordinator", "principal"]);
+      allow update, delete: if hasAnyRole(["adviser"]);
     }
 
-    // ---- Academic records (SF10 imports) -------------------------------------
-    // One imported document per learner per school year + grade level. Uses the
-    // exact same access pattern as the learners collection above.
-    match /academicRecords/{recordId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
+    // ---- attendance (SF2) ----
+    match /attendance/{document} {
+      allow read, write: if hasAnyRole(["adviser"]);
     }
 
-    // ---- Import history ----------------------------------------------------
-    // Metadata for every approved import (SF1 & SF10).
-    match /importBatches/{importId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
-    }
-
-    // ---- Class records (ClassRecord, ConsolidatedGrades, SF9 ReportCard) ---
+    // ---- classRecords ----
     match /classRecords/{recordId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
+      allow read, write: if hasAnyRole(["subjectTeacher", "adviser"]);
     }
 
-    // ---- Attendance (SF2, SF9 ReportCard) -----------------------------------
-    match /attendance/{recordId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
-    }
-
-    // ---- Transfers (SF4, TransfersLog) --------------------------------------
-    match /transfers/{transferId} {
-      allow read: if isStaff();
-      allow write: if isStaff();
-    }
-
-    // ---- LARDO records (DO 006 Safe Environment / LRP) ----------------------
-    // Uses isLardoStaff(), not the general isStaff(), so access stays in sync
-    // with pageAccess.js's lardoTracking entry.
+    // ---- lardoRecords ----
+    // Mirrors the lardoTracking entry in pageAccess.js — anyone who can open
+    // the LARDO Tracking page must also be able to read/write its records.
     match /lardoRecords/{recordId} {
-      allow read: if isLardoStaff();
-      allow write: if isLardoStaff();
+      allow read, write: if hasAnyRole(["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"]);
+    }
+
+    // ---- nutritionRecords ----
+    match /nutritionRecords/{recordId} {
+      allow read, write: if hasAnyRole(["adviser", "smeaCoordinator"]);
+    }
+
+    // ---- transfers ----
+    match /transfers/{transferId} {
+      allow read, write: if hasAnyRole(["adviser", "ictCoordinator", "principal", "smeaCoordinator"]);
+    }
+
+    // ---- importBatches (SF1/SF10 bulk import + Import Center) ----
+    match /importBatches/{batchId} {
+      allow read, write: if hasAnyRole(["ictCoordinator"]);
+    }
+
+    // ---- users (User Management) ----
+    // Anyone signed in can read their own doc (needed for useUserProfile to
+    // work for every role). ictCoordinator/principal can manage any account.
+    // Special case: during first-run setup, before setup is complete, a
+    // brand-new account may create ONLY its own doc, and only with the
+    // ictCoordinator role, so a fresh school can bootstrap its first admin
+    // account through SetupWizard without a chicken-and-egg problem.
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow read, write: if hasAnyRole(["ictCoordinator", "principal"]);
+      allow create: if !isSetupComplete()
+        && isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.roles.hasOnly(["ictCoordinator"]);
+    }
+
+    // ---- settings (school config, branding, setup state) ----
+    // Read: any signed-in user (needed for useSchoolConfig/useBrandTheme to
+    // work for every role, and for SetupWizard to check setup state).
+    // Write: ictCoordinator/principal normally, OR anyone during first-run
+    // setup (before isSetupComplete), so a brand-new school can write its
+    // own settings/schoolConfig doc while bootstrapping.
+    match /settings/{document} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(["ictCoordinator", "principal"]) || !isSetupComplete();
+    }
+
+    // Catch-all: anything NOT explicitly listed above is blocked completely,
+    // even for logged-in users. This is a safety net so we never accidentally
+    // leave a new collection wide open later without thinking about it.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

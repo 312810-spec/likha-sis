@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Firebase CLI agent skills (auto-installed by `firebase init`, not project source)
+.agents/
+.claude/skills/
+skills-lock.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
