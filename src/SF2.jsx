@@ -539,7 +539,7 @@ function SF2({ user, goBack }) {
     );
   }
 
-// ---- Printable Daily Attendance Report (SF2) -----------------------------
+  // ---- Printable Daily Attendance Report (SF2) -----------------------------
 
   // One learner row for the printable grid: X = Absent, shaded cell = Tardy, blank = Present.
   function renderPrintLearnerRow(learner, no) {
