@@ -25,6 +25,17 @@ function fullName(learner) {
   return `${first}${middle}${last}`.trim();
 }
 
+// Builds `count` consecutive school-year labels starting at `startSY`
+// (e.g. "2026-2027" -> ["2026-2027", "2027-2028", ...]) for the back's
+// yearly-revalidation table. Falls back to blanks if the learner's school
+// year isn't in the expected "YYYY-YYYY" shape rather than guessing.
+function schoolYearSequence(startSY, count) {
+  const match = /^(\d{4})-(\d{4})$/.exec(String(startSY || "").trim());
+  if (!match) return Array.from({ length: count }, () => "—");
+  const startYear = Number(match[1]);
+  return Array.from({ length: count }, (_, i) => `${startYear + i}-${startYear + i + 1}`);
+}
+
 function emergencyContact(learner) {
   const name = learner.guardianName || learner.fathersName || learner.mothersMaidenName || "";
   const relationship = learner.guardianName
@@ -165,6 +176,21 @@ function IDCardBack({ learner, principalName, principalPosition }) {
           <InfoPill value={parentValue} caption="Name of Parent/Guardian" />
           <InfoPill value={address} caption="Address" />
           <InfoPill value="" caption="Contact Number" />
+        </div>
+
+        {/* Yearly revalidation table — one row per school year this card
+            stays valid for, signed off each year rather than reprinted. */}
+        <div style={syTableStyle}>
+          <div style={syTableHeaderRowStyle}>
+            <div style={{ ...syTableCellStyle, ...syTableSYColStyle, fontWeight: "bold" }}>School Year</div>
+            <div style={{ ...syTableCellStyle, fontWeight: "bold" }}>Signature</div>
+          </div>
+          {schoolYearSequence(learner.schoolYear, 5).map((sy, i, arr) => (
+            <div key={`${sy}-${i}`} style={i === arr.length - 1 ? syTableRowStyleLast : syTableRowStyle}>
+              <div style={{ ...syTableCellStyle, ...syTableSYColStyle }}>{sy}</div>
+              <div style={syTableCellStyle} />
+            </div>
+          ))}
         </div>
 
         <p style={backDisclaimerStyle}>
@@ -616,6 +642,46 @@ const ribbonStyle = {
   height: "12px",
   backgroundImage:
     "repeating-linear-gradient(45deg, rgb(var(--color-primary)) 0px, rgb(var(--color-primary)) 8px, rgb(var(--color-accent)) 8px, rgb(var(--color-accent)) 16px, #ffffff 16px, #ffffff 20px)",
+};
+
+const syTableStyle = {
+  margin: "8px 16px 0",
+  border: "1px solid #d1d5db",
+  borderRadius: "4px",
+  overflow: "hidden",
+};
+
+const syTableHeaderRowStyle = {
+  display: "flex",
+  backgroundColor: "#f3f4f6",
+  borderBottom: "1px solid #d1d5db",
+};
+
+const syTableRowStyle = {
+  display: "flex",
+  borderBottom: "1px solid #e5e7eb",
+};
+
+const syTableRowStyleLast = {
+  display: "flex",
+};
+
+const syTableCellStyle = {
+  flex: 1,
+  padding: "2px 4px",
+  fontSize: "6px",
+  color: "#111",
+  minHeight: "11px",
+  display: "flex",
+  alignItems: "center",
+};
+
+const syTableSYColStyle = {
+  flex: "0 0 58px",
+  justifyContent: "center",
+  textAlign: "center",
+  borderRight: "1px solid #e5e7eb",
+  color: "#374151",
 };
 
 const backDisclaimerStyle = {
