@@ -363,6 +363,15 @@ function SF4({ user, goBack }) {
             padding: 0;
             box-sizing: border-box;
           }
+          /* The table cells carry dark: Tailwind classes for on-screen
+             readability. Those must never reach the printed page, so when
+             dark mode is active, force this print area back to plain
+             black-on-white — light-mode printing is unaffected. */
+          html.dark .sf4-print-area, html.dark .sf4-print-area * {
+            background-color: #fff !important;
+            color: #000 !important;
+            border-color: #000 !important;
+          }
         }
         @page { size: A4 landscape; margin: 8mm; }
         .sf4-table { border-collapse: collapse; width: 100%; }
