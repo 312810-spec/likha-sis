@@ -1,9 +1,15 @@
 // src/SF4.jsx
-// School Form 4 — Monthly Learner Movement Report.
-// Shows learner enrollment movement (beginning, transfers, dropouts, end of
-// month) for the sections of a selected grade level during a chosen month,
-// following the DepEd SF4 format. All data is read client-side from the
-// existing learners, transfers, and attendance collections.
+// School Form 4 — Monthly Learner Movement and Attendance Report.
+// Per-section rows follow the official DepEd SF4 layout: registered learners
+// (as of end of month), daily average attendance and attendance percentage,
+// NLPA ("No Longer Participating in Learning Activities", formerly "Dropped
+// Out"), Transferred Out and Transferred In — each movement block with the
+// (A) cumulative as of previous month / (B) for the month / (A+B) cumulative
+// as of end of month period structure, split by Male / Female / Total. Below
+// the table a school-wide Mortality (Death) block is listed. All data is read
+// client-side from the existing learners, transfers, and attendance
+// collections; mortality numbers are manual inputs persisted to the
+// "sf4Mortality" collection, matching the pattern SF2 uses for its summaries.
 
 import { useState, useEffect } from "react";
 import {
@@ -13,12 +19,18 @@ import {
   where,
   doc,
   getDoc,
+  setDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { academicCalendar } from "./academicCalendar";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
-import { computeSF4Rows, isDropoutRemark } from "./utils/sf4Computations";
+import {
+  computeSF4Rows,
+  computeSectionAttendance,
+  isDropoutRemark,
+} from "./utils/sf4Computations";
 
 // Normalize a learner's sex into "Male" | "Female" | "" so it matches the
 // computeSF4Rows contract, regardless of whether the doc stores "M"/"F" or
@@ -39,10 +51,37 @@ function makeDocumentId(classValue, monthValue) {
   return `${gradeLevel.replace(/ /g, "_")}_${section.replace(/ /g, "_")}_${monthValue}`;
 }
 
+// Builds the Firestore document id for a school-wide mortality record:
+// `${gradeLevel}_${schoolYear}_${monthValue}` with spaces replaced by
+// underscores. E.g. "Grade 7" + "2026-2027" + "2026-08" ->
+// "Grade_7_2026-2027_2026-08".
+function makeMortalityDocumentId(gradeLevel, schoolYear, monthValue) {
+  return `${gradeLevel.replace(/ /g, "_")}_${schoolYear.replace(/ /g, "_")}_${monthValue}`;
+}
+
+// Counts the weekday (Mon–Fri) dates in a "YYYY-MM" month — the same logic as
+// SF2's getWeekdays, returning just the number of school days. Used to convert
+// the SF2 attendance records into daily averages and percentages.
+function countWeekdays(monthValue) {
+  if (!monthValue) return 0;
+  const year = Number(monthValue.slice(0, 4));
+  const month = Number(monthValue.slice(5, 7));
+  const daysInMonth = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dow = new Date(year, month - 1, day).getDay();
+    if (dow !== 0 && dow !== 6) count++;
+  }
+  return count;
+}
+
 // School year options come from the centralized academic calendar.
 const SCHOOL_YEARS = Object.keys(academicCalendar).length
   ? Object.keys(academicCalendar).sort((a, b) => b.localeCompare(a))
   : ["2026-2027"];
+
+// Blank mortality inputs (previous month / for the month).
+const DEFAULT_MORTALITY = { previousMonths: 0, forTheMonth: 0 };
 
 function SF4({ user, goBack }) {
   const { config } = useSchoolConfig();
@@ -65,10 +104,16 @@ function SF4({ user, goBack }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // mortalityInputs: the two MANUAL school-wide mortality number inputs,
+  // persisted to the "sf4Mortality" collection like SF2's summary inputs.
+  const [mortalityInputs, setMortalityInputs] = useState({ ...DEFAULT_MORTALITY });
+  const [isSavingMortality, setIsSavingMortality] = useState(false);
+  const [mortalityStatus, setMortalityStatus] = useState("");
+
   const hasSelection = Boolean(gradeLevel && schoolYear && monthValue && sections.length > 0);
 
-  // Fetch learners per section, transfers, and attendance-based dropouts for the
-  // selected grade level + month, then compute the rows.
+  // Fetch learners per section, transfers, and each section's attendance doc
+  // (adviser name, NLPA remarks, and attendance records), then compute rows.
   useEffect(() => {
     let cancelled = false;
 
@@ -83,7 +128,10 @@ function SF4({ user, goBack }) {
       setError("");
       try {
         // 1. Learners for each section of this grade level + school year.
+        //    Each learner carries its Firestore doc id so transfers and NLPA
+        //    remarks can be resolved back to a sex for the M/F breakdown.
         const learnersBySection = {};
+        const sexLookup = {};
         for (const section of sections) {
           const q = query(
             collection(db, "learners"),
@@ -94,16 +142,21 @@ function SF4({ user, goBack }) {
           const snap = await getDocs(q);
           learnersBySection[section] = snap.docs.map((snapDoc) => {
             const data = snapDoc.data();
-            return {
+            const learnerDoc = {
               ...data,
+              id: snapDoc.id,
               sex: normalizeSex(data.sex),
               enrollmentStatus: data.enrollmentStatus || "active",
             };
+            sexLookup[snapDoc.id] = learnerDoc.sex;
+            return learnerDoc;
           });
         }
 
         // 2. Transfers for this school year, filtered to the selected grade
         //    level's sections and the selected month (transferDate "YYYY-MM-DD").
+        //    Each transfer's sex comes from the roster above so movement can be
+        //    reported by Male / Female.
         const transfersRef = collection(db, "transfers");
         const tq = query(transfersRef, where("schoolYear", "==", schoolYear));
         const tSnap = await getDocs(tq);
@@ -116,30 +169,66 @@ function SF4({ user, goBack }) {
               typeof t.transferDate === "string" &&
               t.transferDate.startsWith(monthValue)
           )
-          .map((t) => ({ section: t.section, transferType: t.transferType }));
+          .map((t) => ({
+            section: t.section,
+            transferType: t.transferType,
+            sex: sexLookup[t.learnerId] || "",
+          }));
 
-        // 3. Dropouts: scan each section's attendance doc for the month and
-        //    count remarks that start with "Dropped Out".
-        const dropoutsInMonth = [];
+        // 3. Per-section attendance sheet: adviser name, NLPA remarks (remarks
+        //    that start with "Dropped Out") and the records used for the daily
+        //    average / percentage attendance columns.
+        const nlpaInMonth = [];
+        const advisersBySection = {};
+        const attendanceBySection = {};
+        const weekdaysCount = countWeekdays(monthValue);
         for (const section of sections) {
           const classValue = `${gradeLevel} - ${section}`;
           const docId = makeDocumentId(classValue, monthValue);
           const snap = await getDoc(doc(db, "attendance", docId));
-          if (snap.exists()) {
-            const remarks = snap.data().remarks || {};
-            Object.values(remarks).forEach((remark) => {
-              if (isDropoutRemark(remark)) dropoutsInMonth.push({ section });
-            });
-          }
+          if (!snap.exists()) continue;
+
+          const data = snap.data();
+          advisersBySection[section] = data.adviserName || "";
+
+          const remarks = data.remarks || {};
+          Object.entries(remarks).forEach(([learnerId, remark]) => {
+            if (isDropoutRemark(remark)) {
+              nlpaInMonth.push({ section, sex: sexLookup[learnerId] || "" });
+            }
+          });
+
+          // Attendance is computed against the registered (active) learners,
+          // matching the "Registered Learners (As of End of the Month)" column.
+          const activeLearners = (learnersBySection[section] || []).filter(
+            (l) => l.enrollmentStatus === "active"
+          );
+          attendanceBySection[section] = computeSectionAttendance({
+            records: data.records || {},
+            learnerIds: {
+              male: activeLearners
+                .filter((l) => l.sex === "Male")
+                .map((l) => l.id),
+              female: activeLearners
+                .filter((l) => l.sex === "Female")
+                .map((l) => l.id),
+            },
+            weekdaysCount,
+          });
         }
 
         if (cancelled) return;
 
+        // "(A) Cumulative as of previous month" cannot be derived from current
+        // data alone (no historical SF4 snapshots exist), so computeSF4Rows is
+        // left with its zeros default for that input.
         const computed = computeSF4Rows({
           sections,
           learnersBySection,
           transfersInMonth,
-          dropoutsInMonth,
+          nlpaInMonth,
+          attendanceBySection,
+          advisersBySection,
         });
         setRows(computed);
       } catch (err) {
@@ -157,10 +246,105 @@ function SF4({ user, goBack }) {
     };
   }, [gradeLevel, schoolYear, monthValue, sections]);
 
-  // Renders one cell value, showing an em dash for null/absent amounts.
-  function cell(value) {
-    return value === null || value === undefined ? "—" : value;
+  // Load any saved mortality numbers for the selected grade level + month.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMortality() {
+      if (!gradeLevel || !schoolYear || !monthValue) {
+        setMortalityInputs({ ...DEFAULT_MORTALITY });
+        return;
+      }
+      try {
+        const docId = makeMortalityDocumentId(gradeLevel, schoolYear, monthValue);
+        const snap = await getDoc(doc(db, "sf4Mortality", docId));
+        if (cancelled) return;
+        if (snap.exists()) {
+          const data = snap.data();
+          setMortalityInputs({
+            previousMonths: data.previousMonths ?? 0,
+            forTheMonth: data.forTheMonth ?? 0,
+          });
+        } else {
+          setMortalityInputs({ ...DEFAULT_MORTALITY });
+        }
+      } catch (err) {
+        console.error("Failed to load mortality data:", err);
+      }
+    }
+
+    loadMortality();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gradeLevel, schoolYear, monthValue]);
+
+  // Persists the school-wide mortality numbers for the current selection.
+  async function handleSaveMortality() {
+    if (!gradeLevel || !schoolYear || !monthValue) {
+      setMortalityStatus("Select a grade level, school year and month first.");
+      return;
+    }
+    setIsSavingMortality(true);
+    setMortalityStatus("");
+    try {
+      const docId = makeMortalityDocumentId(gradeLevel, schoolYear, monthValue);
+      await setDoc(doc(db, "sf4Mortality", docId), {
+        gradeLevel,
+        schoolYear,
+        month: monthValue,
+        previousMonths: Number(mortalityInputs.previousMonths) || 0,
+        forTheMonth: Number(mortalityInputs.forTheMonth) || 0,
+        updatedAt: serverTimestamp(),
+      });
+      setMortalityStatus("Mortality data saved successfully!");
+    } catch (err) {
+      console.error("Failed to save mortality data:", err);
+      setMortalityStatus("Something went wrong while saving. Please try again.");
+    } finally {
+      setIsSavingMortality(false);
+    }
   }
+
+  // Renders one cell value, showing an em dash for null/absent amounts.
+  function cell(item) {
+    return item === null || item === undefined ? "—" : item;
+  }
+
+  // Renders a decimal like 28.33 (em dash when there is no data).
+  function fmtNum(item) {
+    return item === null || item === undefined ? "—" : Number(item).toFixed(2);
+  }
+
+  // Renders a percentage like 92.17% (em dash when there is no data).
+  function fmtPct(item) {
+    return item === null || item === undefined
+      ? "—"
+      : `${Number(item).toFixed(2)}%`;
+  }
+
+  // Three M / F / T cells for a { male, female, total } sex triple.
+  function triad(sexPair) {
+    return (
+      <>
+        <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
+          {cell(sexPair?.male)}
+        </td>
+        <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
+          {cell(sexPair?.female)}
+        </td>
+        <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
+          {cell(sexPair?.total)}
+        </td>
+      </>
+    );
+  }
+
+  // School-wide mortality cumulative computed as the sum of the two inputs,
+  // included in the printable Mortality (Death) block below the table.
+  const mortalityTotal =
+    (Number(mortalityInputs.previousMonths) || 0) + (Number(mortalityInputs.forTheMonth) || 0);
 
   return (
     <div className="space-y-5">
@@ -180,13 +364,15 @@ function SF4({ user, goBack }) {
             box-sizing: border-box;
           }
         }
+        @page { size: A4 landscape; margin: 8mm; }
         .sf4-table { border-collapse: collapse; width: 100%; }
         .sf4-table th, .sf4-table td {
           border: 1px solid #000;
-          padding: 3px 6px;
-          font-size: 9pt;
+          padding: 2px 3px;
+          font-size: 6.8pt;
           text-align: center;
-          line-height: 1.3;
+          line-height: 1.25;
+          overflow-wrap: break-word;
         }
         .sf4-table th { background: #e8e8e8; font-weight: bold; }
         .sf4-cell-left { text-align: left !important; }
@@ -205,7 +391,7 @@ function SF4({ user, goBack }) {
             </button>
           )}
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-            School Form 4 — Monthly Learner Movement Report
+            School Form 4 — Monthly Learner Movement and Attendance Report
           </h1>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user?.email || ""}</strong>
@@ -274,6 +460,60 @@ function SF4({ user, goBack }) {
         )}
       </div>
 
+      {/* Mortality (Death) manual inputs */}
+      {hasSelection && (
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm no-print">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                Mortality (Death)
+              </h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                School-wide total for {gradeLevel} · {schoolYear} · {monthValue}.
+                Cumulative as of end of month is computed as the sum of the two inputs.
+              </p>
+            </div>
+            {mortalityStatus && (
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">{mortalityStatus}</span>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap items-end gap-4">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+              Previous Month/s
+              <input
+                type="number"
+                min="0"
+                value={mortalityInputs.previousMonths}
+                onChange={(e) =>
+                  setMortalityInputs((prev) => ({ ...prev, previousMonths: e.target.value }))
+                }
+                className="mt-1 block w-28 text-sm text-right rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              />
+            </label>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+              For the Month
+              <input
+                type="number"
+                min="0"
+                value={mortalityInputs.forTheMonth}
+                onChange={(e) =>
+                  setMortalityInputs((prev) => ({ ...prev, forTheMonth: e.target.value }))
+                }
+                className="mt-1 w-28 text-sm text-right rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              />
+            </label>
+            <button
+              onClick={handleSaveMortality}
+              disabled={isSavingMortality}
+              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
+              type="button"
+            >
+              {isSavingMortality ? "Saving…" : "Save Mortality"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Loading state */}
       {loading && (
         <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm no-print">
@@ -299,37 +539,71 @@ function SF4({ user, goBack }) {
         <div className="sf4-print-area bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           {/* Printable header */}
           <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
-            <p className="text-xs font-semibold text-center uppercase tracking-wide text-gray-600 dark:text-gray-300">
-              School Form 4 - Monthly Learner Movement Report
+            <p className="text-sm font-bold text-center uppercase tracking-wide text-gray-900 dark:text-gray-100">
+              School Form 4 — Monthly Learner Movement and Attendance Report
             </p>
-            <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-1">
-              {gradeLevel} · {schoolYear} · Month: {monthValue}
+            <p className="text-xs text-center text-gray-600 dark:text-gray-400 mt-1">
+              School: <strong>{config?.schoolName || ""}</strong> · Grade: {gradeLevel} · SY: {schoolYear} · Month: {monthValue}
             </p>
           </div>
           <div className="overflow-x-auto">
             <table className="sf4-table w-full text-xs">
               <thead>
                 <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold">
-                  <th className="sf4-cell-left p-2 w-40">Section</th>
-                  <th colSpan={3} className="p-2">Beginning of Month</th>
-                  <th className="p-2">Late Enrollment</th>
-                  <th className="p-2">Transferred In</th>
-                  <th className="p-2">Transferred Out</th>
-                  <th className="p-2">Dropped Out</th>
-                  <th colSpan={3} className="p-2">End of Month</th>
+                  <th rowSpan={3} className="p-1 w-16">Grade/Year Level</th>
+                  <th rowSpan={3} className="p-1 w-20">Section</th>
+                  <th rowSpan={3} className="sf4-cell-left p-1 w-28">Name of Adviser</th>
+                  <th colSpan={2} className="p-1">Registered Learners<br />(As of End of the Month)</th>
+                  <th colSpan={3} className="p-1">Attendance<br />Daily Average</th>
+                  <th colSpan={3} className="p-1">Attendance<br />Percentage for the Month</th>
+                  <th colSpan={9} className="p-1">NLPA (No Longer Participating in Learning Activities)</th>
+                  <th colSpan={9} className="p-1">Transferred Out</th>
+                  <th colSpan={9} className="p-1">Transferred In</th>
                 </tr>
                 <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold">
-                  <th className="p-2" />
-                  <th className="p-2">M</th>
-                  <th className="p-2">F</th>
-                  <th className="p-2">Total</th>
-                  <th className="p-2" />
-                  <th className="p-2" />
-                  <th className="p-2" />
-                  <th className="p-2" />
-                  <th className="p-2">M</th>
-                  <th className="p-2">F</th>
-                  <th className="p-2">Total</th>
+                  <th colSpan={2} />
+                  <th colSpan={3} />
+                  <th colSpan={3} />
+                  <th colSpan={3} className="p-1">A<br />(Cum. as of Prev. Mo.)</th>
+                  <th colSpan={3} className="p-1">B<br />(For the Month)</th>
+                  <th colSpan={3} className="p-1">A+B<br />(Cum. as of End of Mo.)</th>
+                  <th colSpan={3} className="p-1">A<br />(Cum. as of Prev. Mo.)</th>
+                  <th colSpan={3} className="p-1">B<br />(For the Month)</th>
+                  <th colSpan={3} className="p-1">A+B<br />(Cum. as of End of Mo.)</th>
+                  <th colSpan={3} className="p-1">A<br />(Cum. as of Prev. Mo.)</th>
+                  <th colSpan={3} className="p-1">B<br />(For the Month)</th>
+                  <th colSpan={3} className="p-1">A+B<br />(Cum. as of End of Mo.)</th>
+                </tr>
+                <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold">
+                  <th className="p-1">M</th>
+                  <th className="p-1">F</th>
+                  <th className="p-1">M</th>
+                  <th className="p-1">F</th>
+                  <th className="p-1">T</th>
+                  <th className="p-1">M</th>
+                  <th className="p-1">F</th>
+                  <th className="p-1">T</th>
+                  <th className="p-1">M</th>
+                  <th className="p-1">F</th>
+                  <th className="p-1">T</th>
+                  <th className="p-1">M</th>
+                  <th className="p-1">F</th>
+                  <th className="p-1">T</th>
+                  <th className="p-1">M</th>
+                  <th className="p-1">F</th>
+                  <th className="p-1">T</th>
+                  <th className="p-1">M</th>
+                  <th className="p-1">F</th>
+                  <th className="p-1">T</th>
+                  <th className="p-1">M</th>
+                  <th className="p-1">F</th>
+                  <th className="p-1">T</th>
+                  <th className="p-1">M</th>
+                  <th className="p-1">F</th>
+                  <th className="p-1">T</th>
+                  <th className="p-1">M</th>
+                  <th className="p-1">F</th>
+                  <th className="p-1">T</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
@@ -344,42 +618,81 @@ function SF4({ user, goBack }) {
                           : "hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150"
                       }
                     >
-                      <td className="sf4-cell-left p-2 border-r border-gray-200 dark:border-gray-700 font-semibold">
-                        {row.section}
+                      <td className="sf4-cell-left p-1 border border-gray-300 dark:border-gray-700">
+                        {isTotal ? "" : gradeLevel}
                       </td>
-                      <td className="p-2 border-r border-gray-200 dark:border-gray-700 font-mono">
-                        {cell(row.beginningOfMonthMale)}
+                      <td className="sf4-cell-left p-1 border border-gray-300 dark:border-gray-700 font-semibold">
+                        {isTotal ? "TOTAL" : row.section}
                       </td>
-                      <td className="p-2 border-r border-gray-200 dark:border-gray-700 font-mono">
-                        {cell(row.beginningOfMonthFemale)}
+                      <td className="sf4-cell-left p-1 border border-gray-300 dark:border-gray-700">
+                        {isTotal ? "" : row.adviserName}
                       </td>
-                      <td className="p-2 border-r border-gray-200 dark:border-gray-700 font-mono">
-                        {row.beginningOfMonthTotal}
-                      </td>
-                      <td className="p-2 border-r border-gray-200 dark:border-gray-700 font-mono">
-                        {row.lateEnrollment}
-                      </td>
-                      <td className="p-2 border-r border-gray-200 dark:border-gray-700 font-mono">
-                        {row.transferredIn}
-                      </td>
-                      <td className="p-2 border-r border-gray-200 dark:border-gray-700 font-mono">
-                        {row.transferredOut}
-                      </td>
-                      <td className="p-2 border-r border-gray-200 dark:border-gray-700 font-mono text-red-700 dark:text-red-400">
-                        {row.droppedOut}
-                      </td>
-                      <td className="p-2 border-r border-gray-200 dark:border-gray-700 font-mono">
+                      <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
                         {row.endOfMonthMale}
                       </td>
-                      <td className="p-2 border-r border-gray-200 dark:border-gray-700 font-mono">
+                      <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
                         {row.endOfMonthFemale}
                       </td>
-                      <td className="p-2 font-mono font-bold">
-                        {row.endOfMonthTotal}
+                      <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
+                        {fmtNum(row.attendance?.dailyAverageMale)}
                       </td>
+                      <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
+                        {fmtNum(row.attendance?.dailyAverageFemale)}
+                      </td>
+                      <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
+                        {fmtNum(row.attendance?.dailyAverageTotal)}
+                      </td>
+                      <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
+                        {fmtPct(row.attendance?.percentageMale)}
+                      </td>
+                      <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
+                        {fmtPct(row.attendance?.percentageFemale)}
+                      </td>
+                      <td className="p-1 border border-gray-300 dark:border-gray-700 font-mono">
+                        {fmtPct(row.attendance?.percentageTotal)}
+                      </td>
+                      {triad(row.nlpaPrev)}
+                      {triad(row.nlpaForMonth)}
+                      {triad(row.nlpaCumulative)}
+                      {triad(row.transferredOutPrev)}
+                      {triad(row.transferredOutForMonth)}
+                      {triad(row.transferredOutCumulative)}
+                      {triad(row.transferredInPrev)}
+                      {triad(row.transferredInForMonth)}
+                      {triad(row.transferredInCumulative)}
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* NLPA legend + school-wide Mortality (Death) block */}
+          <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-[10px] text-gray-600 dark:text-gray-400">
+              NLPA — No Longer Participating in Learning Activities: a learner
+              who has not communicated with the adviser for 7 or more consecutive
+              weeks (replaces the former "Dropped Out" designation).
+            </p>
+            <p className="mt-3 text-center text-[11px] font-bold uppercase tracking-wide text-gray-900 dark:text-gray-100">
+              Mortality (Death) — School-wide Total
+            </p>
+            <table className="sf4-table mt-1" style={{ maxWidth: 700, marginLeft: "auto", marginRight: "auto" }}>
+              <thead>
+                <tr>
+                  <th className="p-1" style={{ width: "34%" }}>Detail</th>
+                  <th className="p-1" style={{ width: "22%" }}>Previous Month/s</th>
+                  <th className="p-1" style={{ width: "22%" }}>For the Month</th>
+                  <th className="p-1" style={{ width: "22%" }}>Cumulative as of End of Month</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="sf4-cell-left p-1 font-semibold">School-wide Total</td>
+                  <td className="p-1 font-mono">{cell(mortalityInputs.previousMonths)}</td>
+                  <td className="p-1 font-mono">{cell(mortalityInputs.forTheMonth)}</td>
+                  <td className="p-1 font-mono font-bold">{cell(mortalityTotal)}</td>
+                </tr>
               </tbody>
             </table>
           </div>
