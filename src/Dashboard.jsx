@@ -1,6 +1,87 @@
-import { Users, CheckCircle2, FileText, CalendarDays, Plus, ClipboardList, FilePlus2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { Users, CheckCircle2, FileText, CalendarDays, Plus, ClipboardList, FilePlus2, ShieldAlert } from 'lucide-react';
+import { db } from './firebase';
+import { canAccessPage } from './pageAccess.js';
 
-function Dashboard({ goToSF1, goToSF2, goToViewLearners }) {
+function LardoRiskSummary({ goToLardo }) {
+  const [loading, setLoading] = useState(true);
+  const [records, setRecords] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadFlags() {
+      setLoading(true);
+      try {
+        const q = query(collection(db, 'lardoRecords'), where('status', '==', 'monitoring'));
+        const snap = await getDocs(q);
+        if (!cancelled) setRecords(snap.docs.map((d) => d.data()));
+      } catch {
+        if (!cancelled) setRecords([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadFlags();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const riskFactorCounts = records.reduce((acc, r) => {
+    (r.riskFactors || []).forEach((f) => {
+      acc[f] = (acc[f] || 0) + 1;
+    });
+    return acc;
+  }, {});
+  const topRiskFactors = Object.entries(riskFactorCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:bg-gray-900 dark:border-gray-700">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center shrink-0">
+          <ShieldAlert size={16} />
+        </div>
+        <h4 className="text-sm font-semibold dark:text-gray-100">LARDO At-Risk Learners</h4>
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-gray-400 mt-3 dark:text-gray-400">Loading...</p>
+      ) : (
+        <>
+          <div className="mt-3 text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {records.length}
+          </div>
+          <div className="text-xs text-gray-500 dark:text-gray-300">learner{records.length === 1 ? '' : 's'} currently flagged for monitoring</div>
+
+          {topRiskFactors.length > 0 && (
+            <ul className="mt-3 space-y-1">
+              {topRiskFactors.map(([factor, count]) => (
+                <li key={factor} className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
+                  <span>{factor}</span>
+                  <span className="font-medium">{count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      <button
+        onClick={goToLardo}
+        className="mt-4 w-full bg-primary text-white px-3 py-2 rounded-md text-sm hover:bg-primary-light"
+      >
+        Open LARDO Tracking
+      </button>
+    </div>
+  );
+}
+
+function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, userRoles }) {
+  const canSeeLardo = canAccessPage('lardoTracking', userRoles);
+
   return (
     <div className="font-sans text-gray-900 dark:text-gray-100">
       <div className="flex flex-wrap gap-3 mt-4">
@@ -99,6 +180,8 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners }) {
         </div>
 
         <aside className="space-y-4">
+          {canSeeLardo && <LardoRiskSummary goToLardo={goToLardo} />}
+
           <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm dark:bg-gray-900 dark:border-gray-700">
             <h4 className="text-sm font-semibold dark:text-gray-100">Quick Actions</h4>
             <div className="flex flex-col gap-2 mt-3">

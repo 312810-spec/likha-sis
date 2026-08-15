@@ -196,11 +196,13 @@ function App() {
         pageContent = (
           <Dashboard
             user={user}
+            userRoles={userRoles}
             goToSF1={() => setCurrentPage("sf1")}
             goToSF2={() => setCurrentPage("sf2")}
             goToViewLearners={() => setCurrentPage("viewLearners")}
             goToCertificates={() => setCurrentPage("certificates")}
             goToIDGenerator={() => setCurrentPage("idGenerator")}
+            goToLardo={() => setCurrentPage("lardoTracking")}
           />
         );
     }
