@@ -5,6 +5,7 @@ import {
   computeExamPS,
   computeInitialGrade,
   computeInitialGradeFromRecord,
+  computeLearnerTermGrade,
 } from '../gradeComputations';
 
 describe('gradeComputations', () => {
@@ -129,6 +130,29 @@ describe('gradeComputations', () => {
     it('falls back to the default weights when getSubjectWeightsFn returns null', () => {
       const ig = computeInitialGradeFromRecord(baseRecord, 'l1', () => null);
       expect(ig).toBeCloseTo(90, 5);
+    });
+  });
+
+  describe('computeLearnerTermGrade', () => {
+    const getWeights = () => ({ ww: 0.2, pt: 0.5, ex: 0.3 });
+    const baseRecord = {
+      subject: 'MATHEMATICS',
+      wwItems: [{ id: 'ww1', hps: 10 }],
+      ptItems: [{ id: 'pt1', hps: 20 }],
+      exHPS: { st1: 10, st2: 10, te: 20 },
+      scores: {
+        l1: { ww: { ww1: 9 }, pt: { pt1: 18 }, st1: 9, st2: 9, te: 18 },
+      },
+    };
+
+    it('transmutes the Initial Grade into the Term Grade shown on ConsolidatedGrades and ReportCard', () => {
+      // Same inputs as computeInitialGradeFromRecord's IG=90 case; transmuted via the table.
+      expect(computeLearnerTermGrade(baseRecord, 'l1', getWeights)).toBe(91);
+    });
+
+    it('returns null when the underlying Initial Grade cannot be computed', () => {
+      expect(computeLearnerTermGrade(null, 'l1', getWeights)).toBe(null);
+      expect(computeLearnerTermGrade(baseRecord, 'unknown-learner', getWeights)).toBe(null);
     });
   });
 });

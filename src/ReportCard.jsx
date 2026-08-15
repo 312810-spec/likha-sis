@@ -9,13 +9,7 @@ import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
 import { getSubjectWeights } from "./utils/subjectWeights";
-import { transmuteGrade } from "./utils/transmutationTable";
-import {
-  computeComponentPS,
-  computeWeightedScore,
-  computeExamPS,
-  computeInitialGrade,
-} from "./utils/gradeComputations";
+import { computeLearnerTermGrade } from "./utils/gradeComputations";
 import schoolConfig from "./schoolConfig";
 import { ArrowLeft, Printer, RefreshCw } from "lucide-react";
 
@@ -58,49 +52,6 @@ function shortMonthName(monthValue) {
   const [, mm] = monthValue.split("-");
   const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return names[Number(mm) - 1] || monthValue;
-}
-
-// Recompute a single Term Grade from a classRecord doc — identical to ConsolidatedGrades.jsx
-function computeLearnerTermGrade(record, learnerId) {
-  if (!record) return null;
-  const subject = record.subject;
-  const weights = getSubjectWeights(subject) || { ww: 0.2, pt: 0.5, ex: 0.3 };
-  const wwItems = Array.isArray(record.wwItems) ? record.wwItems : [];
-  const ptItems = Array.isArray(record.ptItems) ? record.ptItems : [];
-  const exHPS = record.exHPS || { st1: 0, st2: 0, te: 0 };
-  const learnerScores = (record.scores && record.scores[learnerId]) || {};
-
-  const wwRaw = wwItems.map((item) => {
-    const val = learnerScores.ww?.[item.id];
-    return typeof val === "number" && !isNaN(val) ? val : 0;
-  });
-  const wwHPSArr = wwItems.map((item) => Number(item.hps) || 0);
-  const wwPS = computeComponentPS(wwRaw, wwHPSArr);
-  const wwWS = computeWeightedScore(wwPS, weights.ww);
-
-  const ptRaw = ptItems.map((item) => {
-    const val = learnerScores.pt?.[item.id];
-    return typeof val === "number" && !isNaN(val) ? val : 0;
-  });
-  const ptHPSArr = ptItems.map((item) => Number(item.hps) || 0);
-  const ptPS = computeComponentPS(ptRaw, ptHPSArr);
-  const ptWS = computeWeightedScore(ptPS, weights.pt);
-
-  const st1Raw =
-    typeof learnerScores.st1 === "number" && !isNaN(learnerScores.st1) ? learnerScores.st1 : 0;
-  const st2Raw =
-    typeof learnerScores.st2 === "number" && !isNaN(learnerScores.st2) ? learnerScores.st2 : 0;
-  const teRaw =
-    typeof learnerScores.te === "number" && !isNaN(learnerScores.te) ? learnerScores.te : 0;
-
-  const st1HPS = Number(exHPS.st1) || 0;
-  const st2HPS = Number(exHPS.st2) || 0;
-  const teHPS = Number(exHPS.te) || 0;
-
-  const exPS = computeExamPS(st1Raw, st1HPS, st2Raw, st2HPS, teRaw, teHPS);
-  const exWS = computeWeightedScore(exPS, weights.ex);
-  const initialGrade = computeInitialGrade(wwWS, ptWS, exWS);
-  return transmuteGrade(initialGrade);
 }
 
 // Subject row definitions — in exact Annex G order
@@ -253,13 +204,13 @@ export default function ReportCard({ goBack }) {
       const termsObj = recordsBySubject[key] || {};
       const termGrades = [];
       const t1 = termsObj["Term 1"]
-        ? computeLearnerTermGrade(termsObj["Term 1"], learnerId)
+        ? computeLearnerTermGrade(termsObj["Term 1"], learnerId, getSubjectWeights)
         : null;
       const t2 = termsObj["Term 2"]
-        ? computeLearnerTermGrade(termsObj["Term 2"], learnerId)
+        ? computeLearnerTermGrade(termsObj["Term 2"], learnerId, getSubjectWeights)
         : null;
       const t3 = termsObj["Term 3"]
-        ? computeLearnerTermGrade(termsObj["Term 3"], learnerId)
+        ? computeLearnerTermGrade(termsObj["Term 3"], learnerId, getSubjectWeights)
         : null;
 
       if (typeof t1 === "number" && !isNaN(t1)) termGrades.push(t1);

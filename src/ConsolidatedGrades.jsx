@@ -8,13 +8,7 @@ import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
 import { getSubjectWeights } from "./utils/subjectWeights";
-import { transmuteGrade } from "./utils/transmutationTable";
-import {
-  computeComponentPS,
-  computeWeightedScore,
-  computeExamPS,
-  computeInitialGrade,
-} from "./utils/gradeComputations";
+import { computeLearnerTermGrade } from "./utils/gradeComputations";
 import { ArrowLeft, Award, RefreshCw, Info } from "lucide-react";
 
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
@@ -39,62 +33,6 @@ export default function ConsolidatedGrades({ goBack, user }) {
   const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
 
   const GRADE_OPTIONS = gradeOptions;
-
-  // Pure helper to recompute a single Term Grade from raw scores in a classRecord document
-  function computeLearnerTermGrade(record, learnerId) {
-    if (!record) return null;
-    const subject = record.subject;
-    const weights = getSubjectWeights(subject) || { ww: 0.2, pt: 0.5, ex: 0.3 };
-    const wwItems = Array.isArray(record.wwItems) ? record.wwItems : [];
-    const ptItems = Array.isArray(record.ptItems) ? record.ptItems : [];
-    const exHPS = record.exHPS || { st1: 0, st2: 0, te: 0 };
-    const learnerScores = (record.scores && record.scores[learnerId]) || {};
-
-    // Compute WW
-    const wwRaw = wwItems.map((item) => {
-      const val = learnerScores.ww?.[item.id];
-      return typeof val === "number" && !isNaN(val) ? val : 0;
-    });
-    const wwHPSArr = wwItems.map((item) => Number(item.hps) || 0);
-    const wwPS = computeComponentPS(wwRaw, wwHPSArr);
-    const wwWS = computeWeightedScore(wwPS, weights.ww);
-
-    // Compute PT
-    const ptRaw = ptItems.map((item) => {
-      const val = learnerScores.pt?.[item.id];
-      return typeof val === "number" && !isNaN(val) ? val : 0;
-    });
-    const ptHPSArr = ptItems.map((item) => Number(item.hps) || 0);
-    const ptPS = computeComponentPS(ptRaw, ptHPSArr);
-    const ptWS = computeWeightedScore(ptPS, weights.pt);
-
-    // Compute Exam
-    const st1Raw =
-      typeof learnerScores.st1 === "number" && !isNaN(learnerScores.st1)
-        ? learnerScores.st1
-        : 0;
-    const st2Raw =
-      typeof learnerScores.st2 === "number" && !isNaN(learnerScores.st2)
-        ? learnerScores.st2
-        : 0;
-    const teRaw =
-      typeof learnerScores.te === "number" && !isNaN(learnerScores.te)
-        ? learnerScores.te
-        : 0;
-
-    const st1HPS = Number(exHPS.st1) || 0;
-    const st2HPS = Number(exHPS.st2) || 0;
-    const teHPS = Number(exHPS.te) || 0;
-
-    const exPS = computeExamPS(st1Raw, st1HPS, st2Raw, st2HPS, teRaw, teHPS);
-    const exWS = computeWeightedScore(exPS, weights.ex);
-
-    // Compute Initial and Transmuted Term Grade
-    const initialGrade = computeInitialGrade(wwWS, ptWS, exWS);
-    const termGrade = transmuteGrade(initialGrade);
-
-    return termGrade;
-  }
 
   // Load consolidated grades
   async function handleLoad(e) {
@@ -175,7 +113,7 @@ export default function ConsolidatedGrades({ goBack, user }) {
           ["Term 1", "Term 2", "Term 3"].forEach((termKey) => {
             const rec = termsObj[termKey];
             if (rec) {
-              const tg = computeLearnerTermGrade(rec, learner.id);
+              const tg = computeLearnerTermGrade(rec, learner.id, getSubjectWeights);
               if (typeof tg === "number" && !isNaN(tg)) {
                 termGrades.push(tg);
               }

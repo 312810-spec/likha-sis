@@ -1,3 +1,5 @@
+import { transmuteGrade } from './transmutationTable';
+
 export function computeComponentPS(rawScores, highestPossibleScores) {
   if (!Array.isArray(rawScores) || !Array.isArray(highestPossibleScores)) {
     return null;
@@ -118,4 +120,12 @@ export function computeInitialGradeFromRecord(record, learnerId, getSubjectWeigh
   const exWS = computeWeightedScore(exPS, weights.ex);
 
   return computeInitialGrade(wwWS, ptWS, exWS);
+}
+
+// Recomputes one learner's Term Grade (transmuted) from a raw `classRecords`
+// Firestore document. Shared by ConsolidatedGrades.jsx and ReportCard.jsx so
+// their displayed grades can never drift apart.
+export function computeLearnerTermGrade(record, learnerId, getSubjectWeightsFn) {
+  const initialGrade = computeInitialGradeFromRecord(record, learnerId, getSubjectWeightsFn);
+  return transmuteGrade(initialGrade);
 }
