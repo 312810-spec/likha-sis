@@ -657,35 +657,37 @@ export default function ReportCard({ goBack }) {
           >
             <tbody>
               <tr>
-                <td style={{ padding: "1px 3px", width: "38%" }}>
+                <td style={{ padding: "1px 3px", width: "50%" }}>
                   <strong>Name: </strong>
                   {`${selectedLearner.lastName || ""}, ${selectedLearner.firstName || ""}${
                     selectedLearner.middleName ? " " + selectedLearner.middleName : ""
                   }`.trim()}
                 </td>
-                <td style={{ padding: "1px 3px", width: "12%" }}>
+                <td style={{ padding: "1px 3px", width: "20%" }}>
                   <strong>Age: </strong>
                   {computeAge(selectedLearner.birthDate)}
                 </td>
-                <td style={{ padding: "1px 3px", width: "10%" }}>
+                <td style={{ padding: "1px 3px", width: "30%" }}>
                   <strong>Sex: </strong>
                   {selectedLearner.sex || ""}
                 </td>
+              </tr>
+              <tr>
                 <td style={{ padding: "1px 3px", width: "40%" }}>
                   <strong>LRN: </strong>
                   {selectedLearner.lrn || ""}
                 </td>
-              </tr>
-              <tr>
-                <td style={{ padding: "1px 3px" }}>
+                <td style={{ padding: "1px 3px", width: "20%" }}>
                   <strong>Grade: </strong>
                   {selectedLearner.gradeLevel || gradeLevel}
                 </td>
-                <td colSpan={2} style={{ padding: "1px 3px" }}>
+                <td style={{ padding: "1px 3px", width: "40%" }}>
                   <strong>Section: </strong>
                   {selectedLearner.section || section}
                 </td>
-                <td style={{ padding: "1px 3px" }}>
+              </tr>
+              <tr>
+                <td colSpan={3} style={{ padding: "1px 3px" }}>
                   <strong>Track (SHS only): </strong>
                   &nbsp;
                 </td>
