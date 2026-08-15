@@ -27,14 +27,14 @@ export default function ImportCenter({ onNavigate }) {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto animate-slide-up">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-11 h-11 rounded-lg bg-primary text-white flex items-center justify-center">
+        <div className="w-11 h-11 rounded-xl bg-primary text-white flex items-center justify-center shadow-sm">
           <UploadCloud size={22} />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Import Center</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import Center</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Upload DepEd Excel files, review the detected &amp; validated records, then import them safely.
           </p>
         </div>
@@ -48,24 +48,24 @@ export default function ImportCenter({ onNavigate }) {
               key={card.key}
               type="button"
               onClick={() => onNavigate(card.key)}
-              className="text-left bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:border-primary hover:shadow-md transition-all group"
+              className="text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm hover:border-primary dark:hover:border-primary-light hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
             >
               <div className="flex items-start gap-4">
                 <div
-                  className={`w-12 h-12 rounded-lg ${card.accent} text-white flex items-center justify-center shrink-0`}
+                  className={`w-12 h-12 rounded-xl ${card.accent} text-white flex items-center justify-center shrink-0 shadow-sm`}
                 >
                   <Icon size={24} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-base font-semibold text-gray-900">{card.title}</h3>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{card.title}</h3>
                     <ArrowRight
                       size={18}
-                      className="text-gray-300 group-hover:text-primary transition-colors"
+                      className="text-gray-300 dark:text-gray-600 group-hover:text-primary dark:group-hover:text-primary-light group-hover:translate-x-0.5 transition-all"
                     />
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">{card.description}</p>
-                  <p className="text-xs text-gray-400 mt-3 font-medium">{card.fileNote}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{card.description}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-3 font-medium">{card.fileNote}</p>
                 </div>
               </div>
             </button>
