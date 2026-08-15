@@ -17,6 +17,9 @@ dist-ssr
 .claude/skills/
 skills-lock.json
 
+# graphify knowledge-graph output (generated, not project source)
+graphify-out/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
