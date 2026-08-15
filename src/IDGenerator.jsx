@@ -5,7 +5,8 @@
 // Card design follows the standard DepEd elementary/secondary school ID
 // template (government header, colored school-name band, pill-shaped info
 // fields with italic captions, diagonal ribbon accent) — reskinned with the
-// school's own brand color via the same CSS variables Branding Settings sets.
+// school's own brand color via the same CSS variables Branding Settings sets,
+// in portrait orientation with a faint school-seal watermark + color wash.
 
 import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
@@ -13,8 +14,8 @@ import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
 import { User } from "lucide-react";
 
-const CARD_W = 324; // px == 3.375in — standard CR80 ID card width
-const CARD_H = 204; // px == 2.125in — standard CR80 ID card height
+const CARD_W = 204; // px == 2.125in — standard CR80 ID card width, portrait
+const CARD_H = 324; // px == 3.375in — standard CR80 ID card height, portrait
 
 function fullName(learner) {
   if (!learner) return "";
@@ -62,7 +63,7 @@ function adviserNameFor(learner, advisers) {
 function InfoPill({ value, caption }) {
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={pillStyle}>{value || " "}</div>
+      <div style={pillStyle}>{value || " "}</div>
       <div style={pillCaptionStyle}>{caption}</div>
     </div>
   );
@@ -72,54 +73,61 @@ function DiagonalRibbon() {
   return <div style={ribbonStyle} />;
 }
 
+// Faint centered school-seal watermark + soft brand-color wash behind the
+// card content — sits at z-index 0 so the actual content (z-index 1) always
+// reads clearly on top of it.
+function CardBackground() {
+  return (
+    <img
+      src="/Tingub%20National%20High%20School%28clear%29.png"
+      alt=""
+      style={watermarkStyle}
+    />
+  );
+}
+
 function IDCardFront({ learner, adviserName }) {
   return (
     <div className="id-card" style={cardStyle}>
-      {/* Government header */}
-      <div style={govHeaderStyle}>
-        <img
-          src="/Tingub%20National%20High%20School%28clear%29.png"
-          alt=""
-          style={{ width: "30px", height: "30px", borderRadius: "50%", flexShrink: 0 }}
-        />
-        <div style={{ textAlign: "right", lineHeight: 1.25, flex: 1 }}>
-          <div style={{ fontSize: "6px", fontWeight: "bold" }}>Republic of the Philippines</div>
-          <div style={{ fontSize: "6px" }}>Department of Education</div>
-          <div style={{ fontSize: "5.3px", color: "#555" }}>{schoolConfig.region}</div>
-          <div style={{ fontSize: "5.3px", color: "#555" }}>{schoolConfig.divisionOffice}</div>
-          <div style={{ fontSize: "5.3px", color: "#555" }}>{schoolConfig.district}</div>
-        </div>
-      </div>
-
-      {/* School name band */}
-      <div style={nameBandStyle}>{schoolConfig.schoolName}</div>
-
-      {/* Body: brand mark + SY/LRN on the left, photo slot on the right */}
-      <div style={frontBodyStyle}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "3px" }}>
+      <CardBackground />
+      <div style={contentStyle}>
+        {/* Government header */}
+        <div style={govHeaderStyle}>
           <img
             src="/Tingub%20National%20High%20School%28clear%29.png"
             alt=""
-            style={{ width: "44px", height: "44px", borderRadius: "50%" }}
+            style={{ width: "22px", height: "22px", borderRadius: "50%", marginBottom: "2px" }}
           />
-          <div style={{ fontSize: "7.5px", fontWeight: "bold", color: "#111" }}>S.Y. {learner.schoolYear || "—"}</div>
-          <div style={{ fontSize: "7px", color: "#555" }}>LRN: {learner.lrn || "N/A"}</div>
+          <div style={{ fontSize: "5.6px", fontWeight: "bold" }}>Republic of the Philippines</div>
+          <div style={{ fontSize: "5.6px" }}>Department of Education</div>
+          <div style={{ fontSize: "5px", color: "#555" }}>{schoolConfig.region}</div>
+          <div style={{ fontSize: "5px", color: "#555" }}>{schoolConfig.divisionOffice}</div>
+          <div style={{ fontSize: "5px", color: "#555" }}>{schoolConfig.district}</div>
         </div>
 
+        {/* School name band */}
+        <div style={nameBandStyle}>{schoolConfig.schoolName}</div>
+
+        {/* Photo */}
         <div style={photoPlaceholderStyle}>
-          <User size={26} strokeWidth={1.2} color="#9ca3af" />
-          <div style={{ fontSize: "5.5px", color: "#9ca3af", marginTop: "2px", letterSpacing: "0.4px" }}>PHOTO</div>
+          <User size={32} strokeWidth={1.2} color="#9ca3af" />
+          <div style={{ fontSize: "6px", color: "#9ca3af", marginTop: "3px", letterSpacing: "0.4px" }}>PHOTO</div>
         </div>
-      </div>
 
-      {/* Pill info fields */}
-      <div style={pillGroupStyle}>
-        <InfoPill value={fullName(learner)} caption="Name of Student" />
-        <InfoPill value={`Grade ${learner.gradeLevel || "—"} - ${learner.section || "—"}`} caption="Grade & Section" />
-        <InfoPill value={adviserName} caption="Class Adviser" />
-      </div>
+        <div style={{ textAlign: "center", marginTop: "6px" }}>
+          <div style={{ fontSize: "7.5px", fontWeight: "bold", color: "#111" }}>S.Y. {learner.schoolYear || "—"}</div>
+          <div style={{ fontSize: "7px", color: "#555", marginTop: "1px" }}>LRN: {learner.lrn || "N/A"}</div>
+        </div>
 
-      <DiagonalRibbon />
+        {/* Pill info fields */}
+        <div style={pillGroupStyle}>
+          <InfoPill value={fullName(learner)} caption="Name of Student" />
+          <InfoPill value={`Grade ${learner.gradeLevel || "—"} - ${learner.section || "—"}`} caption="Grade & Section" />
+          <InfoPill value={adviserName} caption="Class Adviser" />
+        </div>
+
+        <DiagonalRibbon />
+      </div>
     </div>
   );
 }
@@ -130,39 +138,40 @@ function IDCardBack({ learner, principalName, principalPosition }) {
 
   return (
     <div className="id-card" style={cardStyle}>
-      <div style={{ padding: "10px 14px 0" }}>
-        <div style={{ fontSize: "7px", fontWeight: "bold", letterSpacing: "0.4px", color: "#374151" }}>
-          IN CASE OF EMERGENCY, PLEASE NOTIFY:
+      <CardBackground />
+      <div style={contentStyle}>
+        <div style={{ padding: "14px 14px 0", textAlign: "center" }}>
+          <div style={{ fontSize: "7px", fontWeight: "bold", letterSpacing: "0.4px", color: "#374151" }}>
+            IN CASE OF EMERGENCY, PLEASE NOTIFY:
+          </div>
         </div>
-      </div>
 
-      <div style={{ ...pillGroupStyle, marginTop: "8px" }}>
-        <InfoPill value={parentValue} caption="Name of Parent/Guardian" />
-        <InfoPill value={address} caption="Address" />
-        <InfoPill value="" caption="Contact Number" />
-      </div>
+        <div style={{ ...pillGroupStyle, marginTop: "8px" }}>
+          <InfoPill value={parentValue} caption="Name of Parent/Guardian" />
+          <InfoPill value={address} caption="Address" />
+          <InfoPill value="" caption="Contact Number" />
+        </div>
 
-      <p style={backDisclaimerStyle}>
-        This card is non-transferable and is valid only for S.Y. {learner.schoolYear || "—"}. It must be worn at
-        all times while inside the school premises. In case of loss, report immediately to your class adviser.
-      </p>
+        <p style={backDisclaimerStyle}>
+          This card is non-transferable and is valid only for S.Y. {learner.schoolYear || "—"}. It must be worn
+          at all times while inside the school premises. In case of loss, report immediately to your class
+          adviser.
+        </p>
 
-      <div style={backSignoffStyle}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: "9.5px", fontWeight: "bold", color: "#111" }}>{principalName}</div>
+        <div style={backSignoffStyle}>
+          {learner.lrn ? (
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(learner.lrn)}`}
+              alt="QR code"
+              style={{ width: "48px", height: "48px", border: "1px solid #ddd", background: "#fff" }}
+            />
+          ) : null}
+          <div style={{ fontSize: "9.5px", fontWeight: "bold", color: "#111", marginTop: "6px" }}>{principalName}</div>
           <div style={{ fontSize: "7px", color: "#555" }}>{principalPosition}</div>
         </div>
 
-        {learner.lrn ? (
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(learner.lrn)}`}
-            alt="QR code"
-            style={{ width: "42px", height: "42px", border: "1px solid #ddd", background: "#fff" }}
-          />
-        ) : null}
+        <DiagonalRibbon />
       </div>
-
-      <DiagonalRibbon />
     </div>
   );
 }
@@ -481,45 +490,63 @@ const cardStyle = {
   border: "1px solid #d1d5db",
   borderRadius: "12px",
   backgroundColor: "#fff",
+  backgroundImage: "linear-gradient(160deg, rgb(var(--color-primary) / 0.07), rgba(255,255,255,0) 55%)",
   boxShadow: "0 4px 10px rgba(0, 0, 0, 0.12)",
   overflow: "hidden",
   fontFamily: "inherit",
+};
+
+// Faint centered watermark of the school seal — decorative background layer,
+// sits below the content (z-index 0 vs. contentStyle's z-index 1).
+const watermarkStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: "62%",
+  opacity: 0.07,
+  pointerEvents: "none",
+  userSelect: "none",
+  zIndex: 0,
+};
+
+const contentStyle = {
+  position: "relative",
+  zIndex: 1,
   display: "flex",
   flexDirection: "column",
+  height: "100%",
 };
 
 const govHeaderStyle = {
   display: "flex",
+  flexDirection: "column",
   alignItems: "center",
-  gap: "6px",
-  padding: "6px 10px 4px",
+  textAlign: "center",
+  padding: "8px 10px 2px",
   color: "#111",
+  lineHeight: 1.25,
 };
 
 const nameBandStyle = {
   backgroundColor: "rgb(var(--color-primary))",
   color: "#fff",
-  fontSize: "10px",
+  fontSize: "9.5px",
   fontWeight: "bold",
   textTransform: "uppercase",
   letterSpacing: "0.3px",
   textAlign: "center",
   padding: "3px 6px",
-};
-
-const frontBodyStyle = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  padding: "8px 12px 0",
+  marginTop: "4px",
 };
 
 const photoPlaceholderStyle = {
-  width: "56px",
-  height: "68px",
+  width: "88px",
+  height: "108px",
+  margin: "10px auto 0",
   border: "1px dashed #cbd5e1",
   borderRadius: "6px",
-  backgroundColor: "#f8fafc",
+  backgroundColor: "rgba(248, 250, 252, 0.85)",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
@@ -530,25 +557,25 @@ const photoPlaceholderStyle = {
 const pillGroupStyle = {
   display: "flex",
   flexDirection: "column",
-  gap: "5px",
-  padding: "8px 16px 0",
+  gap: "6px",
+  padding: "10px 16px 0",
 };
 
 const pillStyle = {
   border: "1px solid #d1d5db",
   borderRadius: "999px",
-  padding: "2.5px 10px",
+  padding: "3px 10px",
   fontSize: "9px",
   fontWeight: "bold",
   color: "#111",
-  backgroundColor: "#fff",
+  backgroundColor: "rgba(255, 255, 255, 0.9)",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",
 };
 
 const pillCaptionStyle = {
-  fontSize: "5.8px",
+  fontSize: "6px",
   fontStyle: "italic",
   color: "#6b7280",
   marginTop: "1px",
@@ -562,19 +589,20 @@ const ribbonStyle = {
 };
 
 const backDisclaimerStyle = {
-  fontSize: "6.3px",
+  fontSize: "6.5px",
   color: "#777",
   fontStyle: "italic",
-  lineHeight: 1.35,
-  padding: "8px 16px 0",
+  lineHeight: 1.4,
+  textAlign: "center",
+  padding: "10px 16px 0",
 };
 
 const backSignoffStyle = {
   marginTop: "auto",
   display: "flex",
-  alignItems: "flex-end",
-  justifyContent: "space-between",
-  padding: "0 16px 10px",
+  flexDirection: "column",
+  alignItems: "center",
+  padding: "10px 16px 12px",
 };
 
 export default IDGenerator;
