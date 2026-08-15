@@ -31,6 +31,13 @@ service cloud.firestore {
       return hasAnyRole(['adviser', 'subjectTeacher', 'masterTeacher', 'ictCoordinator', 'principal', 'smeaCoordinator']);
     }
 
+    // DO 006, s. 2026 (Safe Environment / LRP): LARDO risk data. Mirrors the
+    // lardoTracking entry in pageAccess.js — anyone who can open the LARDO
+    // Tracking page must also be able to read/write its records.
+    function isLardoStaff() {
+      return hasAnyRole(['smeaCoordinator', 'principal', 'guidance', 'adviser', 'masterTeacher']);
+    }
+
     // ---- Users -------------------------------------------------------------
 
     // Each user manages their own profile. Reading users/{uid} is allowed for
@@ -60,6 +67,32 @@ service cloud.firestore {
     match /importBatches/{importId} {
       allow read: if isStaff();
       allow write: if isStaff();
+    }
+
+    // ---- Class records (ClassRecord, ConsolidatedGrades, SF9 ReportCard) ---
+    match /classRecords/{recordId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    // ---- Attendance (SF2, SF9 ReportCard) -----------------------------------
+    match /attendance/{recordId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    // ---- Transfers (SF4, TransfersLog) --------------------------------------
+    match /transfers/{transferId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    // ---- LARDO records (DO 006 Safe Environment / LRP) ----------------------
+    // Uses isLardoStaff(), not the general isStaff(), so access stays in sync
+    // with pageAccess.js's lardoTracking entry.
+    match /lardoRecords/{recordId} {
+      allow read: if isLardoStaff();
+      allow write: if isLardoStaff();
     }
   }
 }

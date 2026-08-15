@@ -12,6 +12,7 @@ const ROLE_OPTIONS = [
   { id: "stakeholder", label: "Stakeholder" },
   { id: "ictCoordinator", label: "ICT Coordinator" },
   { id: "smeaCoordinator", label: "SMEA Coordinator" },
+  { id: "guidance", label: "Guidance Counselor" },
 ];
 
 const ROLE_LABELS = ROLE_OPTIONS.reduce((acc, r) => {

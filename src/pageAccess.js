@@ -9,7 +9,7 @@ export const PAGE_ACCESS = {
   consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"],
   reportCard: ["adviser", "principal"],
   viewLearners: "all",
-  lardoTracking: ["adviser", "masterTeacher", "principal", "smeaCoordinator"],
+  lardoTracking: ["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"],
   nutritionStatus: ["adviser", "smeaCoordinator"],
   transfersLog: ["adviser", "ictCoordinator", "principal", "smeaCoordinator"],
   certificates: ["ictCoordinator", "principal", "adviser"],
