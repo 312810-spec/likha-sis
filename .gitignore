@@ -14,8 +14,14 @@ dist-ssr
 
 # Firebase CLI agent skills (auto-installed by `firebase init`, not project source)
 .agents/
-.claude/skills/
+.claude/skills/*
 skills-lock.json
+
+# Project-authored skills ARE project source — track them.
+!.claude/skills/do15-grading-audit/
+!.claude/skills/lardo-safety-audit/
+!.claude/skills/print-safety-audit/
+!.claude/skills/firestore-schema-sync/
 
 # graphify knowledge-graph output (generated, not project source)
 graphify-out/
