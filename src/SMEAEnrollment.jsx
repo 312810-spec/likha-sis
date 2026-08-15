@@ -14,6 +14,7 @@ import { useState, useEffect, useMemo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import { academicCalendar, getCurrentTermForSchoolYear } from "./academicCalendar";
+import { BarChart3, Users, AlertTriangle } from "lucide-react";
 
 // Selectable school years derived from the academic calendar configuration, sorted descending.
 const SCHOOL_YEARS = Object.keys(academicCalendar).sort((a, b) => b.localeCompare(a));
@@ -174,79 +175,87 @@ function SMEAEnrollment() {
 
   // ---------- Loading state -------------------------------------------------
   if (loading) {
-    return <p className="smea-enrollment smea-message">Loading enrollment data...</p>;
+    return (
+      <div className="max-w-6xl mx-auto animate-slide-up">
+        <div className="flex flex-col items-center justify-center gap-3 py-24 text-gray-400 dark:text-gray-500">
+          <div className="w-8 h-8 border-2 border-gray-200 dark:border-gray-700 border-t-primary rounded-full animate-spin" />
+          <p className="text-sm">Loading enrollment data...</p>
+        </div>
+      </div>
+    );
   }
 
   // ---------- Error state ---------------------------------------------------
   if (error) {
-    return <p className="smea-enrollment smea-message smea-error">Unable to load enrollment data. Please try again.</p>;
+    return (
+      <div className="max-w-6xl mx-auto animate-slide-up">
+        <div className="flex items-start gap-2 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300 animate-fade-in">
+          <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+          <span>Unable to load enrollment data. Please try again.</span>
+        </div>
+      </div>
+    );
   }
 
   // ---------- Empty state ---------------------------------------------------
   if (report.inSYCount === 0) {
     return (
-      <div className="smea-enrollment">
-        {renderControls(selectedSY, setSelectedSY, schoolYearLabel, termLabel)}
-        <p className="smea-empty">
-          No enrollment records found for SY {schoolYearLabel}.
-        </p>
+      <div className="max-w-6xl mx-auto space-y-4 animate-slide-up">
+        <ReportControls selectedSY={selectedSY} setSelectedSY={setSelectedSY} schoolYearLabel={schoolYearLabel} termLabel={termLabel} />
+        <div className="flex flex-col items-center justify-center gap-2 py-16 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+          <Users size={22} className="text-gray-300 dark:text-gray-600" />
+          <p className="text-sm text-gray-400 dark:text-gray-500">No enrollment records found for SY {schoolYearLabel}.</p>
+        </div>
       </div>
     );
   }
 
-
   return (
-    <div className="smea-enrollment">
-      {renderControls(selectedSY, setSelectedSY, schoolYearLabel, termLabel)}
+    <div className="max-w-6xl mx-auto space-y-4 animate-slide-up">
+      <ReportControls selectedSY={selectedSY} setSelectedSY={setSelectedSY} schoolYearLabel={schoolYearLabel} termLabel={termLabel} />
 
       {/* Summary cards */}
-      <div className="smea-cards">
-        <div className="smea-card" style={{ borderTopColor: "var(--tnhs-blue)" }}>
-          <span className="smea-card-label">Total Learners</span>
-          <span className="smea-card-value">{report.totalLearners}</span>
-        </div>
-        <div className="smea-card" style={{ borderTopColor: "var(--tnhs-green)" }}>
-          <span className="smea-card-label">Total Male</span>
-          <span className="smea-card-value">{report.totalMale}</span>
-        </div>
-        <div className="smea-card" style={{ borderTopColor: "var(--tnhs-orange)" }}>
-          <span className="smea-card-label">Total Female</span>
-          <span className="smea-card-value">{report.totalFemale}</span>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <SummaryCard label="Total Learners" value={report.totalLearners} tint="bg-primary/10 text-primary dark:bg-primary/20" />
+        <SummaryCard label="Total Male" value={report.totalMale} tint="bg-leaf/10 text-leaf dark:bg-leaf/20" />
+        <SummaryCard label="Total Female" value={report.totalFemale} tint="bg-accent/10 text-accent-dark dark:bg-accent/20" />
       </div>
 
       {/* Report table */}
       {report.gradeRows.length === 0 ? (
-        <p className="smea-empty">
-          No valid records to tabulate for SY {schoolYearLabel}. Check the Data Quality area below.
-        </p>
+        <div className="flex flex-col items-center justify-center gap-2 py-16 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+          <AlertTriangle size={22} className="text-gray-300 dark:text-gray-600" />
+          <p className="text-sm text-gray-400 dark:text-gray-500">
+            No valid records to tabulate for SY {schoolYearLabel}. Check the Data Quality area below.
+          </p>
+        </div>
       ) : (
-        <div className="smea-panel">
-          <div className="smea-table-wrap">
-            <table className="smea-table">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5">
+          <div className="overflow-x-auto -mx-5 px-5">
+            <table className="w-full border-collapse text-sm">
               <thead>
-                <tr>
-                  <th>Grade</th>
-                  <th>Section</th>
-                  <th>Male</th>
-                  <th>Female</th>
-                  <th>Total</th>
+                <tr className="bg-gray-50 dark:bg-gray-800/60 border-y border-gray-200 dark:border-gray-700">
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Grade</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Section</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Male</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Female</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Total</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {report.gradeRows.map((row) => (
                   <RowGroup key={row.grade} row={row} />
                 ))}
-                <tr className="smea-grand-total">
-                  <td colSpan={2}>TOTAL</td>
-                  <td>{report.totalMale}</td>
-                  <td>{report.totalFemale}</td>
-                  <td>{report.totalLearners}</td>
+                <tr className="bg-primary/5 dark:bg-primary/10 font-semibold text-gray-900 dark:text-gray-100">
+                  <td className="px-3 py-2.5" colSpan={2}>TOTAL</td>
+                  <td className="px-3 py-2.5">{report.totalMale}</td>
+                  <td className="px-3 py-2.5">{report.totalFemale}</td>
+                  <td className="px-3 py-2.5">{report.totalLearners}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <p className="smea-note">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
             Enrollment snapshot for SY {schoolYearLabel} ({termLabel}). Term is contextual —
             learner records carry no stored term, so no filtering by term is applied.
           </p>
@@ -255,14 +264,16 @@ function SMEAEnrollment() {
 
       {/* Data Quality area — only rendered when issues exist */}
       {report.issues.length > 0 && (
-        <div className="smea-panel smea-quality">
-          <h4 className="smea-quality-title">Data Quality</h4>
-          <ul className="smea-quality-list">
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-5 animate-fade-in">
+          <h4 className="text-sm font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
+            <AlertTriangle size={16} /> Data Quality
+          </h4>
+          <ul className="mt-2 space-y-1 text-sm text-amber-800 dark:text-amber-300">
             {report.issues.map((issue, i) => (
               <li key={i}>⚠ {issue.text}</li>
             ))}
           </ul>
-          <p className="smea-note">
+          <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-3">
             Incomplete or invalid records are excluded from the main Grade × Section × Sex
             totals to avoid misleading numbers; their counts are shown here.
           </p>
@@ -272,46 +283,64 @@ function SMEAEnrollment() {
   );
 }
 
+function SummaryCard({ label, value, tint }) {
+  return (
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow duration-200">
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-lg ${tint}`}>
+        {value}
+      </div>
+      <div className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-400">{label}</div>
+    </div>
+  );
+}
+
 // A single grade block: section rows + a grade subtotal row.
 function RowGroup({ row }) {
   return (
     <>
       {row.sections.map((s) => (
-        <tr key={s.section}>
-          {s === row.sections[0] && <td rowSpan={row.sections.length}>{row.grade}</td>}
-          <td>{s.section}</td>
-          <td>{s.male}</td>
-          <td>{s.female}</td>
-          <td>{s.total}</td>
+        <tr key={s.section} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+          {s === row.sections[0] && (
+            <td className="px-3 py-2.5 text-gray-900 dark:text-gray-100 font-medium align-top" rowSpan={row.sections.length}>
+              {row.grade}
+            </td>
+          )}
+          <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{s.section}</td>
+          <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{s.male}</td>
+          <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{s.female}</td>
+          <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{s.total}</td>
         </tr>
       ))}
-      <tr className="smea-subtotal">
-        <td>Subtotal — {row.grade}</td>
-        <td></td>
-        <td>{row.male}</td>
-        <td>{row.female}</td>
-        <td>{row.total}</td>
+      <tr className="bg-gray-50/70 dark:bg-gray-800/40 text-xs font-semibold text-gray-500 dark:text-gray-400">
+        <td className="px-3 py-2">Subtotal — {row.grade}</td>
+        <td className="px-3 py-2"></td>
+        <td className="px-3 py-2">{row.male}</td>
+        <td className="px-3 py-2">{row.female}</td>
+        <td className="px-3 py-2">{row.total}</td>
       </tr>
     </>
   );
 }
 
 // School year selector + term display (shared by all states).
-function renderControls(selectedSY, setSelectedSY, schoolYearLabel, termLabel) {
+function ReportControls({ selectedSY, setSelectedSY, schoolYearLabel, termLabel }) {
   return (
-    <div className="smea-header">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <h3 className="smea-title">SMEA Enrollment Report</h3>
-        <p className="smea-subtitle">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
+          <BarChart3 className="text-primary" size={24} />
+          SMEA Enrollment Report
+        </h3>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
           Auto-generated enrollment summary from existing learner records.
         </p>
       </div>
 
-      <div className="smea-controls">
-        <label className="smea-field">
-          <span className="smea-field-label">School Year</span>
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+        <label className="flex flex-col gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
+          School Year
           <select
-            className="smea-select"
+            className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
             value={selectedSY}
             onChange={(e) => setSelectedSY(e.target.value)}
           >
@@ -323,11 +352,13 @@ function renderControls(selectedSY, setSelectedSY, schoolYearLabel, termLabel) {
           </select>
         </label>
 
-        <div className="smea-term">
-          <span className="smea-field-label">School Year</span>
-          <span className="smea-term-value">{schoolYearLabel}</span>
-          <span className="smea-field-label">Current Term</span>
-          <span className="smea-term-value">{termLabel}</span>
+        <div className="flex flex-col gap-1 text-xs sm:text-right">
+          <span className="text-gray-400 dark:text-gray-500">
+            SY <span className="font-semibold text-gray-700 dark:text-gray-200">{schoolYearLabel}</span>
+          </span>
+          <span className="text-gray-400 dark:text-gray-500">
+            Current Term <span className="font-semibold text-gray-700 dark:text-gray-200">{termLabel}</span>
+          </span>
         </div>
       </div>
     </div>
@@ -335,4 +366,3 @@ function renderControls(selectedSY, setSelectedSY, schoolYearLabel, termLabel) {
 }
 
 export default SMEAEnrollment;
-
