@@ -32,4 +32,28 @@ describe("checkAutoFlagTriggers", () => {
     const res = checkAutoFlagTriggers({ generalAverage: 75, subjectFinalGrades: [75, 80], nutritionStatus: "Normal" });
     expect(res).toBeNull();
   });
+
+  it("flags when attendance rate is below 80", () => {
+    const res = checkAutoFlagTriggers({ generalAverage: null, subjectFinalGrades: null, nutritionStatus: null, attendanceRate: 60 });
+    expect(res).not.toBeNull();
+    expect(res.riskFactors).toContain("Attendance concern");
+    expect(res.reasons[0]).toBe("Attendance rate of 60 percent, below the 80 percent threshold");
+  });
+
+  it("does not flag at attendance rate 80 or above", () => {
+    expect(checkAutoFlagTriggers({ attendanceRate: 80 })).toBeNull();
+    expect(checkAutoFlagTriggers({ attendanceRate: 95 })).toBeNull();
+  });
+
+  it("ignores null attendance rate like the other nullable params", () => {
+    const res = checkAutoFlagTriggers({ generalAverage: 85, subjectFinalGrades: [80, 90], nutritionStatus: "Normal", attendanceRate: null });
+    expect(res).toBeNull();
+  });
+
+  it("flags only Attendance concern when attendance is low but general average is passing", () => {
+    const res = checkAutoFlagTriggers({ generalAverage: 88, subjectFinalGrades: null, nutritionStatus: null, attendanceRate: 70 });
+    expect(res).not.toBeNull();
+    expect(res.riskFactors).toEqual(["Attendance concern"]);
+    expect(res.riskFactors).not.toContain("Academic difficulty");
+  });
 });

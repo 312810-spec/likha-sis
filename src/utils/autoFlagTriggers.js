@@ -1,7 +1,7 @@
 // src/utils/autoFlagTriggers.js
 // Utility to determine whether a learner should be auto-flagged for LARDO monitoring
 
-export function checkAutoFlagTriggers({ generalAverage = null, subjectFinalGrades = null, nutritionStatus = null }) {
+export function checkAutoFlagTriggers({ generalAverage = null, subjectFinalGrades = null, nutritionStatus = null, attendanceRate = null }) {
   const riskFactors = [];
   const reasons = [];
 
@@ -25,6 +25,12 @@ export function checkAutoFlagTriggers({ generalAverage = null, subjectFinalGrade
   if (typeof nutritionStatus === "string" && concerning.includes(nutritionStatus)) {
     riskFactors.push("Health condition");
     reasons.push(`Nutrition status: ${nutritionStatus}`);
+  }
+
+  // Attendance: chronic absence (LARDO Feedback Loop trigger threshold)
+  if (typeof attendanceRate === "number" && !isNaN(attendanceRate) && attendanceRate < 80) {
+    riskFactors.push("Attendance concern");
+    reasons.push(`Attendance rate of ${attendanceRate} percent, below the 80 percent threshold`);
   }
 
   if (riskFactors.length === 0) return null;

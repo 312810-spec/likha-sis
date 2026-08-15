@@ -16,6 +16,9 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
+import { Info } from "lucide-react";
+
+import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 
 // Dropout reason codes (a1–f) per the DepEd NLS legend. Used both for the
 // "Legend & Guidelines" section and the per-learner Remarks dropdown options.
@@ -122,6 +125,10 @@ function SF2({ user, goBack }) {
   const [showLegend, setShowLegend] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  // pendingFlagCandidates: learners whose attendance rate auto-flagged a LARDO
+  // risk during the last save, awaiting explicit confirmation (same shape as
+  // ConsolidatedGrades): { docId, learner, learnerId, schoolYear, trigger }.
+  const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
 
   // On mount, fetch ALL documents from the "learners" collection (same as ViewLearners).
   useEffect(() => {
@@ -319,6 +326,50 @@ function SF2({ user, goBack }) {
         adviserName: adviserName || user?.email || "",
         updatedAt: serverTimestamp(),
       });
+
+      // Auto-flag LARDO risk based on each learner's attendance rate for the month.
+      // Attendance rate = present days / total weekdays * 100; Tardy is NOT counted
+      // as absent. Guard against a zero-weekday month to avoid division by zero.
+      const totalWeekdays = weekdays.length;
+      if (totalWeekdays > 0) {
+        for (const learner of filteredLearners) {
+          try {
+            const presentDays = totalWeekdays - learnerAbsentCount(learner.id);
+            const attendanceRate = (presentDays / totalWeekdays) * 100;
+            const trigger = checkAutoFlagTriggers({
+              attendanceRate,
+              generalAverage: null,
+              subjectFinalGrades: null,
+              nutritionStatus: null,
+            });
+            if (!trigger) continue;
+
+            const schoolYear = (learner.schoolYear || "").trim();
+            const lardoDocId = `${learner.id}_${schoolYear}`;
+            const existing = await getDoc(doc(db, "lardoRecords", lardoDocId));
+            const existsMonitoring =
+              existing.exists() && existing.data()?.status === "monitoring";
+            if (existsMonitoring) continue;
+
+            setPendingFlagCandidates((prev) => {
+              if (prev.find((p) => p.docId === lardoDocId)) return prev;
+              return [
+                ...prev,
+                {
+                  docId: lardoDocId,
+                  learner,
+                  learnerId: learner.id,
+                  schoolYear,
+                  trigger,
+                },
+              ];
+            });
+          } catch (err) {
+            console.error("Auto-flag check failed for learner:", err);
+          }
+        }
+      }
+
       setStatusMessage("Attendance saved successfully!");
     } catch (error) {
       console.error("Error saving attendance:", error);
@@ -701,6 +752,67 @@ function SF2({ user, goBack }) {
           </span>
         )}
       </div>
+
+      {/* Auto-flag confirmation banners */}
+      {pendingFlagCandidates.map((c) => (
+        <div key={c.docId} className="animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4">
+          <Info className="w-4 h-4 shrink-0 text-yellow-700" />
+          <div className="flex-1">
+            <div className="font-medium">This learner's attendance suggests a LARDO risk flag.</div>
+            <div className="text-xs mt-0.5">Flag {c.learner.lastName || ""}, {c.learner.firstName || ""} for monitoring?</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  const nowIso = new Date().toISOString();
+                  const lastName = c.learner.lastName || "";
+                  const firstName = c.learner.firstName || "";
+                  const learnerName = `${lastName}, ${firstName}`.trim();
+                  const learnerLRN = c.learner.lrn || c.learner.learnerLRN || "";
+                  const gradeLvl = c.learner.gradeLevel || selectedGradeLevel;
+                  const sectionName = c.learner.section || selectedSection;
+
+                  const newRecordData = {
+                    learnerId: c.learnerId,
+                    learnerLRN,
+                    learnerName,
+                    gradeLevel: gradeLvl,
+                    section: sectionName,
+                    schoolYear: c.schoolYear,
+                    riskFactors: c.trigger.riskFactors,
+                    status: "monitoring",
+                    interventions: [
+                      {
+                        date: nowIso,
+                        note: c.trigger.suggestedNote,
+                      },
+                    ],
+                    flaggedDate: nowIso,
+                    flaggedByEmail: user?.email || "",
+                    updatedAt: serverTimestamp(),
+                  };
+
+                  await setDoc(doc(db, "lardoRecords", c.docId), newRecordData, { merge: true });
+                  setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId));
+                } catch (err) {
+                  console.error("Failed to create LARDO record:", err);
+                  setStatusMessage("Failed to create LARDO record. Please try again.");
+                }
+              }}
+              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+            >
+              Flag for monitoring
+            </button>
+            <button
+              onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ))}
 
       {/* Loading state */}
       {loading && (
