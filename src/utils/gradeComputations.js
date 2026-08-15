@@ -76,3 +76,46 @@ export function computeInitialGrade(wwWS, ptWS, exWS) {
   }
   return wwWS + ptWS + exWS;
 }
+
+// Recomputes one learner's Initial Grade from a raw `classRecords` Firestore
+// document, given only its doc data and the learner's id. Mirrors the score
+// handling in ClassRecord.jsx's computeLearnerGrade (missing/non-numeric raw
+// scores count as 0), but works off the stored doc shape directly so callers
+// that only have a doc snapshot (e.g. the LARDO auto-resolve check) don't
+// need to duplicate that logic.
+export function computeInitialGradeFromRecord(record, learnerId, getSubjectWeightsFn) {
+  if (!record || !learnerId || typeof getSubjectWeightsFn !== 'function') return null;
+  const learnerScore = record.scores?.[learnerId];
+  if (!learnerScore) return null;
+
+  const weights = getSubjectWeightsFn(record.subject) || { ww: 0.2, pt: 0.5, ex: 0.3 };
+
+  const wwItems = Array.isArray(record.wwItems) ? record.wwItems : [];
+  const wwRaw = wwItems.map((item) => {
+    const val = learnerScore.ww?.[item.id];
+    return typeof val === 'number' && !Number.isNaN(val) ? val : 0;
+  });
+  const wwHPSArr = wwItems.map((item) => Number(item.hps) || 0);
+  const wwWS = computeWeightedScore(computeComponentPS(wwRaw, wwHPSArr), weights.ww);
+
+  const ptItems = Array.isArray(record.ptItems) ? record.ptItems : [];
+  const ptRaw = ptItems.map((item) => {
+    const val = learnerScore.pt?.[item.id];
+    return typeof val === 'number' && !Number.isNaN(val) ? val : 0;
+  });
+  const ptHPSArr = ptItems.map((item) => Number(item.hps) || 0);
+  const ptWS = computeWeightedScore(computeComponentPS(ptRaw, ptHPSArr), weights.pt);
+
+  const exHPS = record.exHPS || {};
+  const st1Raw = typeof learnerScore.st1 === 'number' && !Number.isNaN(learnerScore.st1) ? learnerScore.st1 : 0;
+  const st2Raw = typeof learnerScore.st2 === 'number' && !Number.isNaN(learnerScore.st2) ? learnerScore.st2 : 0;
+  const teRaw = typeof learnerScore.te === 'number' && !Number.isNaN(learnerScore.te) ? learnerScore.te : 0;
+  const exPS = computeExamPS(
+    st1Raw, Number(exHPS.st1) || 0,
+    st2Raw, Number(exHPS.st2) || 0,
+    teRaw, Number(exHPS.te) || 0
+  );
+  const exWS = computeWeightedScore(exPS, weights.ex);
+
+  return computeInitialGrade(wwWS, ptWS, exWS);
+}

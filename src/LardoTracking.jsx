@@ -11,11 +11,18 @@ import {
   updateDoc,
   arrayUnion,
   serverTimestamp,
+  query,
+  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
 import { canAccessDisciplineRecords } from "./pageAccess.js";
+import { getWeekdays } from "./utils/attendanceDates";
+import { getSubjectWeights } from "./utils/subjectWeights";
+import { computeInitialGradeFromRecord } from "./utils/gradeComputations";
+import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
+import isEligibleForAutoResolveCheck from "./utils/lardoAutoResolve";
 import {
   Plus,
   X,
@@ -117,6 +124,114 @@ export default function LardoTracking({ user, userRoles, goBack }) {
   const [isSavingIncident, setIsSavingIncident] = useState(false);
   const [incidentFormError, setIncidentFormError] = useState("");
 
+  // Most recent attendance rate on record for a learner, from the latest
+  // month's attendance sheet for their section. Null if no sheet is found.
+  async function getLatestAttendanceRate(gradeLevel, section, learnerId) {
+    try {
+      const attendanceQuery = query(
+        collection(db, "attendance"),
+        where("gradeLevel", "==", gradeLevel),
+        where("section", "==", section)
+      );
+      const snapshot = await getDocs(attendanceQuery);
+      let latest = null;
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (!latest || (data.month || "") > (latest.month || "")) {
+          latest = data;
+        }
+      });
+      if (!latest) return null;
+
+      const weekdays = getWeekdays(latest.month);
+      if (weekdays.length === 0) return null;
+      const absentCount = Object.values(latest.records?.[learnerId] || {}).filter((v) => v === "A").length;
+      const presentDays = weekdays.length - absentCount;
+      return (presentDays / weekdays.length) * 100;
+    } catch (err) {
+      console.error("Auto-resolve: failed to read attendance for", learnerId, err);
+      return null;
+    }
+  }
+
+  // Lowest current Initial Grade across every subject's class record for a
+  // learner in their section -- the flag only clears once no subject is
+  // still below threshold. Null if no class records are found.
+  async function getLowestCurrentInitialGrade(gradeLevel, section, schoolYear, learnerId) {
+    try {
+      const classRecordsQuery = query(
+        collection(db, "classRecords"),
+        where("gradeLevel", "==", gradeLevel),
+        where("section", "==", section),
+        where("schoolYear", "==", schoolYear)
+      );
+      const snapshot = await getDocs(classRecordsQuery);
+      let lowest = null;
+      snapshot.forEach((docSnap) => {
+        const ig = computeInitialGradeFromRecord(docSnap.data(), learnerId, getSubjectWeights);
+        if (typeof ig === "number" && !isNaN(ig) && (lowest === null || ig < lowest)) {
+          lowest = ig;
+        }
+      });
+      return lowest;
+    } catch (err) {
+      console.error("Auto-resolve: failed to read classRecords for", learnerId, err);
+      return null;
+    }
+  }
+
+  // DO 15 s.2026 closed-loop check: 14 days after the last intervention on an
+  // auto-flagged (not manually flagged) monitoring record, re-check current
+  // attendance/grades. If neither still triggers, auto-resolve with an audit
+  // note recording what recovered.
+  async function runAutoResolveSweep(currentRecords) {
+    const eligible = currentRecords.filter((r) => isEligibleForAutoResolveCheck(r));
+    if (eligible.length === 0) return;
+
+    await Promise.all(
+      eligible.map(async (r) => {
+        try {
+          const [attendanceRate, initialGrade] = await Promise.all([
+            getLatestAttendanceRate(r.gradeLevel, r.section, r.learnerId),
+            getLowestCurrentInitialGrade(r.gradeLevel, r.section, r.schoolYear, r.learnerId),
+          ]);
+
+          // No current data to re-check against -- leave it for staff to
+          // resolve manually rather than guessing.
+          if (attendanceRate === null && initialGrade === null) return;
+
+          const stillTriggered = checkAutoFlagTriggers({ attendanceRate, initialGrade });
+          if (stillTriggered) return;
+
+          const clauses = [];
+          if (attendanceRate !== null) clauses.push(`attendance rate ${attendanceRate.toFixed(1)}%`);
+          if (initialGrade !== null) clauses.push(`Initial Grade ${initialGrade.toFixed(2)}`);
+          const nowIso = new Date().toISOString();
+          const auditEntry = {
+            date: nowIso,
+            note: `Auto-resolved: 14 days post-intervention, ${clauses.join(" and ")} no longer below threshold.`,
+          };
+
+          await updateDoc(doc(db, "lardoRecords", r.id), {
+            status: "resolved",
+            interventions: arrayUnion(auditEntry),
+            updatedAt: serverTimestamp(),
+          });
+
+          setRecords((prev) =>
+            prev.map((rec) => {
+              if (rec.id !== r.id) return rec;
+              const currentInterventions = Array.isArray(rec.interventions) ? rec.interventions : [];
+              return { ...rec, status: "resolved", interventions: [...currentInterventions, auditEntry] };
+            })
+          );
+        } catch (err) {
+          console.error("Auto-resolve sweep failed for record", r.id, err);
+        }
+      })
+    );
+  }
+
   // Fetch LARDO records on mount
   useEffect(() => {
     async function fetchLardoRecords() {
@@ -130,6 +245,9 @@ export default function LardoTracking({ user, userRoles, goBack }) {
           ...docSnap.data(),
         }));
         setRecords(fetched);
+        // Fire-and-forget: doesn't block the loading spinner, and any records
+        // it resolves patch themselves into state as they complete.
+        runAutoResolveSweep(fetched);
       } catch (err) {
         console.error("Error fetching LARDO records:", err);
         setRecordsError("Could not load LARDO records. Please check your connection.");
@@ -138,6 +256,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
       }
     }
     fetchLardoRecords();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Shared by both the Flag Learner and Report Incident modals, since they

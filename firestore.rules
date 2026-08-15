@@ -42,13 +42,20 @@ service cloud.firestore {
     }
 
     // ---- attendance (SF2) ----
+    // Write stays adviser-only. Read is also open to the other LARDO
+    // Tracking viewer roles, since the 14-day auto-resolve check re-reads
+    // current attendance rates to decide whether a flag can clear.
     match /attendance/{document} {
-      allow read, write: if hasAnyRole(["adviser"]);
+      allow read: if hasAnyRole(["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"]);
+      allow write: if hasAnyRole(["adviser"]);
     }
 
     // ---- classRecords ----
+    // Write stays subjectTeacher/adviser-only. Read is also open to the
+    // other LARDO Tracking viewer roles for the same auto-resolve reason.
     match /classRecords/{recordId} {
-      allow read, write: if hasAnyRole(["subjectTeacher", "adviser"]);
+      allow read: if hasAnyRole(["subjectTeacher", "adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"]);
+      allow write: if hasAnyRole(["subjectTeacher", "adviser"]);
     }
 
     // ---- lardoRecords ----

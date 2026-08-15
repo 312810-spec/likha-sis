@@ -50,7 +50,7 @@ Claude Code MUST execute the following continuous self-correcting loops during e
 6. **Closed-Loop Business Logic Engine:**
    * Attendance < 80% (SF2) -> Auto-trigger LARDO flag.
    * Initial Grade < 70.00 (Class Record) -> Auto-trigger academic intervention flag.
-   * MOOE Expenditure > 85% -> Auto-trigger term budget variance warning.
+   * 14-day post-intervention recovery (attendance or grades) -> Auto-resolve the LARDO risk flag.
 
 ---
 

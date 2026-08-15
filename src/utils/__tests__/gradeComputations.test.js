@@ -4,6 +4,7 @@ import {
   computeWeightedScore,
   computeExamPS,
   computeInitialGrade,
+  computeInitialGradeFromRecord,
 } from '../gradeComputations';
 
 describe('gradeComputations', () => {
@@ -86,6 +87,48 @@ describe('gradeComputations', () => {
       expect(computeInitialGrade(18, null, 24)).toBe(null);
       expect(computeInitialGrade(18, 40, undefined)).toBe(null);
       expect(computeInitialGrade(18, 40, NaN)).toBe(null);
+    });
+  });
+
+  describe('computeInitialGradeFromRecord', () => {
+    const getWeights = () => ({ ww: 0.2, pt: 0.5, ex: 0.3 });
+    const baseRecord = {
+      subject: 'MATHEMATICS',
+      wwItems: [{ id: 'ww1', hps: 10 }],
+      ptItems: [{ id: 'pt1', hps: 20 }],
+      exHPS: { st1: 10, st2: 10, te: 20 },
+      scores: {
+        l1: { ww: { ww1: 9 }, pt: { pt1: 18 }, st1: 9, st2: 9, te: 18 },
+      },
+    };
+
+    it('recomputes the Initial Grade for a learner present in the record', () => {
+      // wwPS=90 -> wwWS=18; ptPS=90 -> ptWS=45; exPS=90 -> exWS=27; IG=90
+      const ig = computeInitialGradeFromRecord(baseRecord, 'l1', getWeights);
+      expect(ig).toBeCloseTo(90, 5);
+    });
+
+    it('returns null when the learner has no scores in the record', () => {
+      expect(computeInitialGradeFromRecord(baseRecord, 'unknown-learner', getWeights)).toBe(null);
+    });
+
+    it('treats missing raw scores as 0, not as excluded', () => {
+      const record = {
+        ...baseRecord,
+        scores: { l1: { ww: {}, pt: {}, st1: 0, st2: 0, te: 0 } },
+      };
+      expect(computeInitialGradeFromRecord(record, 'l1', getWeights)).toBe(0);
+    });
+
+    it('returns null for missing record, learnerId, or weights function', () => {
+      expect(computeInitialGradeFromRecord(null, 'l1', getWeights)).toBe(null);
+      expect(computeInitialGradeFromRecord(baseRecord, null, getWeights)).toBe(null);
+      expect(computeInitialGradeFromRecord(baseRecord, 'l1', null)).toBe(null);
+    });
+
+    it('falls back to the default weights when getSubjectWeightsFn returns null', () => {
+      const ig = computeInitialGradeFromRecord(baseRecord, 'l1', () => null);
+      expect(ig).toBeCloseTo(90, 5);
     });
   });
 });
