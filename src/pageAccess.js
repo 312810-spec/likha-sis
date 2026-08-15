@@ -25,6 +25,18 @@ export const PAGE_ACCESS = {
 export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder"];
 export const VIEW_LEARNERS_EDIT_ROLES = ["adviser"];
 
+// DO 006, s. 2026 (Safe Environment / LRP): behavioral incident records are
+// restricted to smeaCoordinator, principal, and guidance — narrower than the
+// dropout-risk side of LARDO Tracking, which adviser/masterTeacher can also see.
+export const DISCIPLINE_STAFF_ROLES = ["smeaCoordinator", "principal", "guidance"];
+
+export function canAccessDisciplineRecords(userRoles) {
+  if (!Array.isArray(userRoles) || userRoles.length === 0) {
+    return false;
+  }
+  return DISCIPLINE_STAFF_ROLES.some((role) => userRoles.includes(role));
+}
+
 export function canAccessPage(pageKey, userRoles) {
   if (!Array.isArray(userRoles) || userRoles.length === 0) {
     return false;

@@ -150,7 +150,9 @@ function App() {
         break;
       case "lardoTracking":
         pageTitle = "LARDO Tracking";
-        pageContent = <LardoTracking user={user} goBack={() => setCurrentPage("dashboard")} />;
+        pageContent = (
+          <LardoTracking user={user} userRoles={userRoles} goBack={() => setCurrentPage("dashboard")} />
+        );
         break;
       case "nutritionStatus":
         pageTitle = "Nutrition Status";

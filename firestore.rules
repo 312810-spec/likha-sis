@@ -63,6 +63,22 @@ service cloud.firestore {
       allow read, write: if hasAnyRole(["adviser", "smeaCoordinator"]);
     }
 
+    // ---- academicRecords (SF10 imports) ----
+    // One imported document per learner per school year + grade level.
+    // Matches sf10Import's ictCoordinator-only entry in pageAccess.js — no
+    // other page reads this collection yet.
+    match /academicRecords/{recordId} {
+      allow read, write: if hasAnyRole(["ictCoordinator"]);
+    }
+
+    // ---- disciplinaryRecords (DO 006 Safe Environment / LRP) ----
+    // 3-tier behavioral incident classification, shown as a role-gated tab
+    // inside LARDO Tracking. Deliberately narrower than lardoRecords above —
+    // mirrors DISCIPLINE_STAFF_ROLES in pageAccess.js.
+    match /disciplinaryRecords/{recordId} {
+      allow read, write: if hasAnyRole(["smeaCoordinator", "principal", "guidance"]);
+    }
+
     // ---- transfers ----
     match /transfers/{transferId} {
       allow read, write: if hasAnyRole(["adviser", "ictCoordinator", "principal", "smeaCoordinator"]);
