@@ -2,6 +2,11 @@
 // Executes the approved import into Firestore, reusing the EXISTING learner
 // data model (the `learners` collection used by SF1 / ViewLearners / SMEA).
 //
+// SF10 academic-record imports do NOT fit the learner data model, so they go
+// through the sibling executeSF10Import() below, which writes one documented
+// set per learner per school year + grade level into the `academicRecords`
+// collection instead of the `learners` collection.
+//
 // Safety guarantees:
 //  - refuses to write when any blocking validation error exists
 //  - detects prior imports via file fingerprint (idempotency)
@@ -194,4 +199,134 @@ export async function executeImport(db, opts = {}) {
   });
 
   return { importId, status: "success", written: docs.length, skipped: skippedCount, blockedCount: 0 };
+}
+
+/**
+ * Build the deterministic document id for an SF10 academic record.
+ * One learner may have several scholastic records (one per school year + grade
+ * level), so the id is `${lrn}_${schoolYear}_${gradeLevel}` with spaces replaced
+ * by underscores (matching the makeDocumentId convention in SF2.jsx / SF4.jsx).
+ */
+function sf10DocumentId(learner) {
+  const part = (value) => String(value ?? "").trim().replace(/\s+/g, "_");
+  return [part(learner.lrn), part(learner.schoolYear), part(learner.gradeLevel)].join("_");
+}
+
+/**
+ * Execute an approved SF10 import into Firestore.
+ * Dedicated sibling of executeImport(): SF10 records describe one scholastic
+ * block per learner per school year + grade level, so they are written to the
+ * `academicRecords` collection keyed by `${lrn}_${schoolYear}_${gradeLevel}`
+ * instead of being forced through the learner identity model. No deduplication
+ * against the `learners` collection is performed -- academicRecords is keyed
+ * independently.
+ * Safety:
+ *  - blocks when any record has a blocking error
+ *  - a re-import of the same grade level's record REPLACES the stored document
+ *    (setDoc without merge) so stale grade data can never linger
+ *  - writes are committed with chunked Firestore batches (max 500/batch)
+ */
+export async function executeSF10Import(db, opts = {}) {
+  const {
+    records = [],
+    school = {},
+    filenames = [],
+    fileFingerprints = [],
+    importedByEmail = "",
+  } = opts;
+
+  const importId = createImportId();
+
+  const blocked = records.filter((r) => r.severity === "error");
+  if (blocked.length > 0) {
+    return {
+      importId,
+      status: "blocked",
+      written: 0,
+      skipped: 0,
+      blockedCount: blocked.length,
+      error: `Import blocked: ${blocked.length} record(s) have blocking errors. Fix them before importing.`,
+    };
+  }
+
+  const toWrite = records.filter((r) => {
+    const lrn = String(r.lrn || r.learner?.lrn || "").trim();
+    return lrn !== "";
+  });
+  const skippedCount = records.length - toWrite.length;
+
+  const docs = toWrite.map((r) => {
+    const learner = r.learner || {};
+    const fp =
+      r.sourceFileFingerprint ||
+      (fileFingerprints[r.fileIndex] ? fileFingerprints[r.fileIndex] : "");
+    return {
+      ref: doc(db, "academicRecords", sf10DocumentId(learner)),
+      data: {
+        // normalized SF10 academic-record fields, kept as-is
+        lrn: learner.lrn || "",
+        lastName: learner.lastName || "",
+        firstName: learner.firstName || "",
+        middleName: learner.middleName || "",
+        nameExtension: learner.nameExtension || "",
+        sex: learner.sex || "",
+        birthDate: learner.birthDate || "",
+        schoolId: learner.schoolId || "",
+        schoolName: learner.schoolName || "",
+        division: learner.division || "",
+        district: learner.district || "",
+        schoolYear: learner.schoolYear || "",
+        gradeLevel: learner.gradeLevel || "",
+        section: learner.section || "",
+        learningAreas: learner.learningAreas || [],
+        generalAverage: learner.generalAverage || "",
+        promotionStatus: learner.promotionStatus || "",
+        remarks: learner.remarks || "",
+
+        // import metadata / traceability
+        source: "SF10_IMPORT",
+        documentType: "sf10",
+        importId,
+        sourceFileFingerprint: fp,
+        importedByEmail,
+        createdAt: serverTimestamp(),
+        importBatchId: importId,
+      },
+    };
+  });
+
+  for (let i = 0; i < docs.length; i += BATCH_LIMIT) {
+    const chunk = docs.slice(i, i + BATCH_LIMIT);
+    const batch = writeBatch(db);
+    chunk.forEach((d) => batch.set(d.ref, d.data));
+    await batch.commit();
+  }
+
+  const metadata = buildImportMetadata({
+    importId,
+    documentType: "sf10",
+    schoolId: school.schoolId || "",
+    schoolYear: school.schoolYear || "",
+    filenames,
+    fileFingerprints,
+    learnerCount: records.length,
+    successfulRecords: docs.length,
+    skippedRecords: skippedCount,
+    errors: records.reduce((n, r) => n + (r.summary?.errors || 0), 0),
+    warnings: records.reduce((n, r) => n + (r.summary?.warnings || 0), 0),
+    status: "success",
+    importedByEmail,
+  });
+  await setDoc(doc(db, "importBatches", importId), {
+    ...metadata,
+    createdAt: serverTimestamp(),
+  });
+
+  return {
+    importId,
+    status: "success",
+    written: docs.length,
+    skipped: skippedCount,
+    blockedCount: 0,
+  };
 }

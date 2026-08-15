@@ -1,0 +1,65 @@
+rules_version = '2';
+
+// LIKHA-SIS Firestore security rules.
+// Access follows the LIKHA-SIS role convention: a user's roles live on their
+// own /users/{uid} profile document, and myRoles() reads that document for the
+// signed-in request.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Shared helpers ---------------------------------------------------
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Roles array from the signed-in user's profile document.
+    function myRoles() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles;
+    }
+
+    function hasAnyRole(expected) {
+      return isSignedIn()
+        && myRoles() != null
+        && myRoles().toSet().hasAny(expected);
+    }
+
+    // Any authenticated school staff role (the learner role "stakeholder" is not
+    // staff and is intentionally excluded).
+    function isStaff() {
+      return hasAnyRole(['adviser', 'subjectTeacher', 'masterTeacher', 'ictCoordinator', 'principal', 'smeaCoordinator']);
+    }
+
+    // ---- Users -------------------------------------------------------------
+
+    // Each user manages their own profile. Reading users/{uid} is allowed for
+    // any signed-in user so the myRoles() role check above works.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ---- Learners (SF1 imports, ViewLearners, SMEA) ------------------------
+    // Readable / writable by authenticated staff roles.
+    match /learners/{learnerId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    // ---- Academic records (SF10 imports) -------------------------------------
+    // One imported document per learner per school year + grade level. Uses the
+    // exact same access pattern as the learners collection above.
+    match /academicRecords/{recordId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    // ---- Import history ----------------------------------------------------
+    // Metadata for every approved import (SF1 & SF10).
+    match /importBatches/{importId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+  }
+}

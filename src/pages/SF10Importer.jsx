@@ -14,7 +14,7 @@ import { analyzeSF10Files } from "../importers/sf10/importSF10.js";
 import {
   fetchExistingLearnersByLrn,
   findPriorImport,
-  executeImport,
+  executeSF10Import,
 } from "../importers/shared/firestoreImport.js";
 import StepIndicator from "../components/import/StepIndicator";
 import StatCard from "../components/import/StatCard";
@@ -113,7 +113,7 @@ export default function SF10Importer({ user }) {
       const fingerprints = fileModels.map((f) => f.fingerprint).filter(Boolean);
       const firstValid = fileModels.find((f) => f.school && f.school.schoolId);
       const school = firstValid ? firstValid.school : (fileModels[0]?.school || {});
-      const res = await executeImport(db, {
+      const res = await executeSF10Import(db, {
         records,
         documentType: "sf10",
         school,
