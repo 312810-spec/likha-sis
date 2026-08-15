@@ -212,14 +212,14 @@ export default function UserManagement({ user }) {
     selectedRoles.includes("adviser") || selectedRoles.includes("subjectTeacher");
 
   return (
-    <div className="font-sans text-gray-900 space-y-6 max-w-6xl mx-auto pb-12">
+    <div className="font-sans text-gray-900 dark:text-gray-100 space-y-6 max-w-6xl mx-auto pb-12 animate-slide-up">
       {/* Header Banner */}
-      <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
             <Shield className="text-primary" size={24} /> User Management
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Create teacher accounts, set system roles, and configure class/subject assignments.
           </p>
         </div>
@@ -227,22 +227,22 @@ export default function UserManagement({ user }) {
 
       {/* Alert Messages */}
       {successMessage && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg p-4 flex items-center gap-3">
-          <CheckCircle2 className="text-emerald-600 flex-shrink-0" size={20} />
+        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-xl p-4 flex items-center gap-3 animate-fade-in">
+          <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" size={20} />
           <span className="text-sm font-medium">{successMessage}</span>
         </div>
       )}
 
       {errorMessage && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-800 rounded-lg p-4 flex items-center gap-3">
-          <AlertCircle className="text-rose-600 flex-shrink-0" size={20} />
+        <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-xl p-4 flex items-center gap-3 animate-fade-in">
+          <AlertCircle className="text-rose-600 dark:text-rose-400 flex-shrink-0" size={20} />
           <span className="text-sm font-medium">{errorMessage}</span>
         </div>
       )}
 
       {/* Create User Form Card */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3 mb-5">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3 mb-5">
           <UserPlus className="text-primary" size={18} /> Create New Teacher Account
         </h2>
 
@@ -250,7 +250,7 @@ export default function UserManagement({ user }) {
           {/* Account Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label htmlFor="fullNameInput" className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+              <label htmlFor="fullNameInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Full Name <span className="text-rose-500">*</span>
               </label>
               <input
@@ -259,13 +259,13 @@ export default function UserManagement({ user }) {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="e.g. Maria Santos"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="emailInput" className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+              <label htmlFor="emailInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Email Address <span className="text-rose-500">*</span>
               </label>
               <input
@@ -274,13 +274,13 @@ export default function UserManagement({ user }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. msantos@likhasis.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="passwordInput" className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+              <label htmlFor="passwordInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Temporary Password <span className="text-rose-500">*</span>
               </label>
               <input
@@ -289,7 +289,7 @@ export default function UserManagement({ user }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
                 required
                 minLength={6}
               />
@@ -298,7 +298,7 @@ export default function UserManagement({ user }) {
 
           {/* Role Checkboxes */}
           <div>
-            <span className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+            <span className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">
               Roles <span className="text-rose-500">*</span> (Select one or more)
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
@@ -309,15 +309,15 @@ export default function UserManagement({ user }) {
                     key={role.id}
                     className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
                       isChecked
-                        ? "bg-indigo-50 border-primary text-primary-dark"
-                        : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100"
+                        ? "bg-primary/10 border-primary text-primary-dark dark:bg-primary-light/10 dark:border-primary-light dark:text-primary-light"
+                        : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => handleRoleToggle(role.id)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                      className="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary h-4 w-4"
                     />
                     <span>{role.label}</span>
                   </label>
@@ -328,12 +328,12 @@ export default function UserManagement({ user }) {
 
           {/* Repeatable Assignment Builder (Visible if Adviser or Subject Teacher checked) */}
           {showAssignmentsSection && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-                <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+            <div className="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4 animate-fade-in">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                <h3 className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
                   Teacher Assignments
                 </h3>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
                   Optional: Add class and subject assignments
                 </span>
               </div>
@@ -341,12 +341,12 @@ export default function UserManagement({ user }) {
               {/* Add Assignment Mini-Form */}
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                 <div>
-                  <label htmlFor="assignRoleSelect" className="block text-xs font-medium text-gray-600 mb-1">Assignment Role</label>
+                  <label htmlFor="assignRoleSelect" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Assignment Role</label>
                   <select
                     id="assignRoleSelect"
                     value={assignRole}
                     onChange={(e) => setAssignRole(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                   >
                     {selectedRoles.includes("subjectTeacher") && (
                       <option value="subjectTeacher">Subject Teacher</option>
@@ -359,43 +359,43 @@ export default function UserManagement({ user }) {
 
                 {assignRole === "subjectTeacher" ? (
                   <div>
-                    <label htmlFor="assignSubjectInput" className="block text-xs font-medium text-gray-600 mb-1">Subject</label>
+                    <label htmlFor="assignSubjectInput" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Subject</label>
                     <input
                       id="assignSubjectInput"
                       type="text"
                       value={assignSubject}
                       onChange={(e) => setAssignSubject(e.target.value)}
                       placeholder="e.g. Filipino"
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                     />
                   </div>
                 ) : (
                   <div>
-                    <label htmlFor="assignSubjectDisabled" className="block text-xs font-medium text-gray-400 mb-1">Subject</label>
+                    <label htmlFor="assignSubjectDisabled" className="block text-xs font-medium text-gray-400 dark:text-gray-500 mb-1">Subject</label>
                     <input
                       id="assignSubjectDisabled"
                       type="text"
                       disabled
                       placeholder="N/A (Adviser)"
-                      className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-md text-sm text-gray-400 cursor-not-allowed"
+                      className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed"
                     />
                   </div>
                 )}
 
                 <div>
-                  <label htmlFor="assignGradeInput" className="block text-xs font-medium text-gray-600 mb-1">Grade Level</label>
+                  <label htmlFor="assignGradeInput" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Grade Level</label>
                   <input
                     id="assignGradeInput"
                     type="text"
                     value={assignGrade}
                     onChange={(e) => setAssignGrade(e.target.value)}
                     placeholder="e.g. 10"
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="assignSectionInput" className="block text-xs font-medium text-gray-600 mb-1">Section</label>
+                  <label htmlFor="assignSectionInput" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Section</label>
                   <div className="flex gap-2">
                     <input
                       id="assignSectionInput"
@@ -403,12 +403,12 @@ export default function UserManagement({ user }) {
                       value={assignSection}
                       onChange={(e) => setAssignSection(e.target.value)}
                       placeholder="e.g. Kindness"
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                     />
                     <button
                       type="button"
                       onClick={handleAddAssignment}
-                      className="bg-primary text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-primary-light flex items-center gap-1 flex-shrink-0"
+                      className="bg-primary text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-primary-light active:scale-[0.98] transition-all flex items-center gap-1 flex-shrink-0"
                     >
                       <Plus size={16} /> Add
                     </button>
@@ -419,30 +419,30 @@ export default function UserManagement({ user }) {
               {/* List of Added Assignments */}
               {assignments.length > 0 && (
                 <div className="mt-3">
-                  <div className="text-xs font-semibold text-gray-600 mb-2">Added Assignments:</div>
+                  <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">Added Assignments:</div>
                   <div className="space-y-2">
                     {assignments.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between bg-white border border-gray-200 px-3 py-2 rounded-md text-sm"
+                        className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-lg text-sm"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-primary">
+                          <span className="font-semibold text-primary dark:text-primary-light">
                             {ROLE_LABELS[item.role] || item.role}:
                           </span>
                           {item.role === "subjectTeacher" && item.subject && (
-                            <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-xs font-medium">
+                            <span className="bg-primary/10 text-primary-dark dark:bg-primary-light/10 dark:text-primary-light px-2 py-0.5 rounded text-xs font-medium">
                               {item.subject}
                             </span>
                           )}
-                          <span className="text-gray-700">
+                          <span className="text-gray-700 dark:text-gray-300">
                             Grade {item.gradeLevel} — Section {item.section}
                           </span>
                         </div>
                         <button
                           type="button"
                           onClick={() => handleRemoveAssignment(idx)}
-                          className="text-gray-400 hover:text-rose-600 transition-colors p-1"
+                          className="text-gray-400 hover:text-rose-600 dark:text-gray-500 dark:hover:text-rose-400 transition-colors p-1"
                           title="Remove assignment"
                         >
                           <Trash2 size={16} />
@@ -460,7 +460,7 @@ export default function UserManagement({ user }) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-light transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>Creating Account...</>
@@ -475,35 +475,35 @@ export default function UserManagement({ user }) {
       </div>
 
       {/* Users Directory Table */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Users className="text-primary" size={18} /> User Directory
           </h2>
-          <span className="text-xs text-gray-500 font-medium">
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
             Total Accounts: {userList.length}
           </span>
         </div>
 
         {loadingUsers ? (
-          <p className="text-sm text-gray-500 py-6 text-center">Loading users...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">Loading users...</p>
         ) : userList.length === 0 ? (
-          <div className="text-center py-8 border border-dashed border-gray-200 rounded-lg">
-            <p className="text-sm text-gray-500">No user documents found in the database.</p>
-            <p className="text-xs text-gray-400 mt-1">Create an account above to populate the directory.</p>
+          <div className="text-center py-8 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+            <p className="text-sm text-gray-500 dark:text-gray-400">No user documents found in the database.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Create an account above to populate the directory.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
                   <th className="py-3 px-4">Full Name</th>
                   <th className="py-3 px-4">Email</th>
                   <th className="py-3 px-4">Roles</th>
                   <th className="py-3 px-4">Assignments</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {userList.map((u) => {
                   const roleString = Array.isArray(u.roles)
                     ? u.roles.map((r) => ROLE_LABELS[r] || r).join(", ")
@@ -512,19 +512,19 @@ export default function UserManagement({ user }) {
                   const assignmentList = Array.isArray(u.assignments) ? u.assignments : [];
 
                   return (
-                    <tr key={u.id} className="hover:bg-gray-50/80 transition-colors">
-                      <td className="py-3 px-4 font-medium text-gray-900">
+                    <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                      <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">
                         {u.fullName || "—"}
                       </td>
-                      <td className="py-3 px-4 text-gray-600">{u.email || "—"}</td>
+                      <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{u.email || "—"}</td>
                       <td className="py-3 px-4">
-                        <span className="inline-block bg-indigo-50 text-indigo-800 text-xs px-2.5 py-1 rounded-md font-medium">
+                        <span className="inline-block bg-primary/10 text-primary-dark dark:bg-primary-light/10 dark:text-primary-light text-xs px-2.5 py-1 rounded-md font-medium">
                           {roleString}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-xs text-gray-600">
+                      <td className="py-3 px-4 text-xs text-gray-600 dark:text-gray-300">
                         {assignmentList.length === 0 ? (
-                          <span className="text-gray-400 italic">None</span>
+                          <span className="text-gray-400 dark:text-gray-500 italic">None</span>
                         ) : (
                           <div className="space-y-1">
                             {assignmentList.map((a, i) => (
