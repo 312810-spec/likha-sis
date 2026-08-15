@@ -50,6 +50,13 @@ service cloud.firestore {
       allow write: if hasAnyRole(["adviser"]);
     }
 
+    // ---- sf4Mortality (SF4 dropout/mortality summary inputs) ----
+    // Matches the sf4 entry in pageAccess.js — adviser-only, both for
+    // reading back a previously saved summary and for writing new figures.
+    match /sf4Mortality/{document} {
+      allow read, write: if hasAnyRole(["adviser"]);
+    }
+
     // ---- classRecords ----
     // Write stays subjectTeacher/adviser-only. Read is also open to the
     // other LARDO Tracking viewer roles for the same auto-resolve reason.
