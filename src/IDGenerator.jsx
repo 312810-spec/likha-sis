@@ -1,6 +1,11 @@
 // src/IDGenerator.jsx
 // School ID generator: previews and prints learner ID cards (front + back),
 // either one at a time or in a batch for a whole Grade & Section.
+//
+// Card design follows the standard DepEd elementary/secondary school ID
+// template (government header, colored school-name band, pill-shaped info
+// fields with italic captions, diagonal ribbon accent) — reskinned with the
+// school's own brand color via the same CSS variables Branding Settings sets.
 
 import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
@@ -34,100 +39,130 @@ function emergencyContact(learner) {
   return { name, relationship, address };
 }
 
+// Finds the adviser (from the "users" directory) whose assignments list
+// names this learner's exact grade level + section, per the assignment
+// model UserManagement already writes. Returns "" — never a guess — when
+// no adviser is on record for that section.
+function adviserNameFor(learner, advisers) {
+  if (!learner) return "";
+  const match = advisers.find(
+    (a) =>
+      Array.isArray(a.assignments) &&
+      a.assignments.some(
+        (asn) => asn.role === "adviser" && asn.gradeLevel === learner.gradeLevel && asn.section === learner.section
+      )
+  );
+  return match?.fullName || "";
+}
+
 // ---------------------------------------------------------------------------
 // Card faces (print-safe: plain inline styles, brand color via CSS vars set
 // by useBrandTheme so every school's ID auto-matches its own branding)
 // ---------------------------------------------------------------------------
-function IDCardFront({ learner }) {
+function InfoPill({ value, caption }) {
   return (
-    <div className="id-card" style={frontCardStyle}>
-      <div style={frontHeaderStyle}>
-        <img
-          src="/Tingub%20National%20High%20School%28clear%29.png"
-          alt=""
-          style={{ width: "26px", height: "26px", borderRadius: "50%", background: "#fff", flexShrink: 0 }}
-        />
-        <div style={{ lineHeight: 1.15, minWidth: 0 }}>
-          <div style={{ fontSize: "8.5px", fontWeight: "bold", textTransform: "uppercase", whiteSpace: "nowrap" }}>
-            {schoolConfig.schoolName}
-          </div>
-          <div style={{ fontSize: "6.5px", opacity: 0.85 }}>Learner Identification Card</div>
-        </div>
-      </div>
-
-      <div style={photoPlaceholderStyle}>
-        <User size={30} strokeWidth={1.2} color="#9ca3af" />
-        <div style={{ fontSize: "6px", color: "#9ca3af", marginTop: "2px", letterSpacing: "0.4px" }}>PHOTO</div>
-      </div>
-
-      <div style={frontInfoStyle}>
-        <div style={{ fontSize: "12.5px", fontWeight: "bold", lineHeight: 1.2, color: "#111" }}>
-          {fullName(learner) || "[Learner Name]"}
-        </div>
-        <div style={{ fontSize: "9px", color: "#444", marginTop: "5px" }}>LRN: {learner.lrn || "N/A"}</div>
-        <div style={{ fontSize: "9px", color: "#444", marginTop: "2px" }}>
-          Grade {learner.gradeLevel || "—"} - {learner.section || "—"}
-        </div>
-      </div>
-
-      {learner.lrn ? (
-        <img
-          src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(learner.lrn)}`}
-          alt="QR code"
-          style={{
-            position: "absolute",
-            bottom: "24px",
-            right: "10px",
-            width: "52px",
-            height: "52px",
-            border: "1px solid #ddd",
-            background: "#fff",
-          }}
-        />
-      ) : null}
-
-      <div style={frontFooterStyle}>Valid for SY {learner.schoolYear || "—"}</div>
+    <div style={{ textAlign: "center" }}>
+      <div style={pillStyle}>{value || " "}</div>
+      <div style={pillCaptionStyle}>{caption}</div>
     </div>
   );
 }
 
-function IDCardBack({ learner }) {
-  const { name, relationship, address } = emergencyContact(learner);
+function DiagonalRibbon() {
+  return <div style={ribbonStyle} />;
+}
+
+function IDCardFront({ learner, adviserName }) {
   return (
-    <div className="id-card" style={backCardStyle}>
-      <div style={backHeaderStyle}>{schoolConfig.schoolName}</div>
-
-      <div style={{ padding: "8px 12px 0" }}>
-        <div style={{ fontSize: "7px", fontWeight: "bold", letterSpacing: "0.5px", color: "#374151" }}>
-          IN CASE OF EMERGENCY, PLEASE CONTACT:
-        </div>
-        <div style={{ fontSize: "9px", color: "#111", marginTop: "3px" }}>
-          {name || "[Guardian Name]"}
-          {relationship ? ` (${relationship})` : ""}
-        </div>
-        <div style={{ fontSize: "8px", color: "#555", marginTop: "1px" }}>{address || "[Address]"}</div>
-        <div style={{ fontSize: "8px", color: "#555", marginTop: "4px" }}>
-          Contact No.: <span style={{ display: "inline-block", width: "120px", borderBottom: "1px solid #999" }} />
-        </div>
-
-        <p style={{ fontSize: "6.8px", color: "#777", fontStyle: "italic", marginTop: "8px", lineHeight: 1.35 }}>
-          This ID is the property of {schoolConfig.schoolName} and must be surrendered upon request.
-          If found, please return to the school address above.
-        </p>
-      </div>
-
-      <div style={backSignatureRowStyle}>
-        <div style={backSignatureStyle}>
-          <div style={{ borderTop: "1px solid #999", paddingTop: "2px", fontSize: "6.5px", color: "#666" }}>
-            Learner's Signature
-          </div>
-        </div>
-        <div style={backSignatureStyle}>
-          <div style={{ borderTop: "1px solid #999", paddingTop: "2px", fontSize: "6.5px", color: "#666" }}>
-            School Principal
-          </div>
+    <div className="id-card" style={cardStyle}>
+      {/* Government header */}
+      <div style={govHeaderStyle}>
+        <img
+          src="/Tingub%20National%20High%20School%28clear%29.png"
+          alt=""
+          style={{ width: "30px", height: "30px", borderRadius: "50%", flexShrink: 0 }}
+        />
+        <div style={{ textAlign: "right", lineHeight: 1.25, flex: 1 }}>
+          <div style={{ fontSize: "6px", fontWeight: "bold" }}>Republic of the Philippines</div>
+          <div style={{ fontSize: "6px" }}>Department of Education</div>
+          <div style={{ fontSize: "5.3px", color: "#555" }}>{schoolConfig.region}</div>
+          <div style={{ fontSize: "5.3px", color: "#555" }}>{schoolConfig.divisionOffice}</div>
+          <div style={{ fontSize: "5.3px", color: "#555" }}>{schoolConfig.district}</div>
         </div>
       </div>
+
+      {/* School name band */}
+      <div style={nameBandStyle}>{schoolConfig.schoolName}</div>
+
+      {/* Body: brand mark + SY/LRN on the left, photo slot on the right */}
+      <div style={frontBodyStyle}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "3px" }}>
+          <img
+            src="/Tingub%20National%20High%20School%28clear%29.png"
+            alt=""
+            style={{ width: "44px", height: "44px", borderRadius: "50%" }}
+          />
+          <div style={{ fontSize: "7.5px", fontWeight: "bold", color: "#111" }}>S.Y. {learner.schoolYear || "—"}</div>
+          <div style={{ fontSize: "7px", color: "#555" }}>LRN: {learner.lrn || "N/A"}</div>
+        </div>
+
+        <div style={photoPlaceholderStyle}>
+          <User size={26} strokeWidth={1.2} color="#9ca3af" />
+          <div style={{ fontSize: "5.5px", color: "#9ca3af", marginTop: "2px", letterSpacing: "0.4px" }}>PHOTO</div>
+        </div>
+      </div>
+
+      {/* Pill info fields */}
+      <div style={pillGroupStyle}>
+        <InfoPill value={fullName(learner)} caption="Name of Student" />
+        <InfoPill value={`Grade ${learner.gradeLevel || "—"} - ${learner.section || "—"}`} caption="Grade & Section" />
+        <InfoPill value={adviserName} caption="Class Adviser" />
+      </div>
+
+      <DiagonalRibbon />
+    </div>
+  );
+}
+
+function IDCardBack({ learner, principalName, principalPosition }) {
+  const { name, relationship, address } = emergencyContact(learner);
+  const parentValue = name ? `${name}${relationship ? ` (${relationship})` : ""}` : "";
+
+  return (
+    <div className="id-card" style={cardStyle}>
+      <div style={{ padding: "10px 14px 0" }}>
+        <div style={{ fontSize: "7px", fontWeight: "bold", letterSpacing: "0.4px", color: "#374151" }}>
+          IN CASE OF EMERGENCY, PLEASE NOTIFY:
+        </div>
+      </div>
+
+      <div style={{ ...pillGroupStyle, marginTop: "8px" }}>
+        <InfoPill value={parentValue} caption="Name of Parent/Guardian" />
+        <InfoPill value={address} caption="Address" />
+        <InfoPill value="" caption="Contact Number" />
+      </div>
+
+      <p style={backDisclaimerStyle}>
+        This card is non-transferable and is valid only for S.Y. {learner.schoolYear || "—"}. It must be worn at
+        all times while inside the school premises. In case of loss, report immediately to your class adviser.
+      </p>
+
+      <div style={backSignoffStyle}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: "9.5px", fontWeight: "bold", color: "#111" }}>{principalName}</div>
+          <div style={{ fontSize: "7px", color: "#555" }}>{principalPosition}</div>
+        </div>
+
+        {learner.lrn ? (
+          <img
+            src={`https://api.qrserver.com/v1/create-qr-code/?size=90x90&data=${encodeURIComponent(learner.lrn)}`}
+            alt="QR code"
+            style={{ width: "42px", height: "42px", border: "1px solid #ddd", background: "#fff" }}
+          />
+        ) : null}
+      </div>
+
+      <DiagonalRibbon />
     </div>
   );
 }
@@ -135,6 +170,7 @@ function IDCardBack({ learner }) {
 // ---------------------------------------------------------------------------
 function IDGenerator({ user, goBack }) {
   const [learners, setLearners] = useState([]);
+  const [advisers, setAdvisers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedLearner, setSelectedLearner] = useState(null);
@@ -143,24 +179,27 @@ function IDGenerator({ user, goBack }) {
   const [side, setSide] = useState("front"); // "front" | "back" — batch mode only
 
   useEffect(() => {
-    async function fetchLearners() {
+    async function fetchData() {
       try {
-        const learnersRef = collection(db, "learners");
-        const snapshot = await getDocs(learnersRef);
-        const fetchedLearners = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-        setLearners(fetchedLearners);
+        const [learnersSnap, usersSnap] = await Promise.all([
+          getDocs(collection(db, "learners")),
+          getDocs(collection(db, "users")),
+        ]);
+        setLearners(learnersSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+        setAdvisers(
+          usersSnap.docs
+            .map((docSnap) => docSnap.data())
+            .filter((u) => Array.isArray(u.roles) && u.roles.includes("adviser"))
+        );
       } catch (err) {
-        console.error("Failed to fetch learners:", err);
+        console.error("Failed to fetch learners/advisers:", err);
         setErrorMessage("Could not load learners. Please check your connection and refresh.");
       } finally {
         setLoading(false);
       }
     }
 
-    fetchLearners();
+    fetchData();
   }, []);
 
   const gradeSectionOptions = useMemo(
@@ -362,8 +401,12 @@ function IDGenerator({ user, goBack }) {
         <div className="id-print-area" style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
           {selectedLearner ? (
             <>
-              <IDCardFront learner={selectedLearner} />
-              <IDCardBack learner={selectedLearner} />
+              <IDCardFront learner={selectedLearner} adviserName={adviserNameFor(selectedLearner, advisers)} />
+              <IDCardBack
+                learner={selectedLearner}
+                principalName={schoolConfig.principalName}
+                principalPosition={schoolConfig.principalPosition}
+              />
             </>
           ) : (
             <div
@@ -394,9 +437,14 @@ function IDGenerator({ user, goBack }) {
           )}
           {sectionLearners.map((learner) =>
             side === "front" ? (
-              <IDCardFront key={learner.id} learner={learner} />
+              <IDCardFront key={learner.id} learner={learner} adviserName={adviserNameFor(learner, advisers)} />
             ) : (
-              <IDCardBack key={learner.id} learner={learner} />
+              <IDCardBack
+                key={learner.id}
+                learner={learner}
+                principalName={schoolConfig.principalName}
+                principalPosition={schoolConfig.principalPosition}
+              />
             )
           )}
         </div>
@@ -426,50 +474,49 @@ function IDGenerator({ user, goBack }) {
 // Print-safe inline styles (brand color via CSS custom properties so every
 // school's ID auto-matches its own branding set in Branding Settings)
 // ---------------------------------------------------------------------------
-const frontCardStyle = {
+const cardStyle = {
   position: "relative",
   width: `${CARD_W}px`,
   height: `${CARD_H}px`,
   border: "1px solid #d1d5db",
-  borderRadius: "16px",
+  borderRadius: "12px",
   backgroundColor: "#fff",
   boxShadow: "0 4px 10px rgba(0, 0, 0, 0.12)",
   overflow: "hidden",
   fontFamily: "inherit",
+  display: "flex",
+  flexDirection: "column",
 };
 
-const frontHeaderStyle = {
+const govHeaderStyle = {
   display: "flex",
   alignItems: "center",
-  gap: "8px",
-  height: "40px",
-  padding: "0 10px",
+  gap: "6px",
+  padding: "6px 10px 4px",
+  color: "#111",
+};
+
+const nameBandStyle = {
   backgroundColor: "rgb(var(--color-primary))",
   color: "#fff",
+  fontSize: "10px",
+  fontWeight: "bold",
+  textTransform: "uppercase",
+  letterSpacing: "0.3px",
+  textAlign: "center",
+  padding: "3px 6px",
 };
 
-const frontFooterStyle = {
-  position: "absolute",
-  bottom: 0,
-  left: 0,
-  right: 0,
-  height: "18px",
-  backgroundColor: "rgb(var(--color-accent))",
-  color: "#fff",
-  fontSize: "7.5px",
-  fontWeight: "bold",
-  letterSpacing: "0.3px",
+const frontBodyStyle = {
   display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  padding: "8px 12px 0",
 };
 
 const photoPlaceholderStyle = {
-  position: "absolute",
-  top: "50px",
-  left: "10px",
-  width: "62px",
-  height: "78px",
+  width: "56px",
+  height: "68px",
   border: "1px dashed #cbd5e1",
   borderRadius: "6px",
   backgroundColor: "#f8fafc",
@@ -477,50 +524,57 @@ const photoPlaceholderStyle = {
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
+  flexShrink: 0,
 };
 
-const frontInfoStyle = {
-  position: "absolute",
-  top: "50px",
-  left: "82px",
-  right: "10px",
-};
-
-const backCardStyle = {
-  position: "relative",
-  width: `${CARD_W}px`,
-  height: `${CARD_H}px`,
-  border: "1px solid #d1d5db",
-  borderRadius: "16px",
-  backgroundColor: "#fff",
-  boxShadow: "0 4px 10px rgba(0, 0, 0, 0.12)",
-  overflow: "hidden",
+const pillGroupStyle = {
   display: "flex",
   flexDirection: "column",
+  gap: "5px",
+  padding: "8px 16px 0",
 };
 
-const backHeaderStyle = {
-  height: "24px",
-  backgroundColor: "rgb(var(--color-primary))",
-  color: "#fff",
-  fontSize: "8px",
+const pillStyle = {
+  border: "1px solid #d1d5db",
+  borderRadius: "999px",
+  padding: "2.5px 10px",
+  fontSize: "9px",
   fontWeight: "bold",
-  textTransform: "uppercase",
-  letterSpacing: "0.4px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+  color: "#111",
+  backgroundColor: "#fff",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
-const backSignatureRowStyle = {
+const pillCaptionStyle = {
+  fontSize: "5.8px",
+  fontStyle: "italic",
+  color: "#6b7280",
+  marginTop: "1px",
+};
+
+const ribbonStyle = {
+  marginTop: "auto",
+  height: "12px",
+  backgroundImage:
+    "repeating-linear-gradient(45deg, rgb(var(--color-primary)) 0px, rgb(var(--color-primary)) 8px, rgb(var(--color-accent)) 8px, rgb(var(--color-accent)) 16px, #ffffff 16px, #ffffff 20px)",
+};
+
+const backDisclaimerStyle = {
+  fontSize: "6.3px",
+  color: "#777",
+  fontStyle: "italic",
+  lineHeight: 1.35,
+  padding: "8px 16px 0",
+};
+
+const backSignoffStyle = {
   marginTop: "auto",
   display: "flex",
-  gap: "18px",
-  padding: "0 16px 12px",
-};
-
-const backSignatureStyle = {
-  flex: 1,
+  alignItems: "flex-end",
+  justifyContent: "space-between",
+  padding: "0 16px 10px",
 };
 
 export default IDGenerator;
