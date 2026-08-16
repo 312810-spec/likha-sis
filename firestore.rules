@@ -32,11 +32,15 @@ service cloud.firestore {
     }
 
     // ---- learners ----
-    // Read: everyone signed in except stakeholder (matches ViewLearners access).
+    // Read: every real staff role except stakeholder (matches ViewLearners
+    // access). Deliberately an ALLOWLIST of ROLE_OPTIONS, not a blocklist on
+    // "stakeholder" alone -- a blocklist would also pass a signed-in account
+    // with NO users/{uid} doc at all (myRoles() == []), leaking every
+    // learner's PII to anyone who can create a bare Firebase Auth account.
     // Create: adviser, ictCoordinator, principal (matches SF1 access).
     // Update/delete: adviser only (matches ViewLearners edit permission).
     match /learners/{learnerId} {
-      allow read: if isSignedIn() && !hasAnyRole(["stakeholder"]);
+      allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "ictCoordinator", "smeaCoordinator", "guidance"]);
       allow create: if hasAnyRole(["adviser", "ictCoordinator", "principal"]);
       allow update, delete: if hasAnyRole(["adviser"]);
     }
@@ -143,13 +147,18 @@ service cloud.firestore {
     }
 
     // ---- settings (school config, branding, setup state) ----
-    // Read: any signed-in user (needed for useSchoolConfig/useBrandTheme to
-    // work for every role, and for SetupWizard to check setup state).
+    // Read: any signed-in user BEFORE setup completes (needed for
+    // SetupWizard/App.jsx to check setup state during first-run bootstrap,
+    // when a brand-new account has no users/{uid} doc -- and therefore no
+    // role -- yet). Once setup is complete, requires a real ROLE_OPTIONS
+    // role like every other collection, so a signed-in account with no
+    // assigned role can't read school config after launch.
     // Write: ictCoordinator/principal normally, OR anyone during first-run
     // setup (before isSetupComplete), so a brand-new school can write its
     // own settings/schoolConfig doc while bootstrapping.
     match /settings/{document} {
-      allow read: if isSignedIn();
+      allow read: if !isSetupComplete()
+        || hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
       allow write: if hasAnyRole(["ictCoordinator", "principal"]) || !isSetupComplete();
     }
 
