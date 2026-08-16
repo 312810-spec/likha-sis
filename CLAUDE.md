@@ -121,3 +121,15 @@ Mirrors the Strategist/Builder/QA-Gate pattern — Opus for analysis, Sonnet for
 
 ### C. Autopilot
 A scheduled cloud routine runs the grading/LARDO/print/schema audit skills on a recurring cadence so drift is caught without a manual prompt. See `.claude/CRON.md` for the active schedule.
+
+### D. General Agent Pool (`~/.claude/agents/`, global)
+270 general-purpose agent personas from the `msitarzewski/agency-agents` toolkit are installed globally (not project-scoped, so they're also available outside LIKHA-SIS). Most divisions in that pool — marketing, paid-media, sales, finance, GIS, game-development, spatial-computing/XR, legal, real estate, hospitality, healthcare-business — don't apply to a DepEd school PWA and should be ignored. When a task would benefit from one, reach for it automatically without asking, from these relevant divisions only:
+
+* **`engineering-*`** — general dev work the project skills above don't cover: `engineering-code-reviewer`, `engineering-software-architect`, `engineering-database-optimizer` (Firestore data modeling), `engineering-devops-automator` (GitHub Actions/deploy), `engineering-git-workflow-master`, `engineering-minimal-change-engineer`, `engineering-technical-writer`, `engineering-section-508-specialist` (accessibility).
+* **`security-*`** and **`data-privacy-officer`** — `security-appsec-engineer`, `security-architect`, `security-compliance-auditor`, `security-secrets-credential-engineer`, `security-ai-generated-code-auditor` (useful given this codebase is AI-written). Relevant beyond `firestore-schema-sync` because learner PII (grades, BMI, LRP/behavioral records) makes Philippine Data Privacy Act exposure a real concern, not just a Firestore-rules exercise.
+* **`design-*`** — `design-ui-designer`, `design-ux-architect`, `design-ux-researcher`, `design-ui-finish-gate-reviewer`, `design-inclusive-visuals-specialist`, for PWA UI/UX work.
+* **`testing-*`** — `testing-test-automation-engineer`, `testing-accessibility-auditor`, `testing-performance-benchmarker`, `testing-reality-checker`, alongside the project's own `qa-gate`.
+* **`product-*`** and **`project-management-*`** — `product-manager`, `product-feedback-synthesizer`, `project-management-project-shepherd`, for feature scoping/prioritization work.
+* **`specialized-codebase-archaeologist`**, **`specialized-document-generator`** (SF9/SF10/report-style document work), **`specialized-mcp-builder`** (if integrating an external MCP server).
+
+Ignore every other division in the pool by default unless a task explicitly calls for it.
