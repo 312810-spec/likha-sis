@@ -84,12 +84,15 @@ service cloud.firestore {
       allow read, write: if hasAnyRole(["adviser", "smeaCoordinator"]);
     }
 
-    // ---- academicRecords (SF10 imports) ----
+    // ---- academicRecords (SF10 imports + SF10 Generator) ----
     // One imported document per learner per school year + grade level.
-    // Matches sf10Import's ictCoordinator-only entry in pageAccess.js — no
-    // other page reads this collection yet.
+    // Write stays ictCoordinator-only (matches sf10Import in pageAccess.js --
+    // only the importer writes this collection). Read now also includes
+    // adviser/principal so they can see imported history when generating
+    // SF10 (matches sf10Generate in pageAccess.js).
     match /academicRecords/{recordId} {
-      allow read, write: if hasAnyRole(["ictCoordinator"]);
+      allow read: if hasAnyRole(["ictCoordinator", "adviser", "principal"]);
+      allow write: if hasAnyRole(["ictCoordinator"]);
     }
 
     // ---- disciplinaryRecords (DO 006 Safe Environment / LRP) ----
