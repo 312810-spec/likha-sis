@@ -80,8 +80,13 @@ service cloud.firestore {
     }
 
     // ---- nutritionRecords ----
+    // Write stays adviser/smeaCoordinator-only (only NutritionStatus.jsx
+    // writes this collection). Read now also includes principal so they
+    // can view/print the school-wide Nutrition Consolidator (matches
+    // nutritionConsolidator in pageAccess.js).
     match /nutritionRecords/{recordId} {
-      allow read, write: if hasAnyRole(["adviser", "smeaCoordinator"]);
+      allow read: if hasAnyRole(["adviser", "smeaCoordinator", "principal"]);
+      allow write: if hasAnyRole(["adviser", "smeaCoordinator"]);
     }
 
     // ---- academicRecords (SF10 imports + SF10 Generator) ----
