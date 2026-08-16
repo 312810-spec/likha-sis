@@ -316,7 +316,7 @@ export default function SF10Generator({ goBack }) {
 
       {mode === "section" &&
         sectionLearners.map((learner) => (
-          <div key={learner.id} style={{ breakAfter: "page" }}>
+          <div key={learner.id} style={{ breakAfter: "page", position: "relative" }}>
             <SF10Document
               learner={learner}
               history={buildLearnerAcademicHistory(
