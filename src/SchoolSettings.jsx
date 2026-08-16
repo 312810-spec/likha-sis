@@ -27,6 +27,7 @@ const DEFAULT_SCHOOL_FIELDS = {
   municipalityCityProvince: "",
   principalName: "",
   principalPosition: "",
+  clinicTeacherName: "",
 };
 
 export default function SchoolSettings({ goBack }) {
@@ -256,6 +257,10 @@ export default function SchoolSettings({ goBack }) {
             <label className={labelClass}>
               Principal Position
               <input className={inputClass} value={schoolData.principalPosition || ""} onChange={(e) => updateField("principalPosition", e.target.value)} />
+            </label>
+            <label className={labelClass}>
+              School Clinic Teacher Name
+              <input className={inputClass} value={schoolData.clinicTeacherName || ""} onChange={(e) => updateField("clinicTeacherName", e.target.value)} />
             </label>
           </div>
         </div>
