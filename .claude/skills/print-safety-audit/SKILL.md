@@ -30,16 +30,29 @@ Confirm the target component follows this same isolation pattern rather than
 inventing a new one.
 
 ## 2. Verify no theme leakage
-* Backgrounds inside the print area must be **inline styles or hard-coded
-  hex/white values** (e.g. `backgroundColor: "#fff"`), never
-  `useDarkMode()`/`useBrandTheme()`-driven classes or CSS variables that
-  resolve to a non-white value in dark mode.
+Two patterns are both valid in this codebase — check for *either* before
+flagging a component as leaking:
+* **Hard-coded inline style**: the print area's background/text set via
+  inline styles or hard-coded hex/white values (e.g. `backgroundColor:
+  "#fff"`), independent of any dark-mode class. Used by `ReportCard.jsx`,
+  `CertificateGenerator.jsx`, `IDGenerator.jsx`, `SF1.jsx`, `SF2.jsx`.
+* **CSS override selector**: a rule scoped to `html.dark .<print-area>,
+  html.dark .<print-area> *` inside the `@media print` block that forces
+  `background-color`/`color`/`border-color` back to plain black-on-white
+  with `!important`, overriding whatever `dark:` Tailwind classes are on
+  the element. Used by `SF4.jsx` (see its `@media print` block). This
+  works because `useDarkMode.js` toggles a literal `dark` class on
+  `document.documentElement` — confirm that's still true
+  (`root.classList.toggle('dark', ...)` in `useDarkMode.js`) before relying
+  on this pattern's validity.
+
+A component fails this check only if it has `dark:` classes inside its
+print area with **neither** pattern present — plain unguarded `dark:`
+classes and no inline hard-coding and no `html.dark` override block.
+
 * Any `rgb(var(--color-primary) / …)` brand-color usage is fine for accents
   (borders, gradients) as long as the base background stays white/transparent
   over white — it must not become the dominant fill color.
-* Text/border colors inside the print area should not depend on a dark-mode
-  class (e.g. no bare `dark:text-white` inside the print root without a
-  corresponding print override forcing dark text on white).
 
 ## 3. Manual verification
 Since this is visual, after any fix: start the dev server (see `run` skill/

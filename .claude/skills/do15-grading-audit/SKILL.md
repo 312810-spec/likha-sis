@@ -18,18 +18,38 @@ the code still matches it.
 
 ## 1. Locate the current logic
 Read `src/utils/gradeComputations.js` and `src/utils/transmutationTable.js`.
-Grep for `getSubjectWeightsFn` / subject-type weight tables to find where
-WW/PT/EX weights are assigned per subject.
+Weights are resolved from **two** places, not one — check both before
+concluding anything is missing:
+* `src/utils/subjectWeights.js` — the static Grade 4-10 name-to-weight map
+  (`SUBJECT_WEIGHTS`, `getSubjectWeights`).
+* `src/utils/shsSubjectWeights.js` — Grade 11-12 SHS weights, resolved by
+  `weightProfile` tag (`core`/`techPro`/`immersion`) rather than a static
+  name map, since SHS subject names are school-configured. Composed with
+  the Grade 4-10 map via `makeSubjectWeightsResolver(shsSubjects,
+  fallbackGetSubjectWeights)`. Confirm the caller (e.g. `ClassRecord.jsx`)
+  actually builds and uses this composed resolver (grep for
+  `makeSubjectWeightsResolver`) rather than calling `getSubjectWeights`
+  alone when SHS grade levels are in play.
 
 ## 2. Verify against the mandate
 * **Component weights (WW/PT/EX)** must resolve to:
-  * Core subjects: 20/50/30
-  * EPP-TLE / MAPEH: 20/60/20
-  * Tech-Pro / Immersion: 20/80/0 or 15/65/20
+  * Core subjects: 20/50/30 — `subjectWeights.js` / `WEIGHT_PROFILES.core`
+  * EPP-TLE / MAPEH: 20/60/20 — `subjectWeights.js`
+  * Tech-Pro: 20/80/0 — `shsSubjectWeights.js`'s `WEIGHT_PROFILES.techPro`
+  * Immersion: 15/65/20 — `shsSubjectWeights.js`'s `WEIGHT_PROFILES.immersion`
+  Do not flag Tech-Pro/Immersion as "missing" just because they're absent
+  from `subjectWeights.js` — check `shsSubjectWeights.js` first.
 * **EX internal split**: ST1 30%, ST2 30%, TE 40% — confirm in
   `computeExamPS` (or its equivalent) via the `share` arguments passed to
   each sub-score contribution. This split must be **omitted** for Grades 1-3
-  transition subjects — confirm callers skip it for those grade levels.
+  transition subjects — but first check `src/utils/keyStagesConfig.js`'s
+  `KEY_STAGE_OPTIONS`: if Key Stage 1 (Kindergarten-Grade 3) has
+  `disabled: true` and an empty `gradeLevels` array, the app doesn't offer
+  those grade levels for grading at all yet, so there is no split to omit —
+  do not flag this as a violation, note it as "not applicable, K-3 not yet
+  supported" instead. Only flag a real violation if Grade 1-3 levels ARE
+  selectable (`gradeLevelsOffered` can contain them) and the split still
+  isn't omitted for them.
 * **Pipeline order**: Raw → Weighted → Initial Grade (IG) →
   SY 2026-2027 Transmutation Table. Confirm `computeInitialGrade` sums the
   three weighted scores and `transmuteGrade` is applied after, not before.
