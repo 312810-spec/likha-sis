@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { doc, getDoc, setDoc, updateDoc, deleteField, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 import { extractThemeFromImage } from "./utils/extractTheme.js";
+import { resizeImageToCanvas } from "./utils/resizeImage.js";
 import {
   Palette,
   Upload,
@@ -15,49 +16,6 @@ import {
   Image as ImageIcon,
   ArrowLeft,
 } from "lucide-react";
-
-/**
- * Resizes an image file to max width/height preserving aspect ratio
- * and returns a compressed JPEG data URL (quality 0.7).
- */
-function resizeImageToCanvas(file, maxWidth = 200, maxHeight = 200, quality = 0.7) {
-  return new Promise((resolve, reject) => {
-    if (!file) return resolve(null);
-    const reader = new FileReader();
-    reader.onload = (readerEvent) => {
-      const img = new Image();
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round((height * maxWidth) / width);
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round((width * maxHeight) / height);
-            height = maxHeight;
-          }
-        }
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const dataUrl = canvas.toDataURL("image/jpeg", quality);
-        resolve(dataUrl);
-      };
-      img.onerror = (err) => reject(err);
-      img.src = readerEvent.target.result;
-    };
-    reader.onerror = (err) => reject(err);
-    reader.readAsDataURL(file);
-  });
-}
 
 export default function BrandingSettings({ goBack }) {
   const [currentLogo, setCurrentLogo] = useState(null);

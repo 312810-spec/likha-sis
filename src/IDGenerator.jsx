@@ -122,10 +122,14 @@ function IDCardFront({ learner, adviserName }) {
         {/* Photo and QR, matched in size and placed side by side so the QR
             stays large enough to scan reliably */}
         <div style={photoQrRowStyle}>
-          <div style={photoPlaceholderStyle}>
-            <User size={26} strokeWidth={1.2} color="#9ca3af" />
-            <div style={{ fontSize: "5.5px", color: "#9ca3af", marginTop: "2px", letterSpacing: "0.4px" }}>PHOTO</div>
-          </div>
+          {learner.photoURL ? (
+            <img src={learner.photoURL} alt="" style={photoImageStyle} />
+          ) : (
+            <div style={photoPlaceholderStyle}>
+              <User size={26} strokeWidth={1.2} color="#9ca3af" />
+              <div style={{ fontSize: "5.5px", color: "#9ca3af", marginTop: "2px", letterSpacing: "0.4px" }}>PHOTO</div>
+            </div>
+          )}
 
           {learner.lrn ? (
             <img
@@ -595,6 +599,15 @@ const photoPlaceholderStyle = {
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
+  flexShrink: 0,
+};
+
+const photoImageStyle = {
+  width: "78px",
+  height: "78px",
+  border: "1px solid #e5e7eb",
+  borderRadius: "6px",
+  objectFit: "cover",
   flexShrink: 0,
 };
 

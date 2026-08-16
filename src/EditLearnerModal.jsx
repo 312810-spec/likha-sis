@@ -5,7 +5,10 @@
 import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
-import { X, AlertCircle } from "lucide-react";
+import { resizeImageToCanvas } from "./utils/resizeImage.js";
+import { X, AlertCircle, User, Upload } from "lucide-react";
+
+const MAX_PHOTO_SOURCE_BYTES = 15 * 1024 * 1024; // sanity cap on the original file before resizing
 
 // Same age calculator used in SF1.jsx and ViewLearners.jsx, kept consistent.
 function calculateAge(birthDateString) {
@@ -33,9 +36,41 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
   const [formData, setFormData] = useState({ ...learner });
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
 
   function updateField(field, value) {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  }
+
+  // Resizes the picked photo down to a small JPEG data URL (same technique
+  // BrandingSettings.jsx uses for the school logo) and stores it directly on
+  // formData.photoURL — no file-storage service needed, so it works on
+  // Firebase's free Spark plan.
+  async function handlePhotoPick(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setErrorMessage("Please choose an image file for the photo.");
+      return;
+    }
+    if (file.size > MAX_PHOTO_SOURCE_BYTES) {
+      setErrorMessage("That image is too large. Please choose a file under 15MB.");
+      return;
+    }
+
+    setErrorMessage("");
+    setIsProcessingPhoto(true);
+    try {
+      const dataUrl = await resizeImageToCanvas(file, 240, 300, 0.75);
+      updateField("photoURL", dataUrl);
+    } catch (err) {
+      console.error("Failed to process photo:", err);
+      setErrorMessage("Could not process the selected image. Please try another file.");
+    } finally {
+      setIsProcessingPhoto(false);
+    }
   }
 
   // Same validation rules as SF1.jsx, applied to a single learner.
@@ -113,6 +148,27 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
               <span>{errorMessage}</span>
             </div>
           )}
+
+          <div className="flex items-center gap-4 mb-5">
+            <div className="w-20 h-24 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {formData.photoURL ? (
+                <img src={formData.photoURL} alt="Learner" className="w-full h-full object-cover" />
+              ) : (
+                <User size={28} strokeWidth={1.2} className="text-gray-300 dark:text-gray-600" />
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>
+                Photo (for School ID)
+                <span className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors w-fit">
+                  <Upload size={13} />
+                  {isProcessingPhoto ? "Processing..." : formData.photoURL ? "Change Photo" : "Upload Photo"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePhotoPick} disabled={isProcessingPhoto} />
+                </span>
+              </label>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1.5">JPG or PNG. Resized automatically.</p>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className={labelClass}>
@@ -225,7 +281,7 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
           </button>
           <button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || isProcessingPhoto}
             className="px-4 py-2 text-sm font-semibold text-white bg-primary rounded-lg shadow-sm hover:bg-primary-light active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSaving ? "Saving..." : "Save Changes"}
