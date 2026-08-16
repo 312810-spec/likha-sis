@@ -71,8 +71,12 @@ export function consolidateBySection(learners, nutritionRecords, { schoolYear, p
 
   for (const learner of learners) {
     if ((learner.schoolYear || "") !== schoolYear) continue;
-    const gradeLevel = learner.gradeLevel || "";
-    const section = learner.section || "";
+    // Trim before grouping: learner docs are not guaranteed to be trimmed,
+    // while nutritionRecords always are (NutritionStatus.jsx trims on save).
+    // Without this, "Love " and "Love" would split one section into two rows —
+    // one with enrolment but no weighed, one with weighed but no enrolment.
+    const gradeLevel = (learner.gradeLevel || "").trim();
+    const section = (learner.section || "").trim();
     if (!gradeLevel || !section) continue;
     const row = rowFor(gradeLevel, section);
     increment(row.enrolment, normalizeSex(learner.sex));
@@ -81,8 +85,10 @@ export function consolidateBySection(learners, nutritionRecords, { schoolYear, p
   for (const record of nutritionRecords) {
     if ((record.schoolYear || "") !== schoolYear) continue;
     if ((record.period || "") !== period) continue;
-    const gradeLevel = record.gradeLevel || "";
-    const section = record.section || "";
+    // Defensive trim for parity with the learner loop above, even though
+    // records are already trimmed at write time.
+    const gradeLevel = (record.gradeLevel || "").trim();
+    const section = (record.section || "").trim();
     if (!gradeLevel || !section) continue;
     const row = rowFor(gradeLevel, section);
     const sexKey = normalizeSex(record.sex);

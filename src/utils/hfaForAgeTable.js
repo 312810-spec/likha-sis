@@ -20,11 +20,21 @@
 // BMI_FOR_AGE_TABLE. Outside that range, classification is not defined by
 // this table.
 //
-// NOTE: the source sheet's boys column has a small non-monotonic dip at
-// ages 161-164 months (1.363 -> 1.369 -> 1.364 -> 1.379) — preserved as-is
-// from the source workbook rather than silently corrected. Flagged here for
-// a follow-up check against an authoritative WHO HFA table if it ever
-// affects a real classification at exactly that age.
+// NOTE: the source sheet contains three small non-monotonic dips, preserved
+// as-is from the source workbook rather than silently corrected:
+//   1. boysSeverelyStuntedMax at 163 mos: 1.369 (162) -> 1.364 (163)
+//      (surrounding run: 1.363 -> 1.369 -> 1.364 -> 1.379)
+//   2. boysNormalMax at 226 mos: 1.912 (225) -> 1.911 (226)
+//   3. girlsNormalMax at 227 mos: 1.763 (226) -> 1.762 (227)
+// (2) and (3) are 0.001 m wobbles on the 18-19 year plateau where the WHO
+// reference has effectively flattened. All three are flagged here for a
+// follow-up check against an authoritative WHO HFA table if they ever affect
+// a real classification at exactly those ages.
+//
+// These three are pinned as the ONLY allowed dips by the
+// "HFA_FOR_AGE_TABLE integrity" tests in
+// src/utils/__tests__/nutritionComputations.test.js, so a future re-export
+// cannot introduce a new, undocumented dip without failing a test.
 
 export const HFA_FOR_AGE_TABLE = [
   [60, 0.96, 1.006, 1.192, 0.951, 0.998, 1.189],
