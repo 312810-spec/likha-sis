@@ -8,7 +8,8 @@ import { useEffect, useState } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { updateProfile, reauthenticateWithCredential, updatePassword, EmailAuthProvider } from "firebase/auth";
 import { db, auth } from "./firebase";
-import { ROLE_LABELS } from "./utils/roles.js";
+import { ROLE_OPTIONS, ROLE_LABELS } from "./utils/roles.js";
+import { validateSelfRoleEdit } from "./utils/userAccountManagement.js";
 import { ArrowLeft, UserCircle, Save, KeyRound, CheckCircle2, AlertCircle } from "lucide-react";
 
 const inputClass = "w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors";
@@ -31,6 +32,7 @@ function friendlyPasswordError(err) {
 export default function AccountSettings({ user, goBack }) {
   const [profile, setProfile] = useState(null);
   const [fullName, setFullName] = useState("");
+  const [editableRoles, setEditableRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
@@ -55,6 +57,7 @@ export default function AccountSettings({ user, goBack }) {
           const data = snap.data();
           setProfile(data);
           setFullName(data.fullName || "");
+          setEditableRoles(Array.isArray(data.roles) ? [...data.roles] : []);
         }
       } catch (err) {
         console.error("Failed to load account profile:", err);
@@ -66,6 +69,15 @@ export default function AccountSettings({ user, goBack }) {
     loadProfile();
   }, [user?.uid]);
 
+  const isIctCoordinator = Array.isArray(profile?.roles) && profile.roles.includes("ictCoordinator");
+
+  function handleRoleToggle(roleId) {
+    if (roleId === "ictCoordinator") return; // locked: can't remove your own admin access
+    setEditableRoles((prev) =>
+      prev.includes(roleId) ? prev.filter((r) => r !== roleId) : [...prev, roleId]
+    );
+  }
+
   async function handleSaveProfile(e) {
     e.preventDefault();
     setProfileError("");
@@ -76,9 +88,19 @@ export default function AccountSettings({ user, goBack }) {
       return;
     }
 
+    const updates = { fullName: fullName.trim() };
+    if (isIctCoordinator) {
+      const { valid, error } = validateSelfRoleEdit(editableRoles);
+      if (!valid) {
+        setProfileError(error);
+        return;
+      }
+      updates.roles = editableRoles;
+    }
+
     setIsSavingProfile(true);
     try {
-      await updateDoc(doc(db, "users", user.uid), { fullName: fullName.trim() });
+      await updateDoc(doc(db, "users", user.uid), updates);
       // Also keep the Auth profile's displayName in sync -- DashboardShell's
       // "Welcome, ..." header reads from the Auth object, not Firestore.
       await updateProfile(auth.currentUser, { displayName: fullName.trim() });
@@ -191,11 +213,49 @@ export default function AccountSettings({ user, goBack }) {
               Email
               <input className={`${inputClass} opacity-70 cursor-not-allowed`} value={user?.email || ""} disabled />
             </label>
-            <label className={labelClass}>
-              Role(s)
-              <input className={`${inputClass} opacity-70 cursor-not-allowed`} value={roleLabels} disabled />
-            </label>
+            {!isIctCoordinator && (
+              <label className={labelClass}>
+                Role(s)
+                <input className={`${inputClass} opacity-70 cursor-not-allowed`} value={roleLabels} disabled />
+              </label>
+            )}
           </div>
+
+          {isIctCoordinator && (
+            <div>
+              <span className={labelClass}>
+                Role(s)
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-1.5">
+                {ROLE_OPTIONS.map((role) => {
+                  const isChecked = editableRoles.includes(role.id);
+                  const isLocked = role.id === "ictCoordinator";
+                  return (
+                    <label
+                      key={role.id}
+                      title={isLocked ? "You can't remove your own ICT Coordinator role." : undefined}
+                      className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-colors ${
+                        isLocked ? "cursor-not-allowed opacity-80" : "cursor-pointer"
+                      } ${
+                        isChecked
+                          ? "bg-primary/10 border-primary text-primary-dark dark:bg-primary-light/10 dark:border-primary-light dark:text-primary-light"
+                          : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        disabled={isLocked}
+                        onChange={() => handleRoleToggle(role.id)}
+                        className="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary h-4 w-4 disabled:cursor-not-allowed"
+                      />
+                      <span>{role.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end">
             <button

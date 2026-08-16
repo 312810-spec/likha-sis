@@ -37,3 +37,16 @@ export function validateUserEditForm({ fullName, roles }) {
   }
   return { valid: true, error: "" };
 }
+
+/**
+ * Validates an ICT Coordinator's self-service role edit in AccountSettings.jsx.
+ * Mirrors the firestore.rules guard: an ICT Coordinator may add other roles
+ * to their own account but can never remove ictCoordinator from themselves,
+ * so they can't accidentally lock themselves out of User Management.
+ */
+export function validateSelfRoleEdit(roles) {
+  if (!Array.isArray(roles) || !roles.includes("ictCoordinator")) {
+    return { valid: false, error: "You can't remove your own ICT Coordinator role." };
+  }
+  return { valid: true, error: "" };
+}

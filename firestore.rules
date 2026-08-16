@@ -124,9 +124,22 @@ service cloud.firestore {
       // user may update their OWN fullName, and only that field -- roles/
       // assignments must stay ictCoordinator/principal-only above, so a user
       // editing their own doc can't grant themselves a different role.
+      //
+      // Exception: an ICT Coordinator may also self-edit their own `roles`
+      // (e.g. adding a second role to themselves), but only while both the
+      // stored value AND the new value still contain "ictCoordinator" --
+      // this is the server-side half of the self-lockout guard (the UI
+      // additionally disables unchecking that role on your own account).
       allow update: if isSignedIn()
         && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fullName"]);
+        && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fullName"])
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fullName", "roles"])
+            && resource.data.roles.hasAny(["ictCoordinator"])
+            && request.resource.data.roles.hasAny(["ictCoordinator"])
+          )
+        );
     }
 
     // ---- settings (school config, branding, setup state) ----

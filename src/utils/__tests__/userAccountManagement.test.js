@@ -3,6 +3,7 @@ import {
   isAccountActive,
   isEditableUserRow,
   validateUserEditForm,
+  validateSelfRoleEdit,
 } from "../userAccountManagement.js";
 
 describe("userAccountManagement", () => {
@@ -63,6 +64,31 @@ describe("userAccountManagement", () => {
       expect(
         validateUserEditForm({ fullName: "Maria Santos", roles: ["adviser"] })
       ).toEqual({ valid: true, error: "" });
+    });
+  });
+
+  describe("validateSelfRoleEdit", () => {
+    it("blocks removing your own ictCoordinator role", () => {
+      expect(validateSelfRoleEdit(["principal"])).toEqual({
+        valid: false,
+        error: "You can't remove your own ICT Coordinator role.",
+      });
+      expect(validateSelfRoleEdit([])).toEqual({
+        valid: false,
+        error: "You can't remove your own ICT Coordinator role.",
+      });
+      expect(validateSelfRoleEdit(null)).toEqual({
+        valid: false,
+        error: "You can't remove your own ICT Coordinator role.",
+      });
+    });
+
+    it("allows keeping ictCoordinator alongside other roles", () => {
+      expect(validateSelfRoleEdit(["ictCoordinator"])).toEqual({ valid: true, error: "" });
+      expect(validateSelfRoleEdit(["ictCoordinator", "principal"])).toEqual({
+        valid: true,
+        error: "",
+      });
     });
   });
 });
