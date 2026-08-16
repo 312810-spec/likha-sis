@@ -9,6 +9,7 @@ import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
 import { getSubjectWeights } from "./utils/subjectWeights";
+import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { computeLearnerTermGrade } from "./utils/gradeComputations";
 import schoolConfig from "./schoolConfig";
 import { ArrowLeft, Printer, RefreshCw } from "lucide-react";
@@ -54,8 +55,9 @@ function shortMonthName(monthValue) {
   return names[Number(mm) - 1] || monthValue;
 }
 
-// Subject row definitions — in exact Annex G order
-const SUBJECT_ROWS = [
+// Subject row definitions for Grade 4-10 — in exact Annex G order.
+// Kept exactly as-is; the Grade 4-10 print layout must stay byte-identical.
+const LEGACY_SUBJECT_ROWS = [
   { label: "Filipino", key: "FILIPINO", isHeader: false },
   { label: "English", key: "ENGLISH", isHeader: false },
   { label: "Mathematics", key: "MATHEMATICS", isHeader: false },
@@ -68,12 +70,52 @@ const SUBJECT_ROWS = [
   { label: "Physical Education and Health", key: "PE AND HEALTH", isHeader: false, isIndented: true },
 ];
 
+function isShsGradeLevel(gradeLevel) {
+  return gradeLevel === "Grade 11" || gradeLevel === "Grade 12";
+}
+
+// DO 017 SHS: Grade 11/12 report cards list the school's 5 configured core
+// subjects plus the learner's assigned elective cluster's subjects, instead
+// of the fixed Annex G Grade 4-10 list. Row keys must match
+// recordsBySubject's key derivation (rec.subject.trim().toUpperCase()).
+function getSubjectRows(gradeLevel, learner, shsConfig) {
+  if (!isShsGradeLevel(gradeLevel)) return LEGACY_SUBJECT_ROWS;
+
+  const coreSubjects = shsConfig?.subjects || [];
+  const clusters = shsConfig?.electiveClusters || [];
+  const learnerCluster = clusters.find((c) => c.id === learner?.cluster);
+  const clusterSubjects = learnerCluster?.subjects || [];
+
+  const rows = coreSubjects
+    .filter((s) => s?.name)
+    .map((s) => ({ label: s.name, key: s.name.trim().toUpperCase(), isHeader: false }));
+
+  if (clusterSubjects.length > 0) {
+    rows.push({ label: learnerCluster.name || "Elective Cluster", key: null, isHeader: true });
+    clusterSubjects
+      .filter((s) => s?.name)
+      .forEach((s) =>
+        rows.push({ label: s.name, key: s.name.trim().toUpperCase(), isHeader: false, isIndented: true })
+      );
+  }
+
+  return rows;
+}
+
 // ---- Component --------------------------------------------------------------
 
 export default function ReportCard({ goBack }) {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
   const GRADE_OPTIONS = gradeOptions;
+
+  // DO 017 SHS: resolve weights for the school's configured SHS subjects
+  // first, falling through to the static Grade 4-10 map.
+  const shsSubjectList = [
+    ...(config?.shs?.subjects || []),
+    ...((config?.shs?.electiveClusters || []).flatMap((cluster) => cluster.subjects || [])),
+  ];
+  const getSHSAwareWeights = makeSubjectWeightsResolver(shsSubjectList, getSubjectWeights);
 
   // Filter state
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
@@ -195,22 +237,25 @@ export default function ReportCard({ goBack }) {
   // ---- Derived data for the selected learner --------------------------------
 
   const selectedLearner = learnersList.find((l) => l.id === selectedLearnerId) || null;
+  const learnerGradeLevel = selectedLearner?.gradeLevel || gradeLevel;
+  const isSHS = isShsGradeLevel(learnerGradeLevel);
+  const subjectRows = getSubjectRows(learnerGradeLevel, selectedLearner, config?.shs);
 
   // Compute grade data for the selected learner
   function getLearnerSubjectData(learnerId) {
     const result = {};
-    SUBJECT_ROWS.forEach(({ key, isHeader }) => {
+    subjectRows.forEach(({ key, isHeader }) => {
       if (isHeader || !key) return;
       const termsObj = recordsBySubject[key] || {};
       const termGrades = [];
       const t1 = termsObj["Term 1"]
-        ? computeLearnerTermGrade(termsObj["Term 1"], learnerId, getSubjectWeights)
+        ? computeLearnerTermGrade(termsObj["Term 1"], learnerId, getSHSAwareWeights)
         : null;
       const t2 = termsObj["Term 2"]
-        ? computeLearnerTermGrade(termsObj["Term 2"], learnerId, getSubjectWeights)
+        ? computeLearnerTermGrade(termsObj["Term 2"], learnerId, getSHSAwareWeights)
         : null;
       const t3 = termsObj["Term 3"]
-        ? computeLearnerTermGrade(termsObj["Term 3"], learnerId, getSubjectWeights)
+        ? computeLearnerTermGrade(termsObj["Term 3"], learnerId, getSHSAwareWeights)
         : null;
 
       if (typeof t1 === "number" && !isNaN(t1)) termGrades.push(t1);
@@ -236,8 +281,8 @@ export default function ReportCard({ goBack }) {
     ? getLearnerSubjectData(selectedLearnerId)
     : {};
 
-  // General Average (excluding MAPEH header row)
-  const validFinals = SUBJECT_ROWS.filter((r) => !r.isHeader && r.key)
+  // General Average (excluding header rows)
+  const validFinals = subjectRows.filter((r) => !r.isHeader && r.key)
     .map((r) => learnerSubjectData[r.key]?.final)
     .filter((g) => typeof g === "number");
   const genAvg =
@@ -637,12 +682,26 @@ export default function ReportCard({ goBack }) {
                   {selectedLearner.section || section}
                 </td>
               </tr>
-              <tr>
-                <td colSpan={3} style={{ padding: "1px 3px" }}>
-                  <strong>Track (SHS only): </strong>
-                  &nbsp;
-                </td>
-              </tr>
+              {isSHS && (
+                <tr>
+                  <td colSpan={3} style={{ padding: "1px 3px" }}>
+                    <strong>Track: </strong>
+                    {selectedLearner?.track === "techPro"
+                      ? "Tech-Pro Track"
+                      : selectedLearner?.track === "academic"
+                      ? "Academic Track"
+                      : "—"}
+                    {selectedLearner?.track === "techPro" && (
+                      <>
+                        {" "}
+                        <strong>Cluster: </strong>
+                        {(config?.shs?.electiveClusters || []).find((c) => c.id === selectedLearner?.cluster)
+                          ?.name || "—"}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
 
@@ -687,7 +746,7 @@ export default function ReportCard({ goBack }) {
                       </tr>
                     </thead>
                     <tbody>
-                      {SUBJECT_ROWS.map((row) => {
+                      {subjectRows.map((row) => {
                         if (row.isHeader) {
                           return (
                             <tr key={row.label} style={{ background: "#f0f0f0" }}>

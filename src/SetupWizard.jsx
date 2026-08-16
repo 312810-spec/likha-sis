@@ -40,16 +40,33 @@ const KEY_STAGE_OPTIONS = [
   {
     key: "ks4",
     label: "Key Stage 4: Grades 11 to 12 (Senior High)",
-    disabled: true,
-    gradeLevels: [],
+    disabled: false,
+    gradeLevels: ["Grade 11", "Grade 12"],
   },
 ];
 
 function getGradeLevelsFromStages(stages) {
   const gradeLevels = [];
-  if (stages.ks2) gradeLevels.push(...KEY_STAGE_OPTIONS[1].gradeLevels);
-  if (stages.ks3) gradeLevels.push(...KEY_STAGE_OPTIONS[2].gradeLevels);
+  KEY_STAGE_OPTIONS.forEach((stage) => {
+    if (stages[stage.key] && !stage.disabled) gradeLevels.push(...stage.gradeLevels);
+  });
   return gradeLevels;
+}
+
+function makeDefaultShsSubjects() {
+  return Array.from({ length: 5 }, (_, i) => ({
+    id: `core${i + 1}`,
+    name: `[Core Subject ${i + 1}]`,
+    weightProfile: "core",
+  }));
+}
+
+function makeDefaultShsClusters() {
+  return Array.from({ length: 10 }, (_, i) => ({
+    id: `cluster${i + 1}`,
+    name: `[Elective Cluster ${i + 1}]`,
+    subjects: [],
+  }));
 }
 
 /**
@@ -117,8 +134,18 @@ function SetupWizard({ onComplete }) {
     ks1: false,
     ks2: initialGradeLevels.some((grade) => ["Grade 4", "Grade 5", "Grade 6"].includes(grade)),
     ks3: initialGradeLevels.some((grade) => ["Grade 7", "Grade 8", "Grade 9", "Grade 10"].includes(grade)),
-    ks4: false,
+    ks4: initialGradeLevels.some((grade) => ["Grade 11", "Grade 12"].includes(grade)),
   }));
+
+  // DO 017 SHS configuration, revealed once Key Stage 4 is checked. Seeded
+  // with school-configurable placeholders (never DepEd's actual curriculum
+  // names, which this app doesn't have) or the school's existing config.
+  const [shsSubjects, setShsSubjects] = useState(() =>
+    initialConfig?.shs?.subjects?.length ? initialConfig.shs.subjects : makeDefaultShsSubjects()
+  );
+  const [shsClusters, setShsClusters] = useState(() =>
+    initialConfig?.shs?.electiveClusters?.length ? initialConfig.shs.electiveClusters : makeDefaultShsClusters()
+  );
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -139,11 +166,58 @@ function SetupWizard({ onComplete }) {
   const [activeImporter, setActiveImporter] = useState(null);
 
   function handleKeyStageToggle(stageKey) {
-    if (stageKey === "ks1" || stageKey === "ks4") return;
+    if (stageKey === "ks1") return;
     setSelectedKeyStages((prev) => ({
       ...prev,
       [stageKey]: !prev[stageKey],
     }));
+  }
+
+  function updateCoreSubjectName(index, name) {
+    setShsSubjects((prev) => prev.map((s, i) => (i === index ? { ...s, name } : s)));
+  }
+
+  function updateClusterName(clusterIndex, name) {
+    setShsClusters((prev) => prev.map((c, i) => (i === clusterIndex ? { ...c, name } : c)));
+  }
+
+  function addCluster() {
+    setShsClusters((prev) => [
+      ...prev,
+      { id: `cluster_${Date.now()}`, name: `[Elective Cluster ${prev.length + 1}]`, subjects: [] },
+    ]);
+  }
+
+  function removeCluster(clusterIndex) {
+    setShsClusters((prev) => prev.filter((_, i) => i !== clusterIndex));
+  }
+
+  function addClusterSubject(clusterIndex) {
+    setShsClusters((prev) =>
+      prev.map((c, i) =>
+        i === clusterIndex
+          ? { ...c, subjects: [...c.subjects, { id: `${c.id}_s_${Date.now()}`, name: "", weightProfile: "techPro" }] }
+          : c
+      )
+    );
+  }
+
+  function updateClusterSubject(clusterIndex, subjectIndex, patch) {
+    setShsClusters((prev) =>
+      prev.map((c, i) =>
+        i === clusterIndex
+          ? { ...c, subjects: c.subjects.map((s, si) => (si === subjectIndex ? { ...s, ...patch } : s)) }
+          : c
+      )
+    );
+  }
+
+  function removeClusterSubject(clusterIndex, subjectIndex) {
+    setShsClusters((prev) =>
+      prev.map((c, i) =>
+        i === clusterIndex ? { ...c, subjects: c.subjects.filter((_, si) => si !== subjectIndex) } : c
+      )
+    );
   }
 
   function validateStep1() {
@@ -157,7 +231,7 @@ function SetupWizard({ onComplete }) {
 
     const gradeLevelsOffered = getGradeLevelsFromStages(selectedKeyStages);
     if (gradeLevelsOffered.length === 0) {
-      e.gradeLevelsOffered = "Please select at least one of Key Stage 2 or Key Stage 3.";
+      e.gradeLevelsOffered = "Please select at least one of Key Stage 2, Key Stage 3, or Key Stage 4.";
     }
 
     setErrors(e);
@@ -184,7 +258,7 @@ function SetupWizard({ onComplete }) {
     if (gradeLevelsOffered.length === 0) {
       setErrors((prev) => ({
         ...prev,
-        gradeLevelsOffered: "Please select at least one of Key Stage 2 or Key Stage 3.",
+        gradeLevelsOffered: "Please select at least one of Key Stage 2, Key Stage 3, or Key Stage 4.",
       }));
       return;
     }
@@ -203,9 +277,16 @@ function SetupWizard({ onComplete }) {
         createdByEmail: email,
       });
 
+      // Only persist SHS configuration when Key Stage 4 is actually enabled --
+      // otherwise write the empty default rather than unused placeholder junk.
+      const shs = selectedKeyStages.ks4
+        ? { subjects: shsSubjects, electiveClusters: shsClusters }
+        : { subjects: [], electiveClusters: [] };
+
       await setDoc(doc(db, "settings", "schoolConfig"), {
         ...schoolData,
         gradeLevelsOffered,
+        shs,
         setupCompletedAt: serverTimestamp(),
       });
 
@@ -435,6 +516,109 @@ function SetupWizard({ onComplete }) {
                 <p className="text-red-600 text-sm mt-2">{errors.gradeLevelsOffered}</p>
               )}
             </div>
+
+            {selectedKeyStages.ks4 && (
+              <div className="mt-6 border-t border-gray-200 pt-5 space-y-5">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">SHS Configuration (DO 017, s.2026)</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Edit these to match your school's actual DepEd-approved offerings — the names below are
+                    placeholders only.
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                    Grade 11 Core Subjects (5 mandatory)
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {shsSubjects.map((subj, i) => (
+                      <input
+                        key={subj.id}
+                        className="border p-2 rounded text-sm"
+                        value={subj.name}
+                        onChange={(e) => updateCoreSubjectName(i, e.target.value)}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      Tech-Pro Track Elective Clusters
+                    </p>
+                    <button
+                      type="button"
+                      onClick={addCluster}
+                      className="text-xs font-medium text-primary hover:text-primary-light"
+                    >
+                      + Add Cluster
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mb-2">
+                    Keep each cluster to around 3–5 subjects — the printed Report Card is a fixed single
+                    page, and a learner's 5 core subjects plus a long cluster subject list can overflow it.
+                  </p>
+
+                  <div className="space-y-3">
+                    {shsClusters.map((cluster, ci) => (
+                      <div key={cluster.id} className="border rounded-lg p-3 bg-gray-50/70">
+                        <div className="flex items-center gap-2">
+                          <input
+                            className="border p-1.5 rounded text-sm flex-1"
+                            value={cluster.name}
+                            onChange={(e) => updateClusterName(ci, e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeCluster(ci)}
+                            className="text-xs text-red-600 hover:text-red-700 px-2"
+                          >
+                            Remove
+                          </button>
+                        </div>
+
+                        <div className="mt-2 space-y-1.5">
+                          {cluster.subjects.map((subj, si) => (
+                            <div key={subj.id} className="flex items-center gap-1.5">
+                              <input
+                                className="border p-1 rounded text-xs flex-1"
+                                placeholder="Subject name"
+                                value={subj.name}
+                                onChange={(e) => updateClusterSubject(ci, si, { name: e.target.value })}
+                              />
+                              <select
+                                className="border p-1 rounded text-xs"
+                                value={subj.weightProfile}
+                                onChange={(e) => updateClusterSubject(ci, si, { weightProfile: e.target.value })}
+                              >
+                                <option value="techPro">Tech-Pro (20/80/0)</option>
+                                <option value="immersion">Work Immersion (15/65/20)</option>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => removeClusterSubject(ci, si)}
+                                className="text-xs text-red-600 hover:text-red-700 px-1"
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          ))}
+                          <button
+                            type="button"
+                            onClick={() => addClusterSubject(ci)}
+                            className="text-xs font-medium text-primary hover:text-primary-light"
+                          >
+                            + Add Subject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="mt-6 flex justify-between">
               <div />

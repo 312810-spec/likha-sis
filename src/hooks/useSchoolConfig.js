@@ -13,12 +13,25 @@ export const DEFAULT_GRADE_LEVELS = [
   "Grade 10",
 ];
 
+// Defaults missing DO 017 SHS sub-fields so a pre-migration or
+// partially-written schoolConfig doc never crashes a consumer that reads
+// config.shs.subjects / config.shs.electiveClusters directly. The `{...data}`
+// spread below replaces `fallback.shs` wholesale when `data.shs` exists, so
+// this needs to run after that spread, not rely on it.
+function normalizeShsConfig(shs) {
+  return {
+    subjects: Array.isArray(shs?.subjects) ? shs.subjects : [],
+    electiveClusters: Array.isArray(shs?.electiveClusters) ? shs.electiveClusters : [],
+  };
+}
+
 // Helper exported for unit testing
 export function snapshotToConfig(docSnap, fallback = fallbackConfig) {
   if (!docSnap || !docSnap.exists()) {
     return {
       ...fallback,
       gradeLevelsOffered: fallback.gradeLevelsOffered || [...DEFAULT_GRADE_LEVELS],
+      shs: normalizeShsConfig(fallback.shs),
     };
   }
 
@@ -32,6 +45,7 @@ export function snapshotToConfig(docSnap, fallback = fallbackConfig) {
     ...fallback,
     ...data,
     gradeLevelsOffered,
+    shs: normalizeShsConfig(data.shs || fallback.shs),
   };
 }
 
@@ -39,6 +53,7 @@ export default function useSchoolConfig() {
   const [config, setConfig] = useState(() => ({
     ...fallbackConfig,
     gradeLevelsOffered: fallbackConfig.gradeLevelsOffered || [...DEFAULT_GRADE_LEVELS],
+    shs: normalizeShsConfig(fallbackConfig.shs),
   }));
   const [loading, setLoading] = useState(true);
 
@@ -55,6 +70,7 @@ export default function useSchoolConfig() {
         setConfig({
           ...fallbackConfig,
           gradeLevelsOffered: fallbackConfig.gradeLevelsOffered || [...DEFAULT_GRADE_LEVELS],
+          shs: normalizeShsConfig(fallbackConfig.shs),
         });
         setLoading(false);
       }

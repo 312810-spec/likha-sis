@@ -20,6 +20,7 @@ import useAvailableSections from "./hooks/useAvailableSections";
 import { canAccessDisciplineRecords } from "./pageAccess.js";
 import { getWeekdays } from "./utils/attendanceDates";
 import { getSubjectWeights } from "./utils/subjectWeights";
+import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { computeInitialGradeFromRecord } from "./utils/gradeComputations";
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import isEligibleForAutoResolveCheck from "./utils/lardoAutoResolve";
@@ -76,6 +77,17 @@ export default function LardoTracking({ user, userRoles, goBack }) {
   const { config } = useSchoolConfig();
   const gradeOptions = ["All", ...(config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"])];
   const GRADE_OPTIONS = gradeOptions;
+
+  // DO 017 SHS: resolve weights for the school's configured SHS subjects
+  // first, falling through to the static Grade 4-10 map. This directly
+  // feeds the DO 15 academic-intervention (LARDO) auto-flag check below, so
+  // wrong weights here would mean wrong intervention flags for Tech-Pro
+  // learners.
+  const shsSubjectList = [
+    ...(config?.shs?.subjects || []),
+    ...((config?.shs?.electiveClusters || []).flatMap((cluster) => cluster.subjects || [])),
+  ];
+  const getSHSAwareWeights = makeSubjectWeightsResolver(shsSubjectList, getSubjectWeights);
   // Filter bar state
   const [gradeLevelFilter, setGradeLevelFilter] = useState("All");
   const [sectionFilter, setSectionFilter] = useState("");
@@ -168,7 +180,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
       const snapshot = await getDocs(classRecordsQuery);
       let lowest = null;
       snapshot.forEach((docSnap) => {
-        const ig = computeInitialGradeFromRecord(docSnap.data(), learnerId, getSubjectWeights);
+        const ig = computeInitialGradeFromRecord(docSnap.data(), learnerId, getSHSAwareWeights);
         if (typeof ig === "number" && !isNaN(ig) && (lowest === null || ig < lowest)) {
           lowest = ig;
         }

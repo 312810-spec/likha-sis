@@ -15,6 +15,7 @@ import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
 import { SUBJECT_WEIGHTS, getSubjectWeights } from "./utils/subjectWeights";
+import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { transmuteGrade, getGradeDescription } from "./utils/transmutationTable";
 import {
   computeComponentPS,
@@ -53,8 +54,22 @@ export default function ClassRecord({ user, goBack }) {
 
   const GRADE_OPTIONS = gradeOptions;
 
-  // Subject options from SUBJECT_WEIGHTS
-  const SUBJECT_OPTIONS = Object.keys(SUBJECT_WEIGHTS);
+  // DO 017 SHS: Grade 11/12 draw their subject list from the school's
+  // configured SHS subjects (core + elective-cluster subjects) instead of
+  // the fixed Grade 4-10 SUBJECT_WEIGHTS map, since those subject names
+  // aren't known ahead of time.
+  const isSHS = gradeLevel === "Grade 11" || gradeLevel === "Grade 12";
+  const shsSubjectList = [
+    ...(config?.shs?.subjects || []),
+    ...((config?.shs?.electiveClusters || []).flatMap((cluster) => cluster.subjects || [])),
+  ];
+  const getSHSAwareWeights = makeSubjectWeightsResolver(shsSubjectList, getSubjectWeights);
+
+  // Subject options from SUBJECT_WEIGHTS (Grade 4-10) or the school's
+  // configured SHS subjects (Grade 11-12).
+  const SUBJECT_OPTIONS = isSHS
+    ? shsSubjectList.map((s) => s.name).filter(Boolean)
+    : Object.keys(SUBJECT_WEIGHTS);
 
   // Term options
   const TERM_OPTIONS = ["Term 1", "Term 2", "Term 3"];
@@ -324,7 +339,7 @@ export default function ClassRecord({ user, goBack }) {
     return val.toFixed(decimals);
   }
 
-  const subjectWeights = getSubjectWeights(subject) || { ww: 0.2, pt: 0.5, ex: 0.3 };
+  const subjectWeights = getSHSAwareWeights(subject) || { ww: 0.2, pt: 0.5, ex: 0.3 };
 
   // Shared by the live grid render and the post-save auto-flag check, so the
   // Initial Grade used for both never drifts apart.
@@ -356,7 +371,10 @@ export default function ClassRecord({ user, goBack }) {
     const teHPS = Number(exHPS.te) || 0;
 
     const exPS = computeExamPS(st1Raw, st1HPS, st2Raw, st2HPS, teRaw, teHPS);
-    const exWS = computeWeightedScore(exPS, subjectWeights.ex);
+    // A weight of exactly 0 (Tech-Pro subjects, DO 15's 20/80/0 profile)
+    // means there is legitimately no exam component -- short-circuit rather
+    // than letting the all-zero exHPS null out the whole grade.
+    const exWS = subjectWeights.ex === 0 ? 0 : computeWeightedScore(exPS, subjectWeights.ex);
 
     const initialGrade = computeInitialGrade(wwWS, ptWS, exWS);
     const termGrade = transmuteGrade(initialGrade);
@@ -500,7 +518,20 @@ export default function ClassRecord({ user, goBack }) {
                 </label>
                 <select
                   value={gradeLevel}
-                  onChange={(e) => setGradeLevel(e.target.value)}
+                  onChange={(e) => {
+                    const nextGrade = e.target.value;
+                    setGradeLevel(nextGrade);
+                    // Subject options differ entirely between Grade 4-10 and
+                    // SHS (11-12) -- reset so the selected subject is never
+                    // left pointing at an option that no longer exists.
+                    const nextIsSHS = nextGrade === "Grade 11" || nextGrade === "Grade 12";
+                    if (nextIsSHS !== isSHS) {
+                      const nextOptions = nextIsSHS
+                        ? shsSubjectList.map((s) => s.name).filter(Boolean)
+                        : Object.keys(SUBJECT_WEIGHTS);
+                      setSubject(nextOptions[0] || "");
+                    }
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
                 >
                   {GRADE_OPTIONS.map((g) => (
@@ -780,15 +811,18 @@ export default function ClassRecord({ user, goBack }) {
                     <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
                     <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
 
-                    {/* Exam HPS Inputs */}
+                    {/* Exam HPS Inputs -- disabled when this subject's weight profile
+                        has no exam component (Tech-Pro, DO 15's 20/80/0 profile) */}
                     <td className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
                       <input
                         type="number"
                         min="0"
                         value={exHPS.st1 || ""}
                         onChange={(e) => updateExHPS("st1", e.target.value)}
-                        className="w-12 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800"
-                        placeholder="0"
+                        disabled={subjectWeights.ex === 0}
+                        title={subjectWeights.ex === 0 ? "N/A — this subject has no written exam component" : undefined}
+                        className="w-12 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                        placeholder={subjectWeights.ex === 0 ? "N/A" : "0"}
                       />
                     </td>
                     <td className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
@@ -797,8 +831,10 @@ export default function ClassRecord({ user, goBack }) {
                         min="0"
                         value={exHPS.st2 || ""}
                         onChange={(e) => updateExHPS("st2", e.target.value)}
-                        className="w-12 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800"
-                        placeholder="0"
+                        disabled={subjectWeights.ex === 0}
+                        title={subjectWeights.ex === 0 ? "N/A — this subject has no written exam component" : undefined}
+                        className="w-12 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                        placeholder={subjectWeights.ex === 0 ? "N/A" : "0"}
                       />
                     </td>
                     <td className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
@@ -807,8 +843,10 @@ export default function ClassRecord({ user, goBack }) {
                         min="0"
                         value={exHPS.te || ""}
                         onChange={(e) => updateExHPS("te", e.target.value)}
-                        className="w-12 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800"
-                        placeholder="0"
+                        disabled={subjectWeights.ex === 0}
+                        title={subjectWeights.ex === 0 ? "N/A — this subject has no written exam component" : undefined}
+                        className="w-12 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                        placeholder={subjectWeights.ex === 0 ? "N/A" : "0"}
                       />
                     </td>
                     <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>

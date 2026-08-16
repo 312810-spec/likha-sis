@@ -117,7 +117,11 @@ export function computeInitialGradeFromRecord(record, learnerId, getSubjectWeigh
     st2Raw, Number(exHPS.st2) || 0,
     teRaw, Number(exHPS.te) || 0
   );
-  const exWS = computeWeightedScore(exPS, weights.ex);
+  // A weight of exactly 0 (Tech-Pro subjects, DO 15's 20/80/0 profile) means
+  // there is legitimately no exam component -- getExamPS naturally returns
+  // null when exHPS is all zero, which would otherwise null out the whole
+  // grade. Short-circuit to 0 instead so a WW+PT-only grade still computes.
+  const exWS = weights.ex === 0 ? 0 : computeWeightedScore(exPS, weights.ex);
 
   return computeInitialGrade(wwWS, ptWS, exWS);
 }

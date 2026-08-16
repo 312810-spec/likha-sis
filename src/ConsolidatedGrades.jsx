@@ -8,6 +8,7 @@ import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
 import { getSubjectWeights } from "./utils/subjectWeights";
+import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { computeLearnerTermGrade } from "./utils/gradeComputations";
 import { ArrowLeft, Award, RefreshCw, Info } from "lucide-react";
 
@@ -16,6 +17,15 @@ import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 export default function ConsolidatedGrades({ goBack, user }) {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
+
+  // DO 017 SHS: resolve weights for the school's configured SHS subjects
+  // first, falling through to the static Grade 4-10 map -- safe to use
+  // unconditionally since it just misses through for non-SHS subject names.
+  const shsSubjectList = [
+    ...(config?.shs?.subjects || []),
+    ...((config?.shs?.electiveClusters || []).flatMap((cluster) => cluster.subjects || [])),
+  ];
+  const getSHSAwareWeights = makeSubjectWeightsResolver(shsSubjectList, getSubjectWeights);
 
   // Filter state
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
@@ -113,7 +123,7 @@ export default function ConsolidatedGrades({ goBack, user }) {
           ["Term 1", "Term 2", "Term 3"].forEach((termKey) => {
             const rec = termsObj[termKey];
             if (rec) {
-              const tg = computeLearnerTermGrade(rec, learner.id, getSubjectWeights);
+              const tg = computeLearnerTermGrade(rec, learner.id, getSHSAwareWeights);
               if (typeof tg === "number" && !isNaN(tg)) {
                 termGrades.push(tg);
               }

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { resizeImageToCanvas } from "./utils/resizeImage.js";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import { X, AlertCircle, User, Upload } from "lucide-react";
 
 const MAX_PHOTO_SOURCE_BYTES = 15 * 1024 * 1024; // sanity cap on the original file before resizing
@@ -36,6 +37,11 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
   const [formData, setFormData] = useState({ ...learner });
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  // DO 017 SHS: track/cluster only apply to Grade 11/12 learners.
+  const { config } = useSchoolConfig();
+  const isSHS = formData.gradeLevel === "Grade 11" || formData.gradeLevel === "Grade 12";
+  const electiveClusters = config?.shs?.electiveClusters || [];
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
 
   function updateField(field, value) {
@@ -218,6 +224,39 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
                 <option>Modular</option>
               </select>
             </label>
+            {isSHS && (
+              <>
+                <label className={labelClass}>
+                  Track
+                  <select
+                    className={inputClass}
+                    value={formData.track || ""}
+                    onChange={(e) => {
+                      updateField("track", e.target.value);
+                      if (e.target.value !== "techPro") updateField("cluster", null);
+                    }}
+                  >
+                    <option value="">Select a track</option>
+                    <option value="academic">Academic Track</option>
+                    <option value="techPro">Tech-Pro Track</option>
+                  </select>
+                </label>
+                <label className={labelClass}>
+                  Elective Cluster
+                  <select
+                    className={inputClass}
+                    value={formData.cluster || ""}
+                    onChange={(e) => updateField("cluster", e.target.value)}
+                    disabled={formData.track !== "techPro"}
+                  >
+                    <option value="">{formData.track === "techPro" ? "Select a cluster" : "N/A (Academic Track)"}</option>
+                    {electiveClusters.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            )}
           </div>
 
           <fieldset className="mt-5 border border-gray-200 dark:border-gray-700 rounded-xl p-4">

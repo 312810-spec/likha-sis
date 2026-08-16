@@ -131,6 +131,24 @@ describe('gradeComputations', () => {
       const ig = computeInitialGradeFromRecord(baseRecord, 'l1', () => null);
       expect(ig).toBeCloseTo(90, 5);
     });
+
+    it('computes a real grade from WW+PT only when ex weight is exactly 0 (Tech-Pro profile)', () => {
+      // No exam component at all: exHPS all zero, no st1/st2/te scores.
+      // wwPS=90 -> wwWS(0.2)=18; ptPS=90 -> ptWS(0.8)=72; exWS short-circuits
+      // to 0 instead of nulling the whole grade out. IG = 18+72+0 = 90.
+      const techProRecord = {
+        subject: 'CULINARY ARTS',
+        wwItems: [{ id: 'ww1', hps: 10 }],
+        ptItems: [{ id: 'pt1', hps: 20 }],
+        exHPS: { st1: 0, st2: 0, te: 0 },
+        scores: {
+          l1: { ww: { ww1: 9 }, pt: { pt1: 18 } },
+        },
+      };
+      const techProWeights = () => ({ ww: 0.2, pt: 0.8, ex: 0 });
+      const ig = computeInitialGradeFromRecord(techProRecord, 'l1', techProWeights);
+      expect(ig).toBeCloseTo(90, 5);
+    });
   });
 
   describe('computeLearnerTermGrade', () => {

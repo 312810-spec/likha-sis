@@ -7,7 +7,18 @@ import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "./firebase";
 import EditLearnerModal from "./EditLearnerModal";
 import { canEditLearners } from "./pageAccess.js";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import { ArrowLeft, Users, Pencil, Trash2, AlertCircle, UserSearch } from "lucide-react";
+
+function trackLabel(learner, electiveClusters) {
+  if (!learner.track) return "";
+  if (learner.track === "academic") return "Academic";
+  if (learner.track === "techPro") {
+    const cluster = electiveClusters.find((c) => c.id === learner.cluster);
+    return cluster ? `Tech-Pro — ${cluster.name}` : "Tech-Pro";
+  }
+  return "";
+}
 
 // Calculates age from a birth date string (YYYY-MM-DD), as of today.
 // Note: official DepEd age is "as of 1st Friday of June" — we're using today's date
@@ -25,6 +36,8 @@ function calculateAge(birthDateString) {
 }
 
 function ViewLearners({ user, goBack, userRoles }) {
+  const { config } = useSchoolConfig();
+  const electiveClusters = config?.shs?.electiveClusters || [];
   // learners: array of learner objects from Firestore, each with its document id included.
   const [learners, setLearners] = useState([]);
   // loading: true while we're fetching data from Firestore.
@@ -181,6 +194,7 @@ function ViewLearners({ user, goBack, userRoles }) {
                   <th className={thClass}>Age</th>
                   <th className={thClass}>Grade Level</th>
                   <th className={thClass}>Section</th>
+                  <th className={thClass}>Track</th>
                   <th className={thClass}>Learning Modality</th>
                   {isEditable && <th className={thClass}>Actions</th>}
                 </tr>
@@ -204,6 +218,7 @@ function ViewLearners({ user, goBack, userRoles }) {
                     <td className={tdClass}>{calculateAge(l.birthDate)}</td>
                     <td className={tdClass}>{l.gradeLevel || ""}</td>
                     <td className={tdClass}>{l.section || ""}</td>
+                    <td className={tdClass}>{trackLabel(l, electiveClusters)}</td>
                     <td className={tdClass}>{l.learningModality || ""}</td>
                     {isEditable && (
                       <td className={tdClass}>

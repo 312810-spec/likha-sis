@@ -53,6 +53,12 @@ function SF1({ user, goBack }) {
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
+  // DO 017 SHS: one SF1 sheet is one grade+section, so track/cluster are
+  // sheet-level (like gradeLevel/section above), not per learner row.
+  const isSHS = gradeLevel === "Grade 11" || gradeLevel === "Grade 12";
+  const [track, setTrack] = useState("");
+  const [cluster, setCluster] = useState("");
+  const electiveClusters = config?.shs?.electiveClusters || [];
   const { sections: availableSections } = useAvailableSections(gradeLevel, schoolYear);
   const [newSection, setNewSection] = useState("");
   const [showNewSection, setShowNewSection] = useState(false);
@@ -139,6 +145,8 @@ function SF1({ user, goBack }) {
           gradeLevel,
           section,
           schoolYear,
+          // DO 017 SHS: only meaningful (and only ever set) for Grade 11/12.
+          ...(isSHS ? { track, cluster: track === "techPro" ? cluster : null } : {}),
           addedByTeacherEmail: user.email,
           createdAt: serverTimestamp(), // Firebase stamps the exact save time automatically
         });
@@ -271,6 +279,44 @@ function SF1({ user, goBack }) {
             />
           </div>
         </div>
+
+        {isSHS && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Track
+              </label>
+              <select
+                value={track}
+                onChange={(e) => {
+                  setTrack(e.target.value);
+                  if (e.target.value !== "techPro") setCluster("");
+                }}
+                className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              >
+                <option value="">Select a track</option>
+                <option value="academic">Academic Track</option>
+                <option value="techPro">Tech-Pro Track</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Elective Cluster
+              </label>
+              <select
+                value={cluster}
+                onChange={(e) => setCluster(e.target.value)}
+                disabled={track !== "techPro"}
+                className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">{track === "techPro" ? "Select a cluster" : "N/A (Academic Track)"}</option>
+                {electiveClusters.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Table Container */}
