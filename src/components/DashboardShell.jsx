@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { Bell, LogOut, Settings, Sun, Moon, Monitor, Menu } from 'lucide-react';
 import useDarkMode from '../hooks/useDarkMode';
 import useBrandTheme from '../hooks/useBrandTheme';
+import { ROLE_LABELS } from '../utils/roles.js';
 import Sidebar from './Sidebar';
 
 function initialsFor(user) {
@@ -177,11 +178,17 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
                     <div className="text-sm font-medium text-gray-900 truncate dark:text-gray-100">
                       {user?.email || 'User'}
                     </div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">Teacher</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      {(userRoles || []).map((r) => ROLE_LABELS[r] || r).join(', ') || 'No roles assigned'}
+                    </div>
                   </div>
 
                   <button
                     type="button"
+                    onClick={() => {
+                      setProfileOpen(false);
+                      onNavigate('accountSettings');
+                    }}
                     className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-800 transition-colors"
                   >
                     <Settings size={16} /> Account Settings

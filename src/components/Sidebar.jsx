@@ -18,6 +18,7 @@ import {
   ArrowLeftRight,
   Award,
   Palette,
+  Settings,
   ChevronLeft,
   ChevronRight,
   X,
@@ -28,6 +29,7 @@ const icons = {
   'User Management': UserCog,
   Branding: Palette,
   'Branding Settings': Palette,
+  'School Settings': Settings,
   'School Forms': FileText,
   SF1: FileText,
   SF2: FileText,
@@ -70,6 +72,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     // NOTE: Access control for User Management will be restricted to ictCoordinator/principal roles in Phase B.
     { label: 'User Management', page: 'userManagement' },
     { label: 'Branding', page: 'brandingSettings' },
+    { label: 'School Settings', page: 'schoolSettings' },
     { label: 'Import Center', page: 'importCenter' },
     {
       label: 'School Forms',

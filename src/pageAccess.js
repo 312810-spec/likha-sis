@@ -19,7 +19,9 @@ export const PAGE_ACCESS = {
   sf1Import: ["ictCoordinator"],
   sf10Import: ["ictCoordinator"],
   userManagement: ["ictCoordinator", "principal"],
-  brandingSettings: ["ictCoordinator", "principal"]
+  brandingSettings: ["ictCoordinator", "principal"],
+  schoolSettings: ["ictCoordinator", "principal"],
+  accountSettings: "all"
 };
 
 export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder"];

@@ -28,6 +28,8 @@ import UserManagement from "./pages/UserManagement";
 import NutritionStatus from "./NutritionStatus";
 import TransfersLog from "./TransfersLog";
 import BrandingSettings from "./BrandingSettings";
+import SchoolSettings from "./SchoolSettings";
+import AccountSettings from "./AccountSettings";
 import { canAccessPage } from "./pageAccess.js";
 import { useUserProfile } from "./hooks/useUserProfile.js";
 
@@ -189,6 +191,14 @@ function App() {
       case "brandingSettings":
         pageTitle = "School Branding & Theme";
         pageContent = <BrandingSettings user={user} goBack={() => setCurrentPage("dashboard")} />;
+        break;
+      case "schoolSettings":
+        pageTitle = "School Settings";
+        pageContent = <SchoolSettings goBack={() => setCurrentPage("dashboard")} />;
+        break;
+      case "accountSettings":
+        pageTitle = "Account Settings";
+        pageContent = <AccountSettings user={user} goBack={() => setCurrentPage("dashboard")} />;
         break;
       default:
         // Dashboard

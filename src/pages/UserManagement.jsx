@@ -3,22 +3,7 @@ import { collection, getDocs, doc, setDoc, serverTimestamp } from "firebase/fire
 import { UserPlus, Users, Plus, Trash2, CheckCircle2, AlertCircle, Shield } from "lucide-react";
 import { db } from "../firebase";
 import { createTeacherAccount } from "../firebaseAdmin";
-
-const ROLE_OPTIONS = [
-  { id: "principal", label: "Principal" },
-  { id: "masterTeacher", label: "Master Teacher" },
-  { id: "adviser", label: "Adviser" },
-  { id: "subjectTeacher", label: "Subject Teacher" },
-  { id: "stakeholder", label: "Stakeholder" },
-  { id: "ictCoordinator", label: "ICT Coordinator" },
-  { id: "smeaCoordinator", label: "SMEA Coordinator" },
-  { id: "guidance", label: "Guidance Counselor" },
-];
-
-const ROLE_LABELS = ROLE_OPTIONS.reduce((acc, r) => {
-  acc[r.id] = r.label;
-  return acc;
-}, {});
+import { ROLE_OPTIONS, ROLE_LABELS } from "../utils/roles.js";
 
 export default function UserManagement({ user }) {
   // Form State

@@ -120,6 +120,13 @@ service cloud.firestore {
         && isSignedIn()
         && request.auth.uid == userId
         && request.resource.data.roles.hasOnly(["ictCoordinator"]);
+      // Self-service Account Settings (AccountSettings.jsx): any signed-in
+      // user may update their OWN fullName, and only that field -- roles/
+      // assignments must stay ictCoordinator/principal-only above, so a user
+      // editing their own doc can't grant themselves a different role.
+      allow update: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fullName"]);
     }
 
     // ---- settings (school config, branding, setup state) ----
