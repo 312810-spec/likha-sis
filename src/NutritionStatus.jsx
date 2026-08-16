@@ -56,9 +56,6 @@ export default function NutritionStatus({ user, goBack }) {
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
-  // setPeriod is wired to the period selector UI added by Task 5 (not part of
-  // this data-layer task's scope).
-  // eslint-disable-next-line no-unused-vars
   const [period, setPeriod] = useState("Baseline");
   const { sections: availableSections, loading } = useAvailableSections(gradeLevel, schoolYear);
   const [measurementDate, setMeasurementDate] = useState(
@@ -359,6 +356,7 @@ export default function NutritionStatus({ user, goBack }) {
     const ageInMonths = getAgeInMonths(learner.birthDate, measurementDate);
     const bmi = computeBMI(w, h);
     const status = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
+    const hfaStatus = classifyHeightForAge(h, ageInMonths, learner.sex);
 
     return (
       <tr key={rowNumber}>
@@ -372,7 +370,7 @@ export default function NutritionStatus({ user, goBack }) {
         <td>{isValid ? (h * h).toFixed(2) : "—"}</td>
         <td>{bmi !== null && bmi !== undefined ? bmi.toFixed(2) : "—"}</td>
         <td>{status || "—"}</td>
-        <td>—</td>
+        <td>{hfaStatus || "—"}</td>
         <td>{learner.remarks || "—"}</td>
       </tr>
     );
@@ -477,7 +475,7 @@ export default function NutritionStatus({ user, goBack }) {
       {/* Filter Bar */}
       <form
         onSubmit={handleLoad}
-        className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end"
+        className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 items-end"
       >
         <div>
           <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
@@ -527,6 +525,20 @@ export default function NutritionStatus({ user, goBack }) {
             onChange={(e) => setSchoolYear(e.target.value)}
             className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
+            Period
+          </label>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-colors"
+          >
+            <option value="Baseline">Baseline</option>
+            <option value="Endline">Endline</option>
+          </select>
         </div>
 
         <div>
@@ -661,12 +673,13 @@ export default function NutritionStatus({ user, goBack }) {
                   <th className="py-3 px-4 w-28">Weight (kg)</th>
                   <th className="py-3 px-4 w-24">BMI</th>
                   <th className="py-3 px-4 w-36 text-center">Nutritional Status</th>
+                  <th className="py-3 px-4 w-36 text-center">Height-for-Age</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
                 {gridData.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={11} className="py-8 text-center text-gray-500 dark:text-gray-400">
                       No learners found for Grade {gradeLevel} - {section}.
                     </td>
                   </tr>
@@ -678,6 +691,7 @@ export default function NutritionStatus({ user, goBack }) {
                     const ageInMonths = getAgeInMonths(learner.birthDate, measurementDate);
                     const bmi = computeBMI(w, h);
                     const status = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
+                    const hfaStatus = classifyHeightForAge(h, ageInMonths, learner.sex);
 
                     return (
                       <tr key={learner.id} className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
@@ -739,6 +753,23 @@ export default function NutritionStatus({ user, goBack }) {
                           ) : status === "Overweight" || status === "Obese" ? (
                             <span className="inline-block bg-accent/10 text-accent-dark dark:bg-accent/20 dark:text-accent-light border border-accent/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
                               {status}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 dark:text-gray-500 font-mono">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          {hfaStatus === "Severely Stunted" || hfaStatus === "Stunted" ? (
+                            <span className="inline-block bg-red-500/10 text-red-700 dark:bg-red-500/20 dark:text-red-300 border border-red-500/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
+                              {hfaStatus}
+                            </span>
+                          ) : hfaStatus === "Normal" ? (
+                            <span className="inline-block bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light border border-leaf/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
+                              {hfaStatus}
+                            </span>
+                          ) : hfaStatus === "Tall" ? (
+                            <span className="inline-block bg-accent/10 text-accent-dark dark:bg-accent/20 dark:text-accent-light border border-accent/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
+                              {hfaStatus}
                             </span>
                           ) : (
                             <span className="text-gray-400 dark:text-gray-500 font-mono">—</span>
