@@ -137,6 +137,9 @@ export default function SF10Generator({ goBack }) {
 
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
 
+  const [mode, setMode] = useState("single"); // "single" | "section"
+  const [sectionFilter, setSectionFilter] = useState("");
+
   useEffect(() => {
     async function fetchData() {
       try {
@@ -169,6 +172,22 @@ export default function SF10Generator({ goBack }) {
     [learners]
   );
 
+  const sectionOptions = useMemo(() => {
+    const set = new Set();
+    sortedLearners.forEach((l) => {
+      if (l.gradeLevel && l.section) set.add(`${l.gradeLevel} - ${l.section}`);
+    });
+    return Array.from(set).sort();
+  }, [sortedLearners]);
+
+  const sectionLearners = useMemo(
+    () =>
+      sectionFilter
+        ? sortedLearners.filter((l) => `${l.gradeLevel} - ${l.section}` === sectionFilter)
+        : [],
+    [sortedLearners, sectionFilter]
+  );
+
   const selectedLearner = sortedLearners.find((l) => l.id === selectedLearnerId) || null;
 
   const selectedHistory = useMemo(() => {
@@ -198,6 +217,7 @@ export default function SF10Generator({ goBack }) {
             background: #ffffff !important;
             color: #111827 !important;
           }
+          .sf10-print-area { break-inside: avoid; }
         }
       `}</style>
 
@@ -210,6 +230,27 @@ export default function SF10Generator({ goBack }) {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">SF10 Generator</h1>
       </div>
 
+      <div className="no-print inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+        <button
+          type="button"
+          onClick={() => setMode("single")}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            mode === "single" ? "bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          }`}
+        >
+          Single Learner
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("section")}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+            mode === "section" ? "bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          }`}
+        >
+          Section Batch
+        </button>
+      </div>
+
       {errorMessage && (
         <div className="no-print bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-xl p-4 text-sm">
           {errorMessage}
@@ -217,37 +258,84 @@ export default function SF10Generator({ goBack }) {
       )}
 
       <div className="no-print bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-          Learner
-        </label>
-        <select
-          value={selectedLearnerId}
-          onChange={(e) => setSelectedLearnerId(e.target.value)}
-          disabled={loading}
-          className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800"
-        >
-          <option value="">-- Select a learner --</option>
-          {sortedLearners.map((l) => (
-            <option key={l.id} value={l.id}>
-              {`${l.lastName || ""}, ${l.firstName || ""} — Grade ${l.gradeLevel || ""}, Section ${l.section || ""}`}
-            </option>
-          ))}
-        </select>
+        {mode === "single" && (
+          <>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              Learner
+            </label>
+            <select
+              value={selectedLearnerId}
+              onChange={(e) => setSelectedLearnerId(e.target.value)}
+              disabled={loading}
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800"
+            >
+              <option value="">-- Select a learner --</option>
+              {sortedLearners.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {`${l.lastName || ""}, ${l.firstName || ""} — Grade ${l.gradeLevel || ""}, Section ${l.section || ""}`}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
 
-        {selectedLearner && (
+        {mode === "section" && (
+          <>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              Grade & Section
+            </label>
+            <select
+              value={sectionFilter}
+              onChange={(e) => setSectionFilter(e.target.value)}
+              disabled={loading}
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800"
+            >
+              <option value="">-- Select grade & section --</option>
+              {sectionOptions.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </>
+        )}
+
+        {((mode === "single" && selectedLearner) || (mode === "section" && sectionLearners.length > 0)) && (
           <button
             type="button"
             onClick={() => window.print()}
             className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light"
           >
-            <Printer size={16} /> Print SF10
+            <Printer size={16} />
+            {mode === "single" ? "Print SF10" : `Print SF10s (${sectionLearners.length})`}
           </button>
         )}
       </div>
 
-      {selectedLearner && (
+      {mode === "single" && selectedLearner && (
         <SF10Document learner={selectedLearner} history={selectedHistory} shsConfig={config?.shs} />
       )}
+
+      {mode === "section" &&
+        sectionLearners.map((learner) => (
+          <div key={learner.id} style={{ breakAfter: "page" }}>
+            <SF10Document
+              learner={learner}
+              history={buildLearnerAcademicHistory(
+                { learnerId: learner.id, lrn: learner.lrn },
+                classRecords,
+                academicRecords,
+                getSubjectWeights
+              )}
+              shsConfig={config?.shs}
+            />
+          </div>
+        ))}
+
+      {mode === "section" && sectionFilter && sectionLearners.length === 0 && (
+        <p className="no-print text-sm text-gray-500 dark:text-gray-400 text-center py-8">
+          No learners found for {sectionFilter}.
+        </p>
+      )}
+
       {!loading && !selectedLearner && sortedLearners.length === 0 && (
         <p className="no-print text-sm text-gray-500 dark:text-gray-400 text-center py-8">
           No learners found.
