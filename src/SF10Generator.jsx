@@ -14,6 +14,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import { getSubjectWeights } from "./utils/subjectWeights.js";
+import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights.js";
 import { buildLearnerAcademicHistory } from "./utils/sf10Records.js";
 import { getSubjectRows } from "./utils/subjectRows.js";
 import { ArrowLeft, Printer } from "lucide-react";
@@ -29,6 +30,18 @@ function fullName(learner) {
 // in the current grade level's canonical order first) with one column per
 // school year, plus a general-average row and a promotion-status row.
 function SF10Document({ learner, history, shsConfig }) {
+  if (history.length === 0) {
+    return (
+      <div
+        className="sf10-doc"
+        style={{ fontFamily: "Arial, Helvetica, sans-serif", background: "#ffffff", color: "#111827", padding: "24px", textAlign: "center" }}
+      >
+        <div style={{ fontWeight: "bold", fontSize: "14px", marginBottom: "8px" }}>SCHOOL FORM 10 (SF10)</div>
+        <div style={{ fontSize: "12px" }}>No academic records found for {fullName(learner)}.</div>
+      </div>
+    );
+  }
+
   const canonicalRows = getSubjectRows(learner?.gradeLevel, learner, shsConfig).filter(
     (r) => !r.isHeader && r.key
   );
@@ -47,7 +60,7 @@ function SF10Document({ learner, history, shsConfig }) {
 
   return (
     <div
-      className="sf10-print-area"
+      className="sf10-doc"
       style={{ fontFamily: "Arial, Helvetica, sans-serif", background: "#ffffff", color: "#111827", padding: "24px" }}
     >
       <div style={{ textAlign: "center", marginBottom: "12px" }}>
@@ -79,9 +92,6 @@ function SF10Document({ learner, history, shsConfig }) {
                 {row.gradeLevel}
               </th>
             ))}
-            {history.length === 0 && (
-              <th style={{ border: "1px solid #000", padding: "4px" }}>No records</th>
-            )}
           </tr>
         </thead>
         <tbody>
@@ -128,6 +138,18 @@ function SF10Document({ learner, history, shsConfig }) {
 
 export default function SF10Generator({ goBack }) {
   const { config } = useSchoolConfig();
+
+  const getSHSAwareWeights = useMemo(
+    () =>
+      makeSubjectWeightsResolver(
+        [
+          ...(config?.shs?.subjects || []),
+          ...((config?.shs?.electiveClusters || []).flatMap((c) => c.subjects || [])),
+        ],
+        getSubjectWeights
+      ),
+    [config]
+  );
 
   const [learners, setLearners] = useState([]);
   const [classRecords, setClassRecords] = useState([]);
@@ -196,9 +218,9 @@ export default function SF10Generator({ goBack }) {
       { learnerId: selectedLearner.id, lrn: selectedLearner.lrn },
       classRecords,
       academicRecords,
-      getSubjectWeights
+      getSHSAwareWeights
     );
-  }, [selectedLearner, classRecords, academicRecords]);
+  }, [selectedLearner, classRecords, academicRecords, getSHSAwareWeights]);
 
   return (
     <div className="font-sans text-gray-900 dark:text-gray-100 space-y-6 max-w-6xl mx-auto pb-12 animate-slide-up">
@@ -217,7 +239,7 @@ export default function SF10Generator({ goBack }) {
             background: #ffffff !important;
             color: #111827 !important;
           }
-          .sf10-print-area { break-inside: avoid; }
+          .sf10-doc { break-inside: avoid; }
         }
       `}</style>
 
@@ -311,24 +333,29 @@ export default function SF10Generator({ goBack }) {
       </div>
 
       {mode === "single" && selectedLearner && (
-        <SF10Document learner={selectedLearner} history={selectedHistory} shsConfig={config?.shs} />
+        <div className="sf10-print-area">
+          <SF10Document learner={selectedLearner} history={selectedHistory} shsConfig={config?.shs} />
+        </div>
       )}
 
-      {mode === "section" &&
-        sectionLearners.map((learner) => (
-          <div key={learner.id} style={{ breakAfter: "page", position: "relative" }}>
-            <SF10Document
-              learner={learner}
-              history={buildLearnerAcademicHistory(
-                { learnerId: learner.id, lrn: learner.lrn },
-                classRecords,
-                academicRecords,
-                getSubjectWeights
-              )}
-              shsConfig={config?.shs}
-            />
-          </div>
-        ))}
+      {mode === "section" && sectionLearners.length > 0 && (
+        <div className="sf10-print-area">
+          {sectionLearners.map((learner) => (
+            <div key={learner.id} style={{ breakAfter: "page" }}>
+              <SF10Document
+                learner={learner}
+                history={buildLearnerAcademicHistory(
+                  { learnerId: learner.id, lrn: learner.lrn },
+                  classRecords,
+                  academicRecords,
+                  getSHSAwareWeights
+                )}
+                shsConfig={config?.shs}
+              />
+            </div>
+          ))}
+        </div>
+      )}
 
       {mode === "section" && sectionFilter && sectionLearners.length === 0 && (
         <p className="no-print text-sm text-gray-500 dark:text-gray-400 text-center py-8">
@@ -336,7 +363,7 @@ export default function SF10Generator({ goBack }) {
         </p>
       )}
 
-      {!loading && !selectedLearner && sortedLearners.length === 0 && (
+      {mode === "single" && !loading && !selectedLearner && sortedLearners.length === 0 && (
         <p className="no-print text-sm text-gray-500 dark:text-gray-400 text-center py-8">
           No learners found.
         </p>
