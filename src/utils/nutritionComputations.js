@@ -6,6 +6,11 @@ import {
   BMI_TABLE_MIN_MONTHS,
   BMI_TABLE_MAX_MONTHS,
 } from "./bmiForAgeTable.js";
+import {
+  HFA_FOR_AGE_TABLE,
+  HFA_TABLE_MIN_MONTHS,
+  HFA_TABLE_MAX_MONTHS,
+} from "./hfaForAgeTable.js";
 
 /**
  * Returns the whole number of months between two ISO date strings (YYYY-MM-DD), floored.
@@ -140,4 +145,79 @@ export function classifyNutritionalStatus(bmi, ageInMonths, sex) {
   if (b <= normalMax) return "Normal";
   if (b <= overweightMax) return "Overweight";
   return "Obese";
+}
+
+/**
+ * Normalizes a learner's sex value ("M"/"F"/"Male"/"Female", any case) to
+ * "M" | "F" | "" so grouping/classification code doesn't each reimplement
+ * this. Unrecognized values (including "Other" or missing) return "".
+ *
+ * @param {string} sex
+ * @returns {"M"|"F"|""}
+ */
+export function normalizeSex(sex) {
+  if (typeof sex !== "string") return "";
+  const s = sex.trim().toUpperCase();
+  if (s === "M" || s === "MALE") return "M";
+  if (s === "F" || s === "FEMALE") return "F";
+  return "";
+}
+
+/**
+ * Classifies Height-for-Age (stunting) status using the WHO 2007 growth
+ * reference, mirroring classifyNutritionalStatus()'s structure exactly.
+ *
+ * @param {number|string} heightM - height in meters
+ * @param {number} ageInMonths - learner age in months
+ * @param {string} sex - "M" or "F" (also accepts "Male"/"Female")
+ * @returns {string|null} "Severely Stunted" | "Stunted" | "Normal" | "Tall" | null
+ */
+export function classifyHeightForAge(heightM, ageInMonths, sex) {
+  if (heightM === null || heightM === undefined || ageInMonths === null || ageInMonths === undefined) {
+    return null;
+  }
+  const h = Number(heightM);
+  const age = Number(ageInMonths);
+
+  if (isNaN(h) || h <= 0 || isNaN(age)) {
+    return null;
+  }
+
+  if (age < HFA_TABLE_MIN_MONTHS || age > HFA_TABLE_MAX_MONTHS) {
+    return null;
+  }
+
+  const s = normalizeSex(sex);
+  if (!s) return null;
+
+  let targetRow = HFA_FOR_AGE_TABLE.find((row) => row[0] === age);
+  if (!targetRow) {
+    let minDiff = Infinity;
+    for (const row of HFA_FOR_AGE_TABLE) {
+      const diff = Math.abs(row[0] - age);
+      if (diff < minDiff) {
+        minDiff = diff;
+        targetRow = row;
+      }
+    }
+  }
+
+  if (!targetRow) return null;
+
+  let severelyStuntedMax;
+  let stuntedMax;
+  let normalMax;
+
+  if (s === "M") {
+    [, severelyStuntedMax, stuntedMax, normalMax] = targetRow;
+  } else {
+    severelyStuntedMax = targetRow[4];
+    stuntedMax = targetRow[5];
+    normalMax = targetRow[6];
+  }
+
+  if (h <= severelyStuntedMax) return "Severely Stunted";
+  if (h <= stuntedMax) return "Stunted";
+  if (h <= normalMax) return "Normal";
+  return "Tall";
 }
