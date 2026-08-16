@@ -182,7 +182,7 @@ function App() {
         break;
       case "nutritionConsolidator":
         pageTitle = "Nutrition Status Consolidator";
-        pageContent = <NutritionConsolidator user={user} goBack={() => setCurrentPage("dashboard")} />;
+        pageContent = <NutritionConsolidator goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "transfersLog":
         pageTitle = "Transfers Log";

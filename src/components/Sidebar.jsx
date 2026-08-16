@@ -41,6 +41,7 @@ const icons = {
   'View Learners': Users,
   'LARDO Tracking': AlertTriangle,
   'Nutrition Status': HeartPulse,
+  'Nutrition Consolidator': ClipboardList,
   Transfers: ArrowLeftRight,
   'Transfers Log': ArrowLeftRight,
   Certificates: GraduationCap,

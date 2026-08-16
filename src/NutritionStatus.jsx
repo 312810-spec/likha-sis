@@ -73,6 +73,21 @@ export default function NutritionStatus({ user, goBack }) {
   // Renders the printable SF8 block while printing (same pattern as SF1/SF2).
   const [showPrintArea, setShowPrintArea] = useState(false);
 
+  // Switching Baseline <-> Endline invalidates any grid already on screen:
+  // the loaded heights/weights belong to the *previous* period, and handleSave
+  // writes using the CURRENT period. Dropping the grid forces a fresh Load, so
+  // measurements can never be saved under a period they weren't loaded for.
+  function handlePeriodChange(nextPeriod) {
+    if (nextPeriod === period) return;
+    setPeriod(nextPeriod);
+    setGridData([]);
+    setIsLoaded(false);
+    setErrorMessage("");
+    setStatusMessage(
+      `Period switched to ${nextPeriod}. Click "Load Class" to load the ${nextPeriod} measurements.`
+    );
+  }
+
   // Load learners and matching nutrition records
   async function handleLoad(e) {
     if (e) e.preventDefault();
@@ -395,8 +410,8 @@ export default function NutritionStatus({ user, goBack }) {
             color: #000;
             background: #fff;
           }
+          @page { size: A4 landscape; margin: 8mm; }
         }
-        @page { size: A4 landscape; margin: 8mm; }
         .sf8-table { border-collapse: collapse; width: 100%; }
         .sf8-table th, .sf8-table td {
           border: 1px solid #000;
@@ -533,7 +548,7 @@ export default function NutritionStatus({ user, goBack }) {
           </label>
           <select
             value={period}
-            onChange={(e) => setPeriod(e.target.value)}
+            onChange={(e) => handlePeriodChange(e.target.value)}
             className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-colors"
           >
             <option value="Baseline">Baseline</option>
@@ -883,6 +898,12 @@ export default function NutritionStatus({ user, goBack }) {
                   <td className="sf8-hdr-value">{section}</td>
                   <td className="sf8-hdr-label">School Year:</td>
                   <td className="sf8-hdr-value">{schoolYear}</td>
+                </tr>
+                {/* Two SF8 printouts now exist per section per school year
+                    (Baseline and Endline) — this row is what tells them apart. */}
+                <tr>
+                  <td className="sf8-hdr-label">Period:</td>
+                  <td className="sf8-hdr-value" colSpan={7}>{period}</td>
                 </tr>
               </tbody>
             </table>

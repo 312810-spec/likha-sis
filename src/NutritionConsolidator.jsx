@@ -41,7 +41,15 @@ export default function NutritionConsolidator({ goBack }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [result, setResult] = useState({ sections: [], grandTotal: null });
+  // `result` carries a snapshot of the filters the report was actually
+  // generated with, so the printed header can never drift from the numbers
+  // when the user changes a dropdown after generating.
+  const [result, setResult] = useState({
+    sections: [],
+    grandTotal: null,
+    schoolYear: "",
+    period: "",
+  });
 
   async function handleGenerate(e) {
     if (e) e.preventDefault();
@@ -55,12 +63,19 @@ export default function NutritionConsolidator({ goBack }) {
       const learners = learnersSnap.docs.map((d) => d.data());
       const nutritionRecords = recordsSnap.docs.map((d) => d.data());
 
+      const generatedSchoolYear = schoolYear.trim();
+      const generatedPeriod = period;
+
       const consolidated = consolidateBySection(learners, nutritionRecords, {
-        schoolYear: schoolYear.trim(),
-        period,
+        schoolYear: generatedSchoolYear,
+        period: generatedPeriod,
         gradeLevelsOffered,
       });
-      setResult(consolidated);
+      setResult({
+        ...consolidated,
+        schoolYear: generatedSchoolYear,
+        period: generatedPeriod,
+      });
       setIsLoaded(true);
     } catch (err) {
       console.error("Failed to generate nutrition consolidator:", err);
@@ -118,8 +133,8 @@ export default function NutritionConsolidator({ goBack }) {
             color: #000;
             background: #fff;
           }
+          @page { size: A4 landscape; margin: 8mm; }
         }
-        @page { size: A4 landscape; margin: 8mm; }
         .nc-table { border-collapse: collapse; width: 100%; }
         .nc-table th, .nc-table td {
           border: 1px solid #000;
@@ -221,9 +236,9 @@ export default function NutritionConsolidator({ goBack }) {
             <div style={{ textAlign: "center", color: "#000" }}>
               <div style={{ fontWeight: "bold", fontSize: "12pt" }}>{config?.schoolName || "—"}</div>
               <div style={{ fontWeight: "bold", fontSize: "13pt", marginTop: "4px" }}>
-                NUTRITIONAL STATUS {period.toUpperCase()} REPORT OF STUDENTS
+                NUTRITIONAL STATUS {(result.period || "").toUpperCase()} REPORT OF STUDENTS
               </div>
-              <div style={{ fontSize: "9pt", marginTop: "2px" }}>S.Y. {schoolYear}</div>
+              <div style={{ fontSize: "9pt", marginTop: "2px" }}>S.Y. {result.schoolYear}</div>
             </div>
 
             <table className="nc-table" style={{ marginTop: "10px" }}>
@@ -262,7 +277,7 @@ export default function NutritionConsolidator({ goBack }) {
                 {result.sections.length === 0 ? (
                   <tr>
                     <td colSpan={7 + BMI_COLUMNS.length * 3 + HFA_COLUMNS.length * 3} style={{ padding: "12px" }}>
-                      No learners found for {schoolYear}.
+                      No learners found for {result.schoolYear}.
                     </td>
                   </tr>
                 ) : (
@@ -275,19 +290,21 @@ export default function NutritionConsolidator({ goBack }) {
             <table style={{ width: "100%", marginTop: "40px", fontSize: "9pt", color: "#000" }}>
               <tbody>
                 <tr>
-                  <td style={{ width: "50%", textAlign: "center" }}>
+                  {/* DepEd/PH government signature-block convention:
+                      label -> blank signing space (rule) -> printed name -> position. */}
+                  <td style={{ width: "50%", textAlign: "center", verticalAlign: "top" }}>
+                    <div style={{ fontWeight: "bold", textAlign: "left" }}>Prepared by:</div>
                     <div style={{ borderTop: "1px solid #000", marginTop: "40px", paddingTop: "4px" }}>
                       {config?.clinicTeacherName || "—"}
                     </div>
                     <div>School Clinic Teacher</div>
-                    <div style={{ marginTop: "8px", fontWeight: "bold" }}>Prepared by:</div>
                   </td>
-                  <td style={{ width: "50%", textAlign: "center" }}>
+                  <td style={{ width: "50%", textAlign: "center", verticalAlign: "top" }}>
+                    <div style={{ fontWeight: "bold", textAlign: "left" }}>Submitted by:</div>
                     <div style={{ borderTop: "1px solid #000", marginTop: "40px", paddingTop: "4px" }}>
                       {config?.principalName || "—"}
                     </div>
                     <div>{config?.principalPosition || "School Principal"}</div>
-                    <div style={{ marginTop: "8px", fontWeight: "bold" }}>Submitted by:</div>
                   </td>
                 </tr>
               </tbody>
