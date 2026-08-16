@@ -88,6 +88,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     { label: 'View Learners', page: 'viewLearners' },
     { label: 'LARDO Tracking', page: 'lardoTracking' },
     { label: 'Nutrition Status', page: 'nutritionStatus' },
+    { label: 'Nutrition Consolidator', page: 'nutritionConsolidator' },
     { label: 'Transfers', page: 'transfersLog' },
     { label: 'Certificates', page: 'certificates' },
     { label: 'ID Generator', page: 'idGenerator' },
