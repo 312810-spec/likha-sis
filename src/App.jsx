@@ -25,6 +25,7 @@ import SMEAEnrollment from "./SMEAEnrollment";
 import ImportCenter from "./pages/ImportCenter";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
+import SF10Generator from "./SF10Generator";
 import UserManagement from "./pages/UserManagement";
 import NutritionStatus from "./NutritionStatus";
 import TransfersLog from "./TransfersLog";
@@ -158,6 +159,10 @@ function App() {
       case "reportCard":
         pageTitle = "Report Card (SF9)";
         pageContent = <ReportCard user={user} goBack={() => setCurrentPage("dashboard")} />;
+        break;
+      case "sf10Generate":
+        pageTitle = "SF10 Generator";
+        pageContent = <SF10Generator goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "viewLearners":
         pageTitle = "View Learners";
