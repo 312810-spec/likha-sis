@@ -13,6 +13,12 @@ const schoolConfig = {
   divisionOffice: "[Division Office Name]",
   district: "[District]",
   municipalityCityProvince: "[Municipality/City], [Province]",
+  // Coordinates drive the local weather card and the "earthquake near your
+  // school" radius. Approximate values for Tingub, Mandaue City -- the school
+  // should refine these in School Settings. Weather simply doesn't render when
+  // both are absent, rather than guessing a location.
+  latitude: 10.3554,
+  longitude: 123.935,
   gradeLevelsOffered: [
     "Grade 4",
     "Grade 5",
