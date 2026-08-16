@@ -69,9 +69,10 @@ schedules/{schoolYear}
     updatedAt, updatedByEmail
 
 schedules/{schoolYear}/sections/{sectionId}
-    gradeLevel, name, shiftId, adviserRef
-    subjects[]          { subject, teacherRef, sessionsPerWeek }
-    cells               { [periodId]: { mon: {...}, tue: {...}, ... } }
+    gradeLevel, name, shiftId, adviserId
+    subjects[]          { subject, teacherId, sessionsPerWeek,
+                          expectedMinutesPerWeek? }
+    cells               { [periodId]: { mon: { subject, teacherId }, ... } }
 
 schedules/{schoolYear}/teachers/{teacherId}
     source              "user" | "adhoc"
