@@ -5,9 +5,9 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
-import { Mail, Lock, LogIn, AlertCircle } from "lucide-react";
+import { Mail, Lock, LogIn, AlertCircle, ShieldAlert } from "lucide-react";
 
-function Login() {
+function Login({ deactivated = false }) {
   // "State" is like a sticky note React watches — whenever it changes, the screen re-draws automatically.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -61,6 +61,13 @@ function Login() {
           <h1 className="text-xl font-bold text-primary tracking-tight dark:text-primary-light">LIKHA-SIS</h1>
           <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">Tingub National High School</p>
         </div>
+
+        {deactivated && (
+          <div className="mb-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm dark:bg-amber-950/30 dark:border-amber-900/50 dark:text-amber-400 animate-fade-in">
+            <ShieldAlert size={16} className="flex-shrink-0 mt-0.5" />
+            <span>Your account has been deactivated. Contact your ICT Coordinator if you believe this is a mistake.</span>
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>

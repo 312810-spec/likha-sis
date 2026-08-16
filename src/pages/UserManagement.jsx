@@ -1,9 +1,28 @@
-import { useState, useEffect } from "react";
-import { collection, getDocs, doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { UserPlus, Users, Plus, Trash2, CheckCircle2, AlertCircle, Shield } from "lucide-react";
-import { db } from "../firebase";
+import { useState, useEffect, Fragment } from "react";
+import { collection, getDocs, doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { sendPasswordResetEmail } from "firebase/auth";
+import {
+  UserPlus,
+  Users,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  Shield,
+  Pencil,
+  KeyRound,
+  Ban,
+  Power,
+  X,
+} from "lucide-react";
+import { db, auth } from "../firebase";
 import { createTeacherAccount } from "../firebaseAdmin";
 import { ROLE_OPTIONS, ROLE_LABELS } from "../utils/roles.js";
+import {
+  isAccountActive,
+  isEditableUserRow,
+  validateUserEditForm,
+} from "../utils/userAccountManagement.js";
 
 export default function UserManagement({ user }) {
   // Form State
@@ -27,6 +46,18 @@ export default function UserManagement({ user }) {
   // Users Directory List
   const [userList, setUserList] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+
+  // Edit User Panel State
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editFullName, setEditFullName] = useState("");
+  const [editRoles, setEditRoles] = useState([]);
+  const [editAssignments, setEditAssignments] = useState([]);
+  const [editAssignRole, setEditAssignRole] = useState("subjectTeacher");
+  const [editAssignSubject, setEditAssignSubject] = useState("");
+  const [editAssignGrade, setEditAssignGrade] = useState("");
+  const [editAssignSection, setEditAssignSection] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [rowActionUserId, setRowActionUserId] = useState(null);
 
   // Fetch users function for manual refresh (e.g. after user creation)
   async function refreshUsers() {
@@ -120,6 +151,136 @@ export default function UserManagement({ user }) {
   // Remove assignment from local list
   function handleRemoveAssignment(index) {
     setAssignments((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  // ---- Edit / Reset Password / Deactivate (User Directory row actions) ----
+
+  function handleStartEdit(targetUser) {
+    setSuccessMessage("");
+    setErrorMessage("");
+    setEditingUserId(targetUser.id);
+    setEditFullName(targetUser.fullName || "");
+    setEditRoles(Array.isArray(targetUser.roles) ? [...targetUser.roles] : []);
+    setEditAssignments(Array.isArray(targetUser.assignments) ? [...targetUser.assignments] : []);
+    setEditAssignSubject("");
+    setEditAssignGrade("");
+    setEditAssignSection("");
+  }
+
+  function handleCancelEdit() {
+    setEditingUserId(null);
+  }
+
+  function handleEditRoleToggle(roleId) {
+    setEditRoles((prev) => {
+      const next = prev.includes(roleId) ? prev.filter((r) => r !== roleId) : [...prev, roleId];
+      const hasSubject = next.includes("subjectTeacher");
+      const hasAdviser = next.includes("adviser");
+      if (hasSubject && !hasAdviser) {
+        setEditAssignRole("subjectTeacher");
+      } else if (hasAdviser && !hasSubject) {
+        setEditAssignRole("adviser");
+      }
+      return next;
+    });
+  }
+
+  function handleAddEditAssignment(e) {
+    e.preventDefault();
+    setErrorMessage("");
+
+    if (editAssignRole === "subjectTeacher" && !editAssignSubject.trim()) {
+      setErrorMessage("Please enter a subject for the subject teacher assignment.");
+      return;
+    }
+    if (!editAssignGrade.trim() || !editAssignSection.trim()) {
+      setErrorMessage("Please enter grade level and section for the assignment.");
+      return;
+    }
+
+    setEditAssignments((prev) => [
+      ...prev,
+      {
+        role: editAssignRole,
+        subject: editAssignRole === "subjectTeacher" ? editAssignSubject.trim() : "",
+        gradeLevel: editAssignGrade.trim(),
+        section: editAssignSection.trim(),
+      },
+    ]);
+    setEditAssignSubject("");
+    setEditAssignGrade("");
+    setEditAssignSection("");
+  }
+
+  function handleRemoveEditAssignment(index) {
+    setEditAssignments((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleSaveEdit(e) {
+    e.preventDefault();
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    const trimmedFullName = editFullName.trim();
+    const { valid, error } = validateUserEditForm({ fullName: trimmedFullName, roles: editRoles });
+    if (!valid) {
+      setErrorMessage(error);
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      await updateDoc(doc(db, "users", editingUserId), {
+        fullName: trimmedFullName,
+        roles: editRoles,
+        assignments: editAssignments,
+      });
+      setSuccessMessage("User account updated.");
+      setEditingUserId(null);
+      await refreshUsers();
+    } catch (err) {
+      console.error("Failed to update user:", err);
+      setErrorMessage(err.message || "Failed to update user. Please try again.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  }
+
+  async function handleResetPassword(targetUser) {
+    if (!targetUser.email) return;
+    setSuccessMessage("");
+    setErrorMessage("");
+    setRowActionUserId(targetUser.id);
+    try {
+      await sendPasswordResetEmail(auth, targetUser.email);
+      setSuccessMessage(`Password reset email sent to ${targetUser.email}.`);
+    } catch (err) {
+      console.error("Failed to send password reset email:", err);
+      setErrorMessage(err.message || "Failed to send password reset email. Please try again.");
+    } finally {
+      setRowActionUserId(null);
+    }
+  }
+
+  async function handleToggleActive(targetUser) {
+    const nextActive = !isAccountActive(targetUser);
+    setSuccessMessage("");
+    setErrorMessage("");
+    setRowActionUserId(targetUser.id);
+    try {
+      await updateDoc(doc(db, "users", targetUser.id), { active: nextActive });
+      setSuccessMessage(
+        nextActive
+          ? `${targetUser.fullName || targetUser.email} reactivated.`
+          : `${targetUser.fullName || targetUser.email} deactivated.`
+      );
+      await refreshUsers();
+    } catch (err) {
+      console.error("Failed to update account status:", err);
+      setErrorMessage(err.message || "Failed to update account status. Please try again.");
+    } finally {
+      setRowActionUserId(null);
+    }
   }
 
   // Form Submission
@@ -486,6 +647,8 @@ export default function UserManagement({ user }) {
                   <th className="py-3 px-4">Email</th>
                   <th className="py-3 px-4">Roles</th>
                   <th className="py-3 px-4">Assignments</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -495,37 +658,274 @@ export default function UserManagement({ user }) {
                     : "No roles assigned";
 
                   const assignmentList = Array.isArray(u.assignments) ? u.assignments : [];
+                  const active = isAccountActive(u);
+                  const canManage = isEditableUserRow(user?.uid, u.id);
+                  const isRowBusy = rowActionUserId === u.id;
+                  const isEditingThisRow = editingUserId === u.id;
+                  const showEditAssignments =
+                    editRoles.includes("adviser") || editRoles.includes("subjectTeacher");
 
                   return (
-                    <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                      <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">
-                        {u.fullName || "—"}
-                      </td>
-                      <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{u.email || "—"}</td>
-                      <td className="py-3 px-4">
-                        <span className="inline-block bg-primary/10 text-primary-dark dark:bg-primary-light/10 dark:text-primary-light text-xs px-2.5 py-1 rounded-md font-medium">
-                          {roleString}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-xs text-gray-600 dark:text-gray-300">
-                        {assignmentList.length === 0 ? (
-                          <span className="text-gray-400 dark:text-gray-500 italic">None</span>
-                        ) : (
-                          <div className="space-y-1">
-                            {assignmentList.map((a, i) => (
-                              <div key={i} className="truncate max-w-xs">
-                                <span className="font-semibold">
-                                  {ROLE_LABELS[a.role] || a.role}:
-                                </span>{" "}
-                                {a.subject ? `${a.subject} (` : ""}
-                                Grade {a.gradeLevel} - {a.section}
-                                {a.subject ? ")" : ""}
+                    <Fragment key={u.id}>
+                      <tr className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                        <td className="py-3 px-4 font-medium text-gray-900 dark:text-gray-100">
+                          {u.fullName || "—"}
+                        </td>
+                        <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{u.email || "—"}</td>
+                        <td className="py-3 px-4">
+                          <span className="inline-block bg-primary/10 text-primary-dark dark:bg-primary-light/10 dark:text-primary-light text-xs px-2.5 py-1 rounded-md font-medium">
+                            {roleString}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-xs text-gray-600 dark:text-gray-300">
+                          {assignmentList.length === 0 ? (
+                            <span className="text-gray-400 dark:text-gray-500 italic">None</span>
+                          ) : (
+                            <div className="space-y-1">
+                              {assignmentList.map((a, i) => (
+                                <div key={i} className="truncate max-w-xs">
+                                  <span className="font-semibold">
+                                    {ROLE_LABELS[a.role] || a.role}:
+                                  </span>{" "}
+                                  {a.subject ? `${a.subject} (` : ""}
+                                  Grade {a.gradeLevel} - {a.section}
+                                  {a.subject ? ")" : ""}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`inline-block text-xs px-2.5 py-1 rounded-md font-medium ${
+                              active
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
+                                : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                            }`}
+                          >
+                            {active ? "Active" : "Deactivated"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          {canManage ? (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => (isEditingThisRow ? handleCancelEdit() : handleStartEdit(u))}
+                                className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors dark:text-gray-400 dark:hover:text-primary-light"
+                                title={isEditingThisRow ? "Cancel edit" : "Edit user"}
+                              >
+                                {isEditingThisRow ? <X size={15} /> : <Pencil size={15} />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleResetPassword(u)}
+                                disabled={isRowBusy}
+                                className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors disabled:opacity-50 dark:text-gray-400 dark:hover:text-primary-light"
+                                title="Send password reset email"
+                              >
+                                <KeyRound size={15} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleActive(u)}
+                                disabled={isRowBusy}
+                                className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${
+                                  active
+                                    ? "text-gray-500 hover:text-rose-600 hover:bg-rose-50 dark:text-gray-400 dark:hover:text-rose-400"
+                                    : "text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 dark:text-gray-400 dark:hover:text-emerald-400"
+                                }`}
+                                title={active ? "Deactivate account" : "Reactivate account"}
+                              >
+                                {active ? <Ban size={15} /> : <Power size={15} />}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400 dark:text-gray-500 italic">This is you</span>
+                          )}
+                        </td>
+                      </tr>
+
+                      {isEditingThisRow && (
+                        <tr className="bg-gray-50 dark:bg-gray-800/40">
+                          <td colSpan={6} className="p-4">
+                            <form onSubmit={handleSaveEdit} className="space-y-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                  <label htmlFor={`editFullName-${u.id}`} className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                    Full Name
+                                  </label>
+                                  <input
+                                    id={`editFullName-${u.id}`}
+                                    type="text"
+                                    value={editFullName}
+                                    onChange={(e) => setEditFullName(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                  />
+                                </div>
+                                <div>
+                                  <span className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                    Email
+                                  </span>
+                                  <input
+                                    type="email"
+                                    value={u.email || ""}
+                                    disabled
+                                    title="Login email can only be changed by the account owner."
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                                  />
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                    </tr>
+
+                              <div>
+                                <span className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">
+                                  Roles
+                                </span>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                                  {ROLE_OPTIONS.map((role) => {
+                                    const isChecked = editRoles.includes(role.id);
+                                    return (
+                                      <label
+                                        key={role.id}
+                                        className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                                          isChecked
+                                            ? "bg-primary/10 border-primary text-primary-dark dark:bg-primary-light/10 dark:border-primary-light dark:text-primary-light"
+                                            : "bg-white border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
+                                        }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          onChange={() => handleEditRoleToggle(role.id)}
+                                          className="rounded border-gray-300 dark:border-gray-600 text-primary focus:ring-primary h-4 w-4"
+                                        />
+                                        <span>{role.label}</span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              {showEditAssignments && (
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+                                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+                                    <div>
+                                      <label htmlFor={`editAssignRole-${u.id}`} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Assignment Role</label>
+                                      <select
+                                        id={`editAssignRole-${u.id}`}
+                                        value={editAssignRole}
+                                        onChange={(e) => setEditAssignRole(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                      >
+                                        {editRoles.includes("subjectTeacher") && (
+                                          <option value="subjectTeacher">Subject Teacher</option>
+                                        )}
+                                        {editRoles.includes("adviser") && (
+                                          <option value="adviser">Adviser</option>
+                                        )}
+                                      </select>
+                                    </div>
+                                    <div>
+                                      <label htmlFor={`editAssignSubject-${u.id}`} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Subject</label>
+                                      <input
+                                        id={`editAssignSubject-${u.id}`}
+                                        type="text"
+                                        value={editAssignSubject}
+                                        onChange={(e) => setEditAssignSubject(e.target.value)}
+                                        disabled={editAssignRole !== "subjectTeacher"}
+                                        placeholder={editAssignRole === "subjectTeacher" ? "e.g. Filipino" : "N/A (Adviser)"}
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:disabled:bg-gray-800"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label htmlFor={`editAssignGrade-${u.id}`} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Grade Level</label>
+                                      <input
+                                        id={`editAssignGrade-${u.id}`}
+                                        type="text"
+                                        value={editAssignGrade}
+                                        onChange={(e) => setEditAssignGrade(e.target.value)}
+                                        placeholder="e.g. 10"
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label htmlFor={`editAssignSection-${u.id}`} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Section</label>
+                                      <div className="flex gap-2">
+                                        <input
+                                          id={`editAssignSection-${u.id}`}
+                                          type="text"
+                                          value={editAssignSection}
+                                          onChange={(e) => setEditAssignSection(e.target.value)}
+                                          placeholder="e.g. Kindness"
+                                          className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={handleAddEditAssignment}
+                                          className="bg-primary text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-primary-light active:scale-[0.98] transition-all flex items-center gap-1 flex-shrink-0"
+                                        >
+                                          <Plus size={16} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {editAssignments.length > 0 && (
+                                    <div className="space-y-2">
+                                      {editAssignments.map((item, idx) => (
+                                        <div
+                                          key={idx}
+                                          className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-lg text-sm"
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-primary dark:text-primary-light">
+                                              {ROLE_LABELS[item.role] || item.role}:
+                                            </span>
+                                            {item.role === "subjectTeacher" && item.subject && (
+                                              <span className="bg-primary/10 text-primary-dark dark:bg-primary-light/10 dark:text-primary-light px-2 py-0.5 rounded text-xs font-medium">
+                                                {item.subject}
+                                              </span>
+                                            )}
+                                            <span className="text-gray-700 dark:text-gray-300">
+                                              Grade {item.gradeLevel} — Section {item.section}
+                                            </span>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveEditAssignment(idx)}
+                                            className="text-gray-400 hover:text-rose-600 dark:text-gray-500 dark:hover:text-rose-400 transition-colors p-1"
+                                            title="Remove assignment"
+                                          >
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={handleCancelEdit}
+                                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  disabled={isSavingEdit}
+                                  className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isSavingEdit ? "Saving..." : "Save Changes"}
+                                </button>
+                              </div>
+                            </form>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </tbody>

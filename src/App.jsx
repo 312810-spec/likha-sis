@@ -3,8 +3,9 @@
 // with Sidebar navigation while preserving all existing functionality.
 
 import { useState, useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "./firebase";
+import { isAccountActive } from "./utils/userAccountManagement.js";
 import { collection, getDocs, query, limit } from "firebase/firestore";
 import Login from "./Login";
 import SetupWizard from "./SetupWizard";
@@ -41,6 +42,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
 
   const { profile, loading: profileLoading } = useUserProfile(user);
+  const [showDeactivatedNotice, setShowDeactivatedNotice] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -49,6 +51,23 @@ function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Deactivation gate: this client-only build can't disable a Firebase Auth
+  // account, so ICT Coordinator "deactivate" instead sets `active: false` on
+  // the Firestore user doc. Enforce it here by force-signing the user out
+  // the moment their profile loads with that flag set.
+  useEffect(() => {
+    async function enforceActiveAccount() {
+      if (!user || !profile) return;
+      if (isAccountActive(profile)) {
+        setShowDeactivatedNotice(false);
+        return;
+      }
+      setShowDeactivatedNotice(true);
+      await signOut(auth);
+    }
+    enforceActiveAccount();
+  }, [user, profile]);
 
   useEffect(() => {
     async function checkUsers() {
@@ -77,7 +96,7 @@ function App() {
   }
 
   if (!user) {
-    return <Login />;
+    return <Login deactivated={showDeactivatedNotice} />;
   }
 
   // Determine page title and content
