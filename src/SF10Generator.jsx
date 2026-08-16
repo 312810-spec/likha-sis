@@ -16,7 +16,7 @@ import useSchoolConfig from "./hooks/useSchoolConfig";
 import { getSubjectWeights } from "./utils/subjectWeights.js";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights.js";
 import { buildLearnerAcademicHistory } from "./utils/sf10Records.js";
-import { getSubjectRows } from "./utils/subjectRows.js";
+import { getSubjectRows, PRE_MATATAG_MAPEH_ROWS } from "./utils/subjectRows.js";
 import { ArrowLeft, Printer } from "lucide-react";
 
 function fullName(learner) {
@@ -56,7 +56,16 @@ function SF10Document({ learner, history, shsConfig }) {
     });
   });
   const subjectKeys = [...canonicalRows.map((r) => r.key), ...extraKeys];
-  const subjectLabels = new Map(canonicalRows.map((r) => [r.key, r.label]));
+  // Pre-MATATAG MAPEH component keys (MUSIC, ARTS, PHYSICAL EDUCATION,
+  // HEALTH) never appear in canonicalRows (that's always the learner's
+  // CURRENT grade's rows, always the current 2-component MAPEH structure),
+  // so they'd otherwise fall through extraKeys with no nice label. Seeding
+  // labels for them here doesn't add them as rows -- a row only appears if
+  // some history entry's subjects actually contains that key.
+  const subjectLabels = new Map([
+    ...PRE_MATATAG_MAPEH_ROWS.map((r) => [r.key, r.label]),
+    ...canonicalRows.map((r) => [r.key, r.label]),
+  ]);
 
   return (
     <div
