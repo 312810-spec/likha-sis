@@ -18,6 +18,7 @@ export const PAGE_ACCESS = {
   importCenter: ["ictCoordinator"],
   sf1Import: ["ictCoordinator"],
   sf10Import: ["ictCoordinator"],
+  sf10Generate: ["adviser", "principal", "ictCoordinator"],
   userManagement: ["ictCoordinator", "principal"],
   brandingSettings: ["ictCoordinator", "principal"],
   schoolSettings: ["ictCoordinator", "principal"],
