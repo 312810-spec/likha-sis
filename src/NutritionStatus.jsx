@@ -17,6 +17,8 @@ import {
   getAgeInMonths,
   computeBMI,
   classifyNutritionalStatus,
+  classifyHeightForAge,
+  normalizeSex,
 } from "./utils/nutritionComputations";
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import {
@@ -29,16 +31,6 @@ import {
   Users,
   Printer,
 } from "lucide-react";
-
-// Normalizes a learner's sex value ("M"/"F"/"Male"/"Female") to "M" | "F" | "" so
-// the SF8 printout can group rows by Male / Female reliably regardless of how the
-// learner doc stores the field.
-function normalizeSex(sex) {
-  const s = String(sex || "").trim().toUpperCase();
-  if (s === "M" || s === "MALE") return "M";
-  if (s === "F" || s === "FEMALE") return "F";
-  return "";
-}
 
 // Converts an age in months to the "X yrs Y mos" convention used on the SF8 report.
 function formatAgeLabel(ageInMonths) {
@@ -64,6 +56,10 @@ export default function NutritionStatus({ user, goBack }) {
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
+  // setPeriod is wired to the period selector UI added by Task 5 (not part of
+  // this data-layer task's scope).
+  // eslint-disable-next-line no-unused-vars
+  const [period, setPeriod] = useState("Baseline");
   const { sections: availableSections, loading } = useAvailableSections(gradeLevel, schoolYear);
   const [measurementDate, setMeasurementDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -116,7 +112,7 @@ export default function NutritionStatus({ user, goBack }) {
       // 2. Fetch existing nutritionRecords for each learner
       const rows = await Promise.all(
         filteredLearners.map(async (learner) => {
-          const docId = `${learner.id}_${schoolYear.trim()}`;
+          const docId = `${learner.id}_${schoolYear.trim()}_${period}`;
           let heightM = "";
           let weightKg = "";
           let recordMeasDate = measurementDate;
@@ -194,8 +190,9 @@ export default function NutritionStatus({ user, goBack }) {
         const ageInMonths = getAgeInMonths(learner.birthDate, measurementDate);
         const bmi = computeBMI(w, h);
         const nutritionalStatus = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
+        const heightForAgeStatus = classifyHeightForAge(h, ageInMonths, learner.sex);
 
-        const docId = `${learner.id}_${schoolYear.trim()}`;
+        const docId = `${learner.id}_${schoolYear.trim()}_${period}`;
         const fullName = `${learner.lastName || ""}, ${learner.firstName || ""}${
           learner.middleName ? " " + learner.middleName : ""
         }`.trim();
@@ -209,12 +206,14 @@ export default function NutritionStatus({ user, goBack }) {
           gradeLevel: gradeLevel.trim(),
           section: section.trim(),
           schoolYear: schoolYear.trim(),
+          period,
           heightM: h,
           weightKg: w,
           measurementDate: measurementDate.trim(),
           bmi,
           ageInMonths,
           nutritionalStatus,
+          heightForAgeStatus,
           measuredByEmail: user?.email || "",
           updatedAt: serverTimestamp(),
         };
