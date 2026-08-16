@@ -2,7 +2,10 @@ import { describe, it, expect } from "vitest";
 import {
   canAccessPage,
   canEditLearners,
+  canPostAnnouncements,
+  canManageSchoolEvents,
   PAGE_ACCESS,
+  ANNOUNCEMENT_AUTHOR_ROLES,
   VIEW_LEARNERS_BLOCKED_ROLES,
   VIEW_LEARNERS_EDIT_ROLES,
 } from "../pageAccess.js";
@@ -96,10 +99,57 @@ describe("pageAccess", () => {
     });
   });
 
+  describe("announcements and school calendar", () => {
+    it("lets every role read announcements and the calendar", () => {
+      // A class suspension is useless if the teachers it applies to can't see
+      // it, so viewing is deliberately open to every assigned role.
+      ["adviser", "subjectTeacher", "stakeholder", "guidance", "masterTeacher"].forEach((role) => {
+        expect(canAccessPage("announcements", [role])).toBe(true);
+        expect(canAccessPage("schoolCalendar", [role])).toBe(true);
+      });
+    });
+
+    it("still blocks a signed-in account with no assigned role", () => {
+      expect(canAccessPage("announcements", [])).toBe(false);
+      expect(canAccessPage("schoolCalendar", null)).toBe(false);
+    });
+
+    describe("canPostAnnouncements", () => {
+      it("allows only the principal and ICT coordinator", () => {
+        expect(canPostAnnouncements(["principal"])).toBe(true);
+        expect(canPostAnnouncements(["ictCoordinator"])).toBe(true);
+        expect(canPostAnnouncements(["adviser", "ictCoordinator"])).toBe(true);
+      });
+
+      it("rejects every other role, including senior ones", () => {
+        ["adviser", "subjectTeacher", "masterTeacher", "smeaCoordinator", "guidance", "stakeholder"].forEach(
+          (role) => {
+            expect(canPostAnnouncements([role]), `${role} must not post`).toBe(false);
+          }
+        );
+      });
+
+      it("rejects empty, null, and undefined role lists", () => {
+        expect(canPostAnnouncements([])).toBe(false);
+        expect(canPostAnnouncements(null)).toBe(false);
+        expect(canPostAnnouncements(undefined)).toBe(false);
+      });
+    });
+
+    it("gates school event management the same way as announcements", () => {
+      expect(canManageSchoolEvents(["principal"])).toBe(true);
+      expect(canManageSchoolEvents(["adviser"])).toBe(false);
+      expect(canManageSchoolEvents([])).toBe(false);
+    });
+  });
+
   describe("exported constants", () => {
     it("exports expected PAGE_ACCESS object and array constants", () => {
       expect(PAGE_ACCESS.dashboard).toBe("all");
       expect(PAGE_ACCESS.sf1).toEqual(["adviser", "ictCoordinator", "principal"]);
+      expect(PAGE_ACCESS.announcements).toBe("all");
+      expect(PAGE_ACCESS.schoolCalendar).toBe("all");
+      expect(ANNOUNCEMENT_AUTHOR_ROLES).toEqual(["principal", "ictCoordinator"]);
       expect(VIEW_LEARNERS_BLOCKED_ROLES).toEqual(["stakeholder"]);
       expect(VIEW_LEARNERS_EDIT_ROLES).toEqual(["adviser"]);
     });

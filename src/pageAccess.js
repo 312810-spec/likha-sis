@@ -22,7 +22,13 @@ export const PAGE_ACCESS = {
   userManagement: ["ictCoordinator", "principal"],
   brandingSettings: ["ictCoordinator", "principal"],
   schoolSettings: ["ictCoordinator", "principal"],
-  accountSettings: "all"
+  accountSettings: "all",
+  // Both pages are readable by every role — a teacher must be able to see a
+  // class suspension or an upcoming holiday. Authoring is gated separately by
+  // canPostAnnouncements / canManageSchoolEvents below, the same way LARDO
+  // Tracking is viewable more widely than its discipline tab is.
+  announcements: "all",
+  schoolCalendar: "all"
 };
 
 export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder"];
@@ -38,6 +44,26 @@ export function canAccessDisciplineRecords(userRoles) {
     return false;
   }
   return DISCIPLINE_STAFF_ROLES.some((role) => userRoles.includes(role));
+}
+
+// School-wide publishing rights. The Principal owns official school
+// communication; the ICT Coordinator is the one who actually operates the
+// system and transcribes DepEd issuances into it. Nobody else can post, so a
+// class suspension or a DepEd Order carries the weight of those two offices —
+// mirrored in firestore.rules, since a client-side check alone is not a control.
+export const ANNOUNCEMENT_AUTHOR_ROLES = ["principal", "ictCoordinator"];
+
+export function canPostAnnouncements(userRoles) {
+  if (!Array.isArray(userRoles) || userRoles.length === 0) {
+    return false;
+  }
+  return ANNOUNCEMENT_AUTHOR_ROLES.some((role) => userRoles.includes(role));
+}
+
+// School calendar events (exam weeks, Brigada Eskwela, card distribution) are
+// scheduled by the same two offices that post announcements.
+export function canManageSchoolEvents(userRoles) {
+  return canPostAnnouncements(userRoles);
 }
 
 export function canAccessPage(pageKey, userRoles) {
