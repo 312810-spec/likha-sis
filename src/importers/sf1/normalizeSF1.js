@@ -7,6 +7,7 @@ import {
   normalizeSex,
   normalizeDate,
   normalizeGrade,
+  splitFullName,
 } from "../shared/normalization.js";
 
 /** The canonical learner field shape the rest of the app understands. */
@@ -58,6 +59,18 @@ export function normalizeLearner(raw) {
   learner.lastName = text(raw.lastName);
   learner.firstName = text(raw.firstName);
   learner.middleName = text(raw.middleName);
+
+  // Forms that merge the name into a single "NAME (Last Name, First Name,
+  // Middle Name)" column deliver it packed as "Dela Cruz, Juan Santos".
+  if (!learner.lastName) {
+    const parts = splitFullName(raw.fullName);
+    if (parts) {
+      learner.lastName = parts.lastName;
+      learner.firstName = learner.firstName || parts.firstName;
+      learner.middleName = learner.middleName || parts.middleName;
+    }
+  }
+
   learner.nameExtension = text(raw.nameExtension);
   learner.sex = normalizeSex(raw.sex);
   learner.birthDate = normalizeDate(raw.birthDate);

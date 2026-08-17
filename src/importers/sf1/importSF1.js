@@ -67,7 +67,9 @@ function selectBestSheet(workbook) {
     } catch {
       continue;
     }
-    if (!structure.headerRow) continue;
+    // headerRow is a 0-based ROW INDEX: a truthiness check would discard a sheet
+    // whose learner header happens to be the very first row.
+    if (structure.headerRow === null || structure.headerRow === undefined) continue;
     const { rawLearners, droppedRows } = parseSF1(structure);
     const { learners } = normalizeSF1(rawLearners);
     const { records } = validateSF1(learners);

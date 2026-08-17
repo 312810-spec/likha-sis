@@ -16,11 +16,20 @@ const HEADER_ALIASES = {
   "learningreference": "lrn",
   "lrnnumber": "lrn",
   "lrnno": "lrn",
-  // The official header reads "Learner's Reference Number (LRN)" — the "(LRN)"
-  // suffix (stripped to "lrn") is appended to the key, so cover those variants.
+  // Kept for workbooks whose "(LRN)" suffix survived an older normalization
+  // pass; normalizeHeaderKey now strips parenthetical qualifiers up front.
   "learnersreferencenumberlrn": "lrn",
   "learnerreferencenumberlrn": "lrn",
   "schoolid": "schoolId",
+
+  // The official SF1 merges the three name columns under a single
+  // "NAME (Last Name, First Name, Middle Name)" heading. When a workbook has no
+  // sub-header row to split them, that column arrives as one packed string, so
+  // it is mapped to its own field and exploded during normalization.
+  "name": "fullName",
+  "learnersname": "fullName",
+  "nameoflearner": "fullName",
+  "fullname": "fullName",
 
   "lastname": "lastName",
   "familyname": "lastName",
@@ -74,10 +83,35 @@ const HEADER_ALIASES = {
   "remark": "remarks",
 };
 
+/**
+ * Reduce a header cell to a comparable key: lower-cased, punctuation-free, and
+ * with parenthetical qualifiers removed.
+ *
+ * DepEd forms routinely qualify a column label in parentheses — "Sex (M/F)",
+ * "Birth Date (mm/dd/yyyy)", "Age as of October 31", "IP (Ethnic Group)". Left
+ * in place those qualifiers become part of the key ("sexmf", "birthdatemmddyyyy")
+ * and no alias ever matches, which is why the official forms previously parsed
+ * to nothing. Stripping them first lets one alias cover every qualified spelling.
+ */
 export function normalizeHeaderKey(text) {
   if (!text) return null;
-  return String(text).toLowerCase().replace(/[^a-z0-9]/g, "");
+  return String(text)
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ") // drop "(m/f)", "(mm/dd/yyyy)", "(lrn)", …
+    .replace(/[^a-z0-9]/g, "");
 }
+
+// Header labels whose canonical field can be recognized from a prefix when no
+// exact alias matches. Ordered most-specific first.
+const HEADER_PATTERNS = [
+  [/^age/, "age"],
+  [/^sex$|^sex[a-z]*$/, "sex"],
+  [/^birth(date|day)/, "birthDate"],
+  [/^dateofbirth/, "birthDate"],
+  [/^lrn/, "lrn"],
+  [/^learners?referencenumber/, "lrn"],
+];
+
 /**
  * Map a raw header cell value to a canonical field key, or null if unknown.
  */
@@ -85,7 +119,34 @@ export function normalizeHeader(headerCell) {
   if (headerCell === null || headerCell === undefined) return null;
   const key = normalizeHeaderKey(headerCell);
   if (!key) return null;
-  return HEADER_ALIASES[key] || null;
+  if (HEADER_ALIASES[key]) return HEADER_ALIASES[key];
+  for (const [pattern, field] of HEADER_PATTERNS) {
+    if (pattern.test(key)) return field;
+  }
+  return null;
+}
+
+/**
+ * Split a packed "Last Name, First Name Middle Name" string into its parts.
+ * Returns null when the value does not look like a packed name.
+ */
+export function splitFullName(value) {
+  if (value === null || value === undefined) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+
+  const commaIndex = s.indexOf(",");
+  if (commaIndex === -1) return null;
+
+  const lastName = s.slice(0, commaIndex).trim();
+  const rest = s.slice(commaIndex + 1).trim().split(/\s+/).filter(Boolean);
+  if (!lastName || rest.length === 0) return null;
+
+  return {
+    lastName,
+    firstName: rest[0],
+    middleName: rest.slice(1).join(" "),
+  };
 }
 
 // ---------------------------------------------------------------------------

@@ -3,31 +3,22 @@
 // Normalization/validation happen in separate layers.
 
 import { cellText } from "../shared/excelReader.js";
-import { normText } from "../shared/documentDetector.js";
-
-// A cell that is really just the field's LABEL (e.g. "LRN", "Last Name",
-// "Birth Date") rather than the learner's value. In the official SF10 form the
-// identity block is written as label/value pairs, so when we hit a label cell we
-// read the value from the NEXT column.
-function isLabelCell(cell) {
-  if (cell === null || cell === undefined) return false;
-  const key = normText(cell);
-  return (
-    /^(LRN|LEARNER|LEARNERS|LAST|FIRST|MIDDLE|NAME|SEX|GENDER|BIRTH|BIRTHDATE|REFERENCE|FAMILY|GIVEN|EXTENSION|EXT)/.test(
-      key
-    ) || true // mirror normalizeHeader below
-  );
-}
+import { splitFullName } from "../shared/normalization.js";
 
 /**
- * Extract learner identity from the identity row + surrounding context.
- * The official SF10 stores identity as label/value pairs, so label cells are
- * read as "value in the next column".
+ * Extract learner identity from the detected identity block plus school context.
+ *
+ * The official SF10 is one learner per form and writes identity as label/value
+ * pairs spread over SEVERAL rows ("LAST NAME: … FIRST NAME: …" on one row,
+ * "LRN: … Date of Birth: … Sex: …" on the next), so reading only the row that
+ * happens to carry the LRN left the name, birth date and sex empty. Those pairs
+ * are collected by detectSF10Structure across the whole identity block.
+ *
  * @param {Object} structure - output of detectSF10Structure()
  * @returns {Object} raw identity object
  */
 export function extractSF10Identity(structure) {
-  const { columnMap, headerRow, context } = structure;
+  const { context, identity } = structure;
   const raw = {
     lrn: null,
     lastName: null,
@@ -36,34 +27,19 @@ export function extractSF10Identity(structure) {
     nameExtension: null,
     sex: null,
     birthDate: null,
-    ...context, // school context may carry schoolId/schoolName/grade/section/etc.
+    ...context, // school context carries schoolId/schoolName/grade/section/etc.
+    ...(identity || {}),
   };
 
-  if (Array.isArray(headerRow)) {
-    Object.entries(columnMap).forEach(([colStr, field]) => {
-      const col = parseInt(colStr, 10);
-      const cell = headerRow[col];
-      if (cell === undefined || cell === null) return;
-      // If this cell is the field's label, the value lives in the next column.
-      const value = isLabelCell(cell) ? headerRow[col + 1] : cell;
-      if (value !== undefined && value !== null) raw[field] = value;
-    });
-  }
-
-  // A single "NAME" header usually packs "Last Name, First Name Middle" — explode
-  // it into separate parts as a fallback when individual name columns are absent.
-  for (const colStr of Object.keys(columnMap)) {
-    const field = columnMap[colStr];
-    if (field === "lastName" && !raw.firstName && raw.lastName) {
-      const parts = String(raw.lastName).split(",");
-      if (parts.length >= 2) {
-        raw.lastName = parts[0].trim();
-        const rest = parts.slice(1).join(",").trim().split(/\s+/);
-        raw.firstName = rest[0] || "";
-        raw.middleName = rest.slice(1).join(" ") || "";
-      }
+  // A single "NAME" field packs "Last Name, First Name Middle Name" — explode it
+  // when the form has no separate name fields.
+  if (!raw.lastName && raw.fullName) {
+    const parts = splitFullName(raw.fullName);
+    if (parts) {
+      raw.lastName = parts.lastName;
+      raw.firstName = raw.firstName || parts.firstName;
+      raw.middleName = raw.middleName || parts.middleName;
     }
-    void colStr;
   }
 
   return raw;
@@ -126,6 +102,10 @@ export function extractLearningAreas(structure, rows) {
 
     const name = values.find((v) => v !== "");
     if (!name) continue;
+    // The grade table has a sub-header row numbering the quarters ("1 2 3 4").
+    // A learning area is never named by a bare number, so skip those rows —
+    // otherwise the quarter labels are imported as a subject called "1".
+    if (/^\d+([.,]\d+)?$/.test(name)) continue;
     const grades = values
       .filter((v) => v !== "" && NUMERIC_RE.test(v))
       .map((v) => parseFloat(v.replace(",", ".")));
