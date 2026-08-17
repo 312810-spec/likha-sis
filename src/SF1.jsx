@@ -8,6 +8,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
+import SF1PrintView from "./components/SF1PrintView";
 
 // Calculates age from a birth date string (YYYY-MM-DD), as of today.
 // Note: official DepEd age is "as of 1st Friday of June" — we're using today's date
@@ -31,10 +32,14 @@ function createBlankLearner() {
     lastName: "",
     firstName: "",
     middleName: "",
+    nameExtension: "",
     sex: "",
     birthDate: "",
     learningModality: "Face to Face",
     // Extended fields for learner details (expandable section)
+    motherTongue: "",
+    ipEthnicGroup: "",
+    religion: "",
     houseStreetSitio: "",
     barangay: "",
     municipalityCity: "",
@@ -43,6 +48,7 @@ function createBlankLearner() {
     mothersMaidenName: "",
     guardianName: "",
     guardianRelationship: "",
+    contactNumber: "",
     remarks: "",
   };
 }
@@ -72,10 +78,6 @@ function SF1({ user, goBack }) {
 
   // Whether at least one learner has a non-empty lastName (controls Print button visibility).
   const hasAnyName = learners.some((l) => l.lastName.trim() !== "");
-
-  // Build grouped / ordered arrays for the print roster.
-  const maleLearners = learners.filter((l) => l.sex === "M");
-  const femaleLearners = learners.filter((l) => l.sex === "F");
 
   // Updates one field in one row, without touching the others.
   function updateLearner(index, field, value) {
@@ -163,13 +165,25 @@ function SF1({ user, goBack }) {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-slide-up">
-      {/* Print CSS — screen chrome hides, the printable register stays plain. */}
+      {/* Print CSS — every piece of LIKHA-SIS screen chrome is hidden so only the
+          SF1 replica reaches the page. The sheet's own styling lives in
+          components/SF1PrintView.jsx. */}
       <style>{`
         @media print {
-          .no-print { display: none !important; }
-          body * { visibility: hidden; }
-          .sf1-print-area, .sf1-print-area * { visibility: visible; }
-          .sf1-print-area {
+          .no-print,
+          nav,
+          .sidebar,
+          button,
+          input:not([type="hidden"]),
+          select,
+          textarea { display: none !important; }
+
+          /* Anything outside the register is hidden without collapsing the
+             layout the print view is positioned against. */
+          body * { visibility: hidden !important; }
+          .sf1-print-view, .sf1-print-view * { visibility: visible !important; }
+
+          .sf1-print-view {
             position: absolute;
             left: 0;
             top: 0;
@@ -177,22 +191,8 @@ function SF1({ user, goBack }) {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            color: #000;
-            background: #fff;
           }
         }
-        .sf1-table { border-collapse: collapse; width: 100%; }
-        .sf1-table th, .sf1-table td {
-          border: 1px solid #000;
-          padding: 2px 3px;
-          font-size: 7.5pt;
-          text-align: center;
-          line-height: 1.2;
-          color: #000;
-          background: #fff;
-        }
-        .sf1-table th { background: #e8e8e8; font-weight: bold; }
-        .sf1-cell-left { text-align: left !important; }
       `}</style>
 
       {/* Header Bar */}
@@ -442,6 +442,45 @@ function SF1({ user, goBack }) {
                       <td colSpan={9} className="p-4 border-t border-gray-200 dark:border-gray-700">
                         <div className="flex flex-wrap gap-4">
 
+                          {/* Profile section — the SF1 demographic columns. */}
+                          <fieldset className="flex-1 min-w-[260px] border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg p-3 shadow-2xs">
+                            <legend className="text-xs font-bold text-gray-800 dark:text-gray-200 px-1">Profile</legend>
+                            <div className="flex flex-col gap-2 mt-1">
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Mother Tongue
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.motherTongue}
+                                  onChange={(e) => updateLearner(index, "motherTongue", e.target.value)}
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                IP (Ethnic Group)
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.ipEthnicGroup}
+                                  onChange={(e) => updateLearner(index, "ipEthnicGroup", e.target.value)}
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Religion
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.religion}
+                                  onChange={(e) => updateLearner(index, "religion", e.target.value)}
+                                />
+                              </label>
+                              <label className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                                Contact Number of Parent or Guardian
+                                <input
+                                  className="w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1.5 text-xs focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                  value={learner.contactNumber}
+                                  onChange={(e) => updateLearner(index, "contactNumber", e.target.value)}
+                                />
+                              </label>
+                            </div>
+                          </fieldset>
+
                           {/* Address section */}
                           <fieldset className="flex-1 min-w-[280px] border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg p-3 shadow-2xs">
                             <legend className="text-xs font-bold text-gray-800 dark:text-gray-200 px-1">Address</legend>
@@ -597,161 +636,23 @@ function SF1({ user, goBack }) {
         </div>
       )}
 
-      {/* Printable School Register (SF1) */}
+      {/* Printable School Register (SF1) — pixel-exact replica of the official
+          DepEd sheet, rendered straight to the printer. */}
       {showPrintArea && (
-        <div className="sf1-print-area">
-          <div style={{ padding: "0.4in 0.5in", fontFamily: "Arial, Helvetica, sans-serif" }}>
-            {/* Header */}
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                marginBottom: "8px",
-                color: "#000",
-              }}
-            >
-              <tbody>
-                <tr>
-                  <td style={{ verticalAlign: "top", textAlign: "left", padding: 0 }}>
-                    <div style={{ fontWeight: "bold", fontSize: "12pt", marginBottom: "4px" }}>
-                      School Form 1 (SF1) School Register
-                    </div>
-                    <div style={{ fontSize: "8.5pt", lineHeight: 1.5 }}>
-                      <div>School ID: {config.schoolId || ""}</div>
-                      <div>School Name: {config.schoolName || ""}</div>
-                      <div>Region: {config.region || ""}</div>
-                      <div>Division: {config.divisionOffice || ""}</div>
-                      <div>School Year: {schoolYear}</div>
-                    </div>
-                  </td>
-                  <td style={{ verticalAlign: "top", width: "35%" }}>{/* no logo box on SF1 */}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* Roster table */}
-            <table className="sf1-table">
-              <thead>
-                <tr>
-                  <th style={{ width: "8%" }}>LRN</th>
-                  <th style={{ width: "11%" }}>NAME (Last, First, Middle)</th>
-                  <th style={{ width: "6%" }}>Birth Date</th>
-                  <th style={{ width: "3%" }}>Age</th>
-                  <th style={{ width: "4%" }}>Mother Tongue</th>
-                  <th style={{ width: "4%" }}>IP (Ethnic Group)</th>
-                  <th style={{ width: "4%" }}>Religion</th>
-                  <th style={{ width: "7%" }}>House#/Street/Sitio/Purok</th>
-                  <th style={{ width: "6%" }}>Barangay</th>
-                  <th style={{ width: "7%" }}>Municipality/City</th>
-                  <th style={{ width: "6%" }}>Province</th>
-                  <th style={{ width: "7%" }}>Father&apos;s Name</th>
-                  <th style={{ width: "7%" }}>Mother&apos;s Maiden Name</th>
-                  <th style={{ width: "7%" }}>Guardian Name</th>
-                  <th style={{ width: "5%" }}>Guardian Relationship</th>
-                  <th style={{ width: "5%" }}>Learning Modality</th>
-                  <th style={{ width: "4%" }}>Remarks</th>
-                </tr>
-              </thead>
-              <tbody>
-{maleLearners.map((l, i) => (
-                  <tr key={`m-${i}`}>
-                    <td>{l.lrn}</td>
-                    <td className="sf1-cell-left">
-                      {l.lastName}, {l.firstName}
-                      {l.middleName ? ", " + l.middleName : ""}
-                    </td>
-                    <td>{l.birthDate}</td>
-                    <td>{calculateAge(l.birthDate)}</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>{l.houseStreetSitio}</td>
-                    <td>{l.barangay}</td>
-                    <td>{l.municipalityCity}</td>
-                    <td>{l.province}</td>
-                    <td>{l.fathersName}</td>
-                    <td>{l.mothersMaidenName}</td>
-                    <td>{l.guardianName}</td>
-                    <td>{l.guardianRelationship}</td>
-                    <td>{l.learningModality}</td>
-                    <td>{l.remarks}</td>
-                  </tr>
-                ))}
-                {maleLearners.length > 0 && (
-                  <tr>
-                    <td>{maleLearners.length}</td>
-                    <td className="sf1-cell-left" colSpan={16}>
-                      &lt;== TOTAL MALE
-                    </td>
-                  </tr>
-                )}
-                {femaleLearners.map((l, i) => (
-                  <tr key={`f-${i}`}>
-                    <td>{l.lrn}</td>
-                    <td className="sf1-cell-left">
-                      {l.lastName}, {l.firstName}
-                      {l.middleName ? ", " + l.middleName : ""}
-                    </td>
-                    <td>{l.birthDate}</td>
-                    <td>{calculateAge(l.birthDate)}</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>—</td>
-                    <td>{l.houseStreetSitio}</td>
-                    <td>{l.barangay}</td>
-                    <td>{l.municipalityCity}</td>
-                    <td>{l.province}</td>
-                    <td>{l.fathersName}</td>
-                    <td>{l.mothersMaidenName}</td>
-                    <td>{l.guardianName}</td>
-                    <td>{l.guardianRelationship}</td>
-                    <td>{l.learningModality}</td>
-                    <td>{l.remarks}</td>
-                  </tr>
-                ))}
-                {femaleLearners.length > 0 && (
-                  <tr>
-                    <td>{femaleLearners.length}</td>
-                    <td className="sf1-cell-left" colSpan={16}>
-                      &lt;== TOTAL FEMALE
-                    </td>
-                  </tr>
-                )}
-                <tr>
-                  <td>{learners.length}</td>
-                  <td className="sf1-cell-left" colSpan={16}>
-                    &lt;== COMBINED
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            {/* Legend: List and Code of Indicators under REMARKS column */}
-            <div style={{ marginTop: "10px" }}>
-              <div style={{ fontWeight: "bold", fontSize: "8pt", marginBottom: "3px", color: "#000" }}>
-                List and Code of Indicators under REMARKS column
-              </div>
-              <table className="sf1-table" style={{ width: "60%", borderCollapse: "collapse", color: "#000" }}>
-                <thead>
-                  <tr>
-                    <th>Indicator</th>
-                    <th>Code</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr><td className="sf1-cell-left">Transferred Out</td><td>T/O</td></tr>
-                  <tr><td className="sf1-cell-left">Transferred In</td><td>T/I</td></tr>
-                  <tr><td className="sf1-cell-left">Dropped</td><td>DRP</td></tr>
-                  <tr><td className="sf1-cell-left">Late Enrollment</td><td>LE</td></tr>
-                  <tr><td className="sf1-cell-left">CCT Recipient</td><td>CCT</td></tr>
-                  <tr><td className="sf1-cell-left">Balik Aral</td><td>B/A</td></tr>
-                  <tr><td className="sf1-cell-left">Special Needs Education</td><td>SNED</td></tr>
-                  <tr><td className="sf1-cell-left">Accelerated</td><td>ACL</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+        <SF1PrintView
+          learners={learners}
+          school={{
+            schoolId: config.schoolId || "",
+            schoolName: config.schoolName || "",
+            region: config.region || "",
+            division: config.divisionOffice || "",
+            schoolYear,
+            gradeLevel,
+            section,
+          }}
+          preparedBy={config.adviserName || ""}
+          certifiedBy={config.schoolHeadName || ""}
+        />
       )}
     </div>
   );

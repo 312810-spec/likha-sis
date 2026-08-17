@@ -7,7 +7,9 @@ import {
   normalizeSex,
   normalizeDate,
   normalizeGrade,
+  digitsOnly,
 } from "../shared/normalization.js";
+import { parsePersonName, formatPersonName } from "../shared/nameParser.js";
 
 /** The canonical learner field shape the rest of the app understands. */
 export function emptyLearner() {
@@ -20,17 +22,27 @@ export function emptyLearner() {
     sex: "",
     birthDate: "",
     age: "",
+    motherTongue: "",
+    ipEthnicGroup: "",
     religion: "",
+    // Address, broken down the way SF1 records it.
+    houseStreetSitio: "",
+    barangay: "",
+    municipalityCity: "",
+    province: "",
     address: "",
+    // Parents / guardian
     fathersName: "",
-    mothersName: "",
-    guardian: "",
+    mothersMaidenName: "",
+    guardianName: "",
+    guardianRelationship: "",
     contactNumber: "",
     learningModality: "",
     remarks: "",
     // enrollment / context
     schoolId: "",
     schoolName: "",
+    region: "",
     division: "",
     district: "",
     schoolYear: "",
@@ -43,6 +55,20 @@ function text(value) {
   if (value === null || value === undefined) return "";
   if (value instanceof Date) return value.toISOString().slice(0, 10);
   return String(value).trim();
+}
+
+/** Age cells arrive as "12 " or 12; keep a clean integer string, else "". */
+function normalizeAge(value) {
+  const digits = digitsOnly(value);
+  if (!digits) return "";
+  const n = parseInt(digits, 10);
+  if (!Number.isFinite(n) || n <= 0 || n > 100) return "";
+  return String(n);
+}
+
+/** Join the SF1 address parts into the single-line form the app displays. */
+function joinAddress(parts) {
+  return parts.map(text).filter(Boolean).join(", ");
 }
 
 /**
@@ -61,12 +87,36 @@ export function normalizeLearner(raw) {
   learner.nameExtension = text(raw.nameExtension);
   learner.sex = normalizeSex(raw.sex);
   learner.birthDate = normalizeDate(raw.birthDate);
-  learner.age = text(raw.age);
+  // Trust the workbook's printed age (it is "as of the 1st Friday of June",
+  // which cannot be recomputed from the birth date alone).
+  learner.age = normalizeAge(raw.age);
+  learner.motherTongue = text(raw.motherTongue);
+  learner.ipEthnicGroup = text(raw.ipEthnicGroup);
   learner.religion = text(raw.religion);
-  learner.address = text(raw.address);
+
+  learner.houseStreetSitio = text(raw.houseStreetSitio);
+  learner.barangay = text(raw.barangay);
+  learner.municipalityCity = text(raw.municipalityCity);
+  learner.province = text(raw.province);
+  // Prefer an explicit single "Address" column when the sheet has one.
+  learner.address =
+    text(raw.address) ||
+    joinAddress([
+      learner.houseStreetSitio,
+      learner.barangay,
+      learner.municipalityCity,
+      learner.province,
+    ]);
+
+  // Parent/guardian names keep their printed form (that is what SF1 shows) but
+  // are also parsed so the app can sort or match on the surname.
   learner.fathersName = text(raw.fathersName);
-  learner.mothersName = text(raw.mothersName);
-  learner.guardian = text(raw.guardian);
+  learner.mothersMaidenName = text(raw.mothersMaidenName) || text(raw.mothersName);
+  learner.guardianName = text(raw.guardianName) || text(raw.guardian);
+  learner.guardianRelationship = text(raw.guardianRelationship);
+  learner.fathersNameParts = parsePersonName(learner.fathersName);
+  learner.mothersNameParts = parsePersonName(learner.mothersMaidenName);
+
   learner.contactNumber = text(raw.contactNumber);
   learner.learningModality = text(raw.learningModality);
   learner.remarks = text(raw.remarks);
@@ -74,17 +124,21 @@ export function normalizeLearner(raw) {
   // Context attached from the workbook (source of truth), not the filename.
   learner.schoolId = text(ctx.schoolId);
   learner.schoolName = text(ctx.schoolName);
+  learner.region = text(ctx.region);
   learner.division = text(ctx.division);
   learner.district = text(ctx.district);
   learner.schoolYear = text(ctx.schoolYear);
   learner.gradeLevel = text(ctx.gradeLevel);
   learner.section = text(ctx.section);
 
+  // The name exactly as SF1 prints it, for the register view.
+  learner.displayName = formatPersonName(learner);
+
   learner._rowIndex = raw._rowIndex;
   return learner;
 }
 
-/** Normalize all raw rows. Returns { learners, dropped }. */
+/** Normalize all raw rows. Returns { learners }. */
 export function normalizeSF1(rawLearners) {
   const learners = rawLearners.map(normalizeLearner);
   return { learners };

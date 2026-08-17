@@ -24,6 +24,7 @@ function emptySchool() {
   return {
     schoolId: "",
     schoolName: "",
+    region: "",
     division: "",
     district: "",
     schoolYear: "",
@@ -67,7 +68,8 @@ function selectBestSheet(workbook) {
     } catch {
       continue;
     }
-    if (!structure.headerRow) continue;
+    // A header on row 0 is falsy but perfectly valid — compare explicitly.
+    if (structure.headerRow === null || structure.headerRow === undefined) continue;
     const { rawLearners, droppedRows } = parseSF1(structure);
     const { learners } = normalizeSF1(rawLearners);
     const { records } = validateSF1(learners);
