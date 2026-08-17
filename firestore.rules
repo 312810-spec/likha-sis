@@ -113,6 +113,25 @@ service cloud.firestore {
       allow read, write: if hasAnyRole(["ictCoordinator"]);
     }
 
+    // ---- schedules (Class Program / Teacher's Load) ----
+    // Class Program / Teacher's Load scheduling data. No learner PII lives here,
+    // so reads are open to all scheduling-relevant staff while writes stay with
+    // the roles that own the timetable.
+    match /schedules/{schoolYear} {
+      allow read: if hasAnyRole(["ictCoordinator", "principal", "adviser", "masterTeacher", "subjectTeacher"]);
+      allow write: if hasAnyRole(["ictCoordinator", "principal"]);
+
+      match /sections/{sectionId} {
+        allow read: if hasAnyRole(["ictCoordinator", "principal", "adviser", "masterTeacher", "subjectTeacher"]);
+        allow write: if hasAnyRole(["ictCoordinator", "principal"]);
+      }
+
+      match /teachers/{teacherId} {
+        allow read: if hasAnyRole(["ictCoordinator", "principal", "adviser", "masterTeacher", "subjectTeacher"]);
+        allow write: if hasAnyRole(["ictCoordinator", "principal"]);
+      }
+    }
+
     // ---- users (User Management) ----
     // Anyone signed in can read their own doc (needed for useUserProfile to
     // work for every role). ictCoordinator/principal can manage any account.

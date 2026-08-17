@@ -19,6 +19,7 @@ export const PAGE_ACCESS = {
   sf1Import: ["ictCoordinator"],
   sf10Import: ["ictCoordinator"],
   sf10Generate: ["adviser", "principal", "ictCoordinator"],
+  classProgram: ["ictCoordinator", "principal", "adviser", "masterTeacher"],
   userManagement: ["ictCoordinator", "principal"],
   brandingSettings: ["ictCoordinator", "principal"],
   schoolSettings: ["ictCoordinator", "principal"],
@@ -27,6 +28,10 @@ export const PAGE_ACCESS = {
 
 export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder"];
 export const VIEW_LEARNERS_EDIT_ROLES = ["adviser"];
+
+// Schedules carry no learner PII, so reading is broad -- advisers and master
+// teachers print their own sheets. Writing matches the firestore.rules block.
+export const SCHEDULE_EDIT_ROLES = ["ictCoordinator", "principal"];
 
 // DO 006, s. 2026 (Safe Environment / LRP): behavioral incident records are
 // restricted to smeaCoordinator, principal, and guidance — narrower than the
