@@ -11,6 +11,7 @@ export const PAGE_ACCESS = {
   viewLearners: "all",
   lardoTracking: ["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"],
   nutritionStatus: ["adviser", "smeaCoordinator"],
+  nutritionConsolidator: ["adviser", "smeaCoordinator", "principal"],
   transfersLog: ["adviser", "ictCoordinator", "principal", "smeaCoordinator"],
   certificates: ["ictCoordinator", "principal", "adviser"],
   idGenerator: ["ictCoordinator"],

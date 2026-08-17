@@ -9,6 +9,7 @@ const schoolConfig = {
   divisionName: "Department of Education - Division of [Division Name]",
   principalName: "[Principal Full Name]",
   principalPosition: "School Principal",
+  clinicTeacherName: "[School Clinic Teacher Full Name]",
   region: "[Region]",
   divisionOffice: "[Division Office Name]",
   district: "[District]",

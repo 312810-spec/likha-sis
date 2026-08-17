@@ -28,6 +28,7 @@ import SF10Importer from "./pages/SF10Importer";
 import SF10Generator from "./SF10Generator";
 import UserManagement from "./pages/UserManagement";
 import NutritionStatus from "./NutritionStatus";
+import NutritionConsolidator from "./NutritionConsolidator";
 import TransfersLog from "./TransfersLog";
 import BrandingSettings from "./BrandingSettings";
 import SchoolSettings from "./SchoolSettings";
@@ -183,6 +184,10 @@ function App() {
       case "nutritionStatus":
         pageTitle = "Nutrition Status";
         pageContent = <NutritionStatus user={user} goBack={() => setCurrentPage("dashboard")} />;
+        break;
+      case "nutritionConsolidator":
+        pageTitle = "Nutrition Status Consolidator";
+        pageContent = <NutritionConsolidator goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "transfersLog":
         pageTitle = "Transfers Log";
