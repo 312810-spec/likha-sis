@@ -34,6 +34,7 @@ export default function SubjectPalette({
               key={entry.subject}
               type="button"
               disabled={!editable}
+              aria-pressed={!!isArmed}
               draggable={editable}
               onDragStart={(e) => {
                 e.dataTransfer.setData(

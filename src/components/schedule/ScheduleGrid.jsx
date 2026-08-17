@@ -83,6 +83,9 @@ export default function ScheduleGrid({
                 {DAYS.map((day) => {
                   const cell = cells[row.id] ? cells[row.id][day] : null;
                   const isConflicted = conflicted.has(`${row.id}|${day}`);
+                  const cellLabel = `${formatRange(row.startMin, row.endMin)}, ${DAY_LABELS[day]}, ${
+                    cell ? cell.subject : "empty"
+                  }${isConflicted ? ", conflict" : ""}`;
 
                   return (
                     <td
@@ -97,23 +100,45 @@ export default function ScheduleGrid({
                         if (!editable) return;
                         e.preventDefault();
                         const raw = e.dataTransfer.getData("application/x-likha-subject");
-                        if (raw) onPaint(row.id, day, JSON.parse(raw));
+                        if (!raw) return;
+                        try {
+                          onPaint(row.id, day, JSON.parse(raw));
+                        } catch {
+                          // Ignore payloads that aren't the JSON this grid produces.
+                        }
                       }}
-                      className={`border px-2 py-2 text-center align-middle select-none ${
-                        editable ? "cursor-pointer" : ""
-                      } ${
+                      className={`border p-0 text-center align-middle select-none ${
                         isConflicted
                           ? "border-red-500 bg-red-50 dark:bg-red-900/30"
                           : "border-gray-300 dark:border-gray-600"
                       }`}
                     >
-                      {cell ? (
-                        <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                          {cell.subject}
-                        </span>
-                      ) : (
-                        <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
-                      )}
+                      <button
+                        type="button"
+                        disabled={!editable}
+                        aria-label={cellLabel}
+                        onKeyDown={(e) => {
+                          if (!editable) return;
+                          if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+                            e.preventDefault();
+                            paint(row.id, day);
+                          } else if (e.key === "Delete" || e.key === "Backspace") {
+                            e.preventDefault();
+                            clear(row.id, day);
+                          }
+                        }}
+                        className={`w-full h-full px-2 py-2 bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary ${
+                          editable ? "cursor-pointer" : "cursor-default"
+                        }`}
+                      >
+                        {cell ? (
+                          <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                            {cell.subject}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-300 dark:text-gray-600">—</span>
+                        )}
+                      </button>
                     </td>
                   );
                 })}
@@ -125,7 +150,8 @@ export default function ScheduleGrid({
       {editable && (
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           Arm a subject in the palette, then click or drag across cells to fill them.
-          Double-click a cell to clear it.
+          Double-click a cell to clear it. Keyboard: tab to a cell, press Enter or
+          Space to paint the armed subject, Delete or Backspace to clear it.
         </p>
       )}
     </div>
