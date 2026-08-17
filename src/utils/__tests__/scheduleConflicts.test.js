@@ -1,0 +1,137 @@
+import { describe, it, expect } from "vitest";
+import { findConflicts } from "../scheduleConflicts";
+
+const TEACHERS = {
+  camposo: { id: "camposo", displayName: "Mrs. Camposo", handles: ["Math 7"] },
+  hermoso: { id: "hermoso", displayName: "Mr. Hermoso", handles: ["TLE 7"] },
+};
+
+// Minimal section: one subject meeting once a week, on Monday only.
+function sectionWith(cells, overrides = {}) {
+  return {
+    id: "s7love",
+    gradeLevel: "7",
+    name: "LOVE",
+    shiftId: "AM",
+    subjects: [{ subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 1 }],
+    cells,
+    ...overrides,
+  };
+}
+
+describe("findConflicts", () => {
+  it("returns nothing for a clean single-section schedule", () => {
+    const sections = [
+      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "camposo" } } }),
+    ];
+
+    expect(findConflicts({ sections, teachersById: TEACHERS })).toEqual([]);
+  });
+
+  it("flags a teacher booked in two sections at the same period and day", () => {
+    const sections = [
+      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "camposo" } } }),
+      sectionWith(
+        { P1: { mon: { subject: "Math 7", teacherId: "camposo" } } },
+        { id: "s7hope", name: "HOPE" }
+      ),
+    ];
+
+    const conflicts = findConflicts({ sections, teachersById: TEACHERS });
+    const doubled = conflicts.filter((c) => c.type === "teacherDoubleBooked");
+
+    expect(doubled).toHaveLength(1);
+    expect(doubled[0].teacherId).toBe("camposo");
+    expect(doubled[0].periodId).toBe("P1");
+    expect(doubled[0].day).toBe("mon");
+    expect(doubled[0].message).toContain("Mrs. Camposo");
+  });
+
+  it("does not flag the same teacher in two sections on different days", () => {
+    const sections = [
+      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "camposo" } } }),
+      sectionWith(
+        { P1: { tue: { subject: "Math 7", teacherId: "camposo" } } },
+        { id: "s7hope", name: "HOPE" }
+      ),
+    ];
+
+    const conflicts = findConflicts({ sections, teachersById: TEACHERS });
+    expect(conflicts.filter((c) => c.type === "teacherDoubleBooked")).toEqual([]);
+  });
+
+  it("flags a placed subject with no teacher", () => {
+    const sections = [
+      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "" } } }),
+    ];
+
+    const conflicts = findConflicts({ sections, teachersById: TEACHERS });
+    const unstaffed = conflicts.filter((c) => c.type === "unstaffed");
+
+    expect(unstaffed).toHaveLength(1);
+    expect(unstaffed[0].subject).toBe("Math 7");
+  });
+
+  it("flags a subject placed fewer times than its sessionsPerWeek", () => {
+    const sections = [
+      sectionWith(
+        { P1: { mon: { subject: "Math 7", teacherId: "camposo" } } },
+        { subjects: [{ subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 5 }] }
+      ),
+    ];
+
+    const conflicts = findConflicts({ sections, teachersById: TEACHERS });
+    const mismatch = conflicts.find((c) => c.type === "sessionCountMismatch");
+
+    expect(mismatch.subject).toBe("Math 7");
+    expect(mismatch.message).toContain("1");
+    expect(mismatch.message).toContain("5");
+  });
+
+  it("flags a subject placed more times than its sessionsPerWeek", () => {
+    const sections = [
+      sectionWith(
+        {
+          P1: {
+            mon: { subject: "Math 7", teacherId: "camposo" },
+            tue: { subject: "Math 7", teacherId: "camposo" },
+          },
+        },
+        { subjects: [{ subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 1 }] }
+      ),
+    ];
+
+    const conflicts = findConflicts({ sections, teachersById: TEACHERS });
+    expect(conflicts.some((c) => c.type === "sessionCountMismatch")).toBe(true);
+  });
+
+  it("warns when a teacher is assigned outside their handles list", () => {
+    const sections = [
+      sectionWith(
+        { P1: { mon: { subject: "TLE 7", teacherId: "camposo" } } },
+        { subjects: [{ subject: "TLE 7", teacherId: "camposo", sessionsPerWeek: 1 }] }
+      ),
+    ];
+
+    const conflicts = findConflicts({ sections, teachersById: TEACHERS });
+    const outOfQual = conflicts.filter((c) => c.type === "outOfQualification");
+
+    expect(outOfQual).toHaveLength(1);
+    expect(outOfQual[0].teacherId).toBe("camposo");
+    expect(outOfQual[0].subject).toBe("TLE 7");
+  });
+
+  it("does not warn for an unknown teacher id, which unstaffed already covers", () => {
+    const sections = [
+      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "" } } }),
+    ];
+
+    const conflicts = findConflicts({ sections, teachersById: TEACHERS });
+    expect(conflicts.some((c) => c.type === "outOfQualification")).toBe(false);
+  });
+
+  it("tolerates missing cells and missing subjects arrays", () => {
+    const sections = [{ id: "empty", gradeLevel: "7", name: "PEACE", shiftId: "AM" }];
+    expect(findConflicts({ sections, teachersById: TEACHERS })).toEqual([]);
+  });
+});
