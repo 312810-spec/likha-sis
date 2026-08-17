@@ -80,8 +80,9 @@ const NUMERIC_RE = /^\d{1,3}([.,]\d{1,2})?$/;
 export function extractLearningAreas(structure, rows) {
   const areas = [];
   let generalAverage = "";
+  let promotionStatus = "";
   const start = structure.areaStartRow;
-  if (start === null) return { areas, generalAverage };
+  if (start === null) return { areas, generalAverage, promotionStatus };
 
   // Scan from the area header down for a generous window. Areas are subject
   // rows, GENERAL AVERAGE is the numeric footer, and PROMOTED/REMARKS lines end
@@ -104,14 +105,22 @@ export function extractLearningAreas(structure, rows) {
     const joined = values.join(" ").toUpperCase();
 
     // General Average footer (its value can be in the same or next cell).
+    // Keep scanning after it -- the promotion/remarks row usually follows
+    // immediately, and would otherwise never be reached.
     if (/GENERAL\s*AVERAGE/.test(joined)) {
       const same = joined.match(/GENERAL\s*AVERAGE[^\d]*([\d.,]+)/);
       if (same) generalAverage = same[1];
-      break;
+      continue;
     }
 
-    // Promotion / remarks / signatures end the block.
+    // Promotion / remarks / signatures end the block. Only PROMOTED/RETAINED/
+    // REMARKS rows actually declare a promotion status -- ADMISSION/GRADUATE/
+    // PREPARED/CHECKED are signature-block markers, captured only as a stop
+    // signal, never as promotionStatus text.
     if (/^(PROMOTED|RETAINED|REMARKS|ADMISSION|GRADUATE|PREPARED|CHECKED)/i.test(values[0] || "")) {
+      if (/^(PROMOTED|RETAINED|REMARKS)/i.test(values[0] || "")) {
+        promotionStatus = values.filter((v) => v !== "").join(" ");
+      }
       break;
     }
 
@@ -125,7 +134,7 @@ export function extractLearningAreas(structure, rows) {
     }
   }
 
-  return { areas, generalAverage };
+  return { areas, generalAverage, promotionStatus };
 }
 
 /**
@@ -139,8 +148,9 @@ export function parseSF10(structure, sheet) {
     return { raw: null, structure };
   }
   const raw = extractSF10Identity(structure);
-  const { areas, generalAverage } = extractLearningAreas(structure, sheet.rows);
+  const { areas, generalAverage, promotionStatus } = extractLearningAreas(structure, sheet.rows);
   raw._learningAreas = areas;
   raw._generalAverage = generalAverage;
+  raw._promotionStatus = promotionStatus;
   return { raw, structure };
 }
