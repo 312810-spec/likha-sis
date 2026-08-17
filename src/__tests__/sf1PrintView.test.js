@@ -2,6 +2,9 @@
 // Verifies the SF1 print replica: official column geometry, the two-row merged
 // header, the male/female/combined tally rows, and the CLAUDE.md §2 print-safety
 // boundary (pure white background, no dark/brand theme leakage).
+//
+// PRIVACY: every learner below is INVENTED. Never copy names, LRNs, birth dates
+// or parents out of a real DepEd export into this repository.
 
 import { describe, it, expect, afterEach } from "vitest";
 import React from "react";
@@ -23,39 +26,39 @@ const SCHOOL = {
 
 const LEARNERS = [
   {
-    lrn: "120019190018",
-    lastName: "ANTOLIJAO",
-    firstName: "ROEL ADRIAN",
-    middleName: "BERDIN",
+    lrn: "900000000018",
+    lastName: "SANTIAGO",
+    firstName: "MARIA ELENA",
+    middleName: "RIVERA",
     sex: "Male",
-    birthDate: "2014-03-26",
-    age: "12",
+    birthDate: "2013-05-14",
+    age: "13",
     motherTongue: "Cebuano",
     religion: "Christianity",
     barangay: "TINGUB",
     municipalityCity: "MANDAUE CITY",
     province: "CEBU",
-    fathersName: "ANTOLIJAO, RODRIGO CENIZA",
-    mothersMaidenName: "BERDIN,ELMA,ALIVADO,",
+    fathersName: "SANTIAGO, RODRIGO CRUZ",
+    mothersMaidenName: "RIVERA,TERESA,MENDOZA,",
     learningModality: "Face to Face",
     remarks: "T/I DATE:2026-06-08",
   },
   {
-    lrn: "120019190057",
-    lastName: "CUBERO",
-    firstName: "NOEL",
-    middleName: "NARCISO",
+    lrn: "900000000057",
+    lastName: "DELGADO",
+    firstName: "RAMON",
+    middleName: "SALAZAR",
     nameExtension: "JR.",
     sex: "M",
-    birthDate: "2013-10-25",
-    age: "12",
+    birthDate: "2012-11-02",
+    age: "13",
   },
   {
-    lrn: "119885190012",
-    lastName: "ACRUZ",
-    firstName: "FIONA MAE",
+    lrn: "900000000012",
+    lastName: "GARCIA",
+    firstName: "ROSA LINDA",
     sex: "F",
-    birthDate: "2014-07-31",
+    birthDate: "2013-08-19",
     age: "12",
   },
 ];
@@ -146,10 +149,10 @@ describe("SF1 print view — register content", () => {
     // Male block precedes the female block.
     const names = [...container.querySelectorAll(".sf1-c-name")].map((td) => td.textContent);
     expect(names.slice(0, 2)).toEqual([
-      "ANTOLIJAO, ROEL ADRIAN BERDIN",
-      "CUBERO, NOEL JR. NARCISO",
+      "DELGADO, RAMON JR. SALAZAR",
+      "SANTIAGO, MARIA ELENA RIVERA",
     ]);
-    expect(names[3]).toBe("ACRUZ, FIONA MAE");
+    expect(names[3]).toBe("GARCIA, ROSA LINDA");
   });
 
   it("accepts both 'M'/'F' and 'Male'/'Female' for sex", () => {
@@ -164,14 +167,14 @@ describe("SF1 print view — register content", () => {
 
   it("prints birth dates as mm/dd/yyyy, the format the form asks for", () => {
     const container = renderSheet();
-    expect(container.textContent).toContain("03/26/2014");
-    expect(container.textContent).toContain("07/31/2014");
+    expect(container.textContent).toContain("05/14/2013");
+    expect(container.textContent).toContain("08/19/2013");
   });
 
   it("still lists a learner whose sex could not be read", () => {
     const container = render(
       React.createElement(SF1PrintView, {
-        learners: [{ lrn: "120019190099", lastName: "REYES", firstName: "SAM", sex: "" }],
+        learners: [{ lrn: "900000000099", lastName: "REYES", firstName: "SAM", sex: "" }],
         school: SCHOOL,
       })
     ).container;

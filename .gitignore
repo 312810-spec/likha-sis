@@ -26,6 +26,16 @@ skills-lock.json
 # graphify knowledge-graph output (generated, not project source)
 graphify-out/
 
+# Real DepEd exports used to validate the importers (SF1 / SF8 / SF10 …).
+# These hold the names, LRNs, birth dates, health data and parents of real
+# minors, and everything under public/ is copied verbatim into the Vite build
+# and served publicly. Keep them as local working-copy files only; tests must
+# use invented learners and skip when a sample is absent.
+public/SF1_*.xls
+public/SF1_*.xlsx
+public/*_SF10.xls
+public/*_SF10.xlsx
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -2,6 +2,11 @@
 // Covers the real DepEd LIS export layout (school_form_1_ver2014.2.1.1): fixed
 // metadata cells, a two-row header, the single combined NAME column, and the
 // "<=== TOTAL MALE" tally that sits BETWEEN the male and the female blocks.
+//
+// PRIVACY: every learner below is INVENTED. The layout quirks are copied from a
+// real LIS export, but its learner records must never be — they are the names,
+// LRNs, birth dates and parents of real minors, protected under the Philippine
+// Data Privacy Act. Reproduce the file's SHAPE, never its people.
 
 import { describe, it, expect } from "vitest";
 import { readWorkbook } from "../shared/excelReader.js";
@@ -13,32 +18,32 @@ import { parsePersonName, formatPersonName, extractSuffix } from "../shared/name
 import { isLrnValue, isSummaryRow, isTerminatorRow, SF1_COLUMNS } from "./sf1Layout.js";
 import { buildLisSF1Workbook, lisLearner } from "./__fixtures__/helpers.js";
 
-/** Two males and one female, mirroring rows from the real FAITH register. */
+/** Two males and one female, in the shape of a LIS register (invented people). */
 function sampleWorkbook(overrides = {}) {
   return buildLisSF1Workbook({
     males: [
       lisLearner({
-        lrn: "120019190018",
-        name: "ANTOLIJAO,ROEL ADRIAN, BERDIN",
+        lrn: "900000000018",
+        name: "SANTIAGO,MARIA ELENA, RIVERA",
         sex: "M",
-        birthDate: "03-26-2014",
-        age: "12 ",
+        birthDate: "05-14-2013",
+        age: "13 ",
         motherTongue: "Cebuano / Sinugbuanong Binisay",
         religion: "Christianity",
         barangay: "TINGUB",
         municipalityCity: "MANDAUE CITY",
         province: "CEBU",
-        fathersName: "ANTOLIJAO, RODRIGO CENIZA",
-        mothersMaidenName: "BERDIN,ELMA,ALIVADO,",
+        fathersName: "SANTIAGO, RODRIGO CRUZ",
+        mothersMaidenName: "RIVERA,TERESA,MENDOZA,",
         learningModality: "Face to Face",
         remarks: "T/I DATE:2026-06-08",
       }),
       lisLearner({
-        lrn: "120019190057",
-        name: "CUBERO,NOEL, JR. NARCISO",
+        lrn: "900000000057",
+        name: "DELGADO,RAMON, JR. SALAZAR",
         sex: "M",
-        birthDate: "10-25-2013",
-        age: "12 ",
+        birthDate: "11-02-2012",
+        age: "13 ",
         religion: "Christianity",
         barangay: "TINGUB",
         municipalityCity: "MANDAUE CITY",
@@ -48,16 +53,16 @@ function sampleWorkbook(overrides = {}) {
     ],
     females: [
       lisLearner({
-        lrn: "119885190012",
-        name: "ACRUZ,FIONA MAE, -",
+        lrn: "900000000012",
+        name: "GARCIA,ROSA LINDA, -",
         sex: "F",
-        birthDate: "07-31-2014",
+        birthDate: "08-19-2013",
         age: "12 ",
         religion: "Christianity",
         barangay: "PAGSABUNGAN",
         municipalityCity: "MANDAUE CITY",
         province: "CEBU",
-        guardianName: "ACRUZ, ROWENA",
+        guardianName: "GARCIA, LILIA",
         guardianRelationship: "Mother",
         contactNumber: "09171234567",
         learningModality: "Face to Face",
@@ -77,9 +82,9 @@ describe("SF1 layout constants", () => {
   });
 
   it("accepts only 12-digit LRNs as learner-row markers", () => {
-    expect(isLrnValue("120019190018")).toBe(true);
-    expect(isLrnValue(120019190018)).toBe(true);
-    expect(isLrnValue("120-019-190-018")).toBe(true);
+    expect(isLrnValue("900000000018")).toBe(true);
+    expect(isLrnValue(900000000018)).toBe(true);
+    expect(isLrnValue("900-000-000-018")).toBe(true);
     expect(isLrnValue("12345")).toBe(false);
     expect(isLrnValue("<=== TOTAL MALE")).toBe(false);
     expect(isLrnValue(null)).toBe(false);
@@ -96,64 +101,64 @@ describe("SF1 layout constants", () => {
 
 describe("combined name parsing", () => {
   it("splits the LIS learner form LAST,FIRST, MIDDLE", () => {
-    expect(parsePersonName("ANTOLIJAO,ROEL ADRIAN, BERDIN")).toMatchObject({
-      lastName: "ANTOLIJAO",
-      firstName: "ROEL ADRIAN",
-      middleName: "BERDIN",
+    expect(parsePersonName("SANTIAGO,MARIA ELENA, RIVERA")).toMatchObject({
+      lastName: "SANTIAGO",
+      firstName: "MARIA ELENA",
+      middleName: "RIVERA",
       nameExtension: "",
     });
   });
 
   it("treats a '-' placeholder as an absent middle name, keeping both given names", () => {
-    expect(parsePersonName("CAL,JOHN PAUL, -")).toMatchObject({
-      lastName: "CAL",
-      firstName: "JOHN PAUL",
+    expect(parsePersonName("BAUTISTA,ANA MARIE, -")).toMatchObject({
+      lastName: "BAUTISTA",
+      firstName: "ANA MARIE",
       middleName: "",
     });
   });
 
   it("pulls a name extension out of the middle segment", () => {
-    expect(parsePersonName("CUBERO,NOEL, JR. NARCISO")).toMatchObject({
-      lastName: "CUBERO",
-      firstName: "NOEL",
-      middleName: "NARCISO",
+    expect(parsePersonName("DELGADO,RAMON, JR. SALAZAR")).toMatchObject({
+      lastName: "DELGADO",
+      firstName: "RAMON",
+      middleName: "SALAZAR",
       nameExtension: "JR.",
     });
-    expect(parsePersonName("JAYME,JOHN ROMEO, III ARCENAL")).toMatchObject({
-      lastName: "JAYME",
-      firstName: "JOHN ROMEO",
-      middleName: "ARCENAL",
+    expect(parsePersonName("MERCADO,LUIS MIGUEL, III NAVARRO")).toMatchObject({
+      lastName: "MERCADO",
+      firstName: "LUIS MIGUEL",
+      middleName: "NAVARRO",
       nameExtension: "III",
     });
   });
 
   it("ignores trailing empty segments", () => {
-    expect(parsePersonName("BULFA,MICHELLE,,")).toMatchObject({
-      lastName: "BULFA",
-      firstName: "MICHELLE",
+    expect(parsePersonName("TOLENTINO,CARMEN,,")).toMatchObject({
+      lastName: "TOLENTINO",
+      firstName: "CARMEN",
       middleName: "",
     });
-    expect(parsePersonName("BERDIN,ELMA,ALIVADO,")).toMatchObject({
-      lastName: "BERDIN",
-      firstName: "ELMA",
-      middleName: "ALIVADO",
+    expect(parsePersonName("RIVERA,TERESA,MENDOZA,")).toMatchObject({
+      lastName: "RIVERA",
+      firstName: "TERESA",
+      middleName: "MENDOZA",
     });
   });
 
   it("reads the single-comma parent form LAST, FIRST MIDDLE [SUFFIX]", () => {
-    expect(parsePersonName("ANTOLIJAO, RODRIGO CENIZA")).toMatchObject({
-      lastName: "ANTOLIJAO",
+    expect(parsePersonName("SANTIAGO, RODRIGO CRUZ")).toMatchObject({
+      lastName: "SANTIAGO",
       firstName: "RODRIGO",
-      middleName: "CENIZA",
+      middleName: "CRUZ",
     });
-    expect(parsePersonName("JAYME, ROMEO YUSON JR")).toMatchObject({
-      lastName: "JAYME",
+    expect(parsePersonName("MERCADO, ROMEO VILLAR JR")).toMatchObject({
+      lastName: "MERCADO",
       firstName: "ROMEO",
-      middleName: "YUSON",
+      middleName: "VILLAR",
       nameExtension: "JR",
     });
-    expect(parsePersonName("SOPREMO, ARIEL -")).toMatchObject({
-      lastName: "SOPREMO",
+    expect(parsePersonName("AQUINO, ARIEL -")).toMatchObject({
+      lastName: "AQUINO",
       firstName: "ARIEL",
       middleName: "",
     });
@@ -167,13 +172,13 @@ describe("combined name parsing", () => {
 
   it("never strips a lone token that happens to be a suffix", () => {
     expect(extractSuffix("JR")).toMatchObject({ suffix: "", rest: "JR" });
-    expect(extractSuffix("NOEL JR")).toMatchObject({ suffix: "JR", rest: "NOEL" });
+    expect(extractSuffix("RAMON JR")).toMatchObject({ suffix: "JR", rest: "RAMON" });
   });
 
   it("renders names back into the official display form", () => {
     expect(
-      formatPersonName({ lastName: "CUBERO", firstName: "NOEL", middleName: "NARCISO", nameExtension: "JR." })
-    ).toBe("CUBERO, NOEL JR. NARCISO");
+      formatPersonName({ lastName: "DELGADO", firstName: "RAMON", middleName: "SALAZAR", nameExtension: "JR." })
+    ).toBe("DELGADO, RAMON JR. SALAZAR");
   });
 });
 
@@ -213,7 +218,7 @@ describe("LIS positional structure detection", () => {
     // 2 males + 1 female. Stopping at "<=== TOTAL MALE" would have yielded 2.
     expect(learners).toHaveLength(3);
     expect(learners.map((l) => l.sex)).toEqual(["Male", "Male", "Female"]);
-    expect(learners[2].lastName).toBe("ACRUZ");
+    expect(learners[2].lastName).toBe("GARCIA");
   });
 
   it("records the printed tallies without treating them as learners", () => {
@@ -244,20 +249,20 @@ describe("LIS field mapping", () => {
 
     const first = model.records[0].learner;
     expect(first).toMatchObject({
-      lrn: "120019190018",
-      lastName: "ANTOLIJAO",
-      firstName: "ROEL ADRIAN",
-      middleName: "BERDIN",
+      lrn: "900000000018",
+      lastName: "SANTIAGO",
+      firstName: "MARIA ELENA",
+      middleName: "RIVERA",
       sex: "Male",
-      birthDate: "2014-03-26",
-      age: "12",
+      birthDate: "2013-05-14",
+      age: "13",
       motherTongue: "Cebuano / Sinugbuanong Binisay",
       religion: "Christianity",
       barangay: "TINGUB",
       municipalityCity: "MANDAUE CITY",
       province: "CEBU",
-      fathersName: "ANTOLIJAO, RODRIGO CENIZA",
-      mothersMaidenName: "BERDIN,ELMA,ALIVADO,",
+      fathersName: "SANTIAGO, RODRIGO CRUZ",
+      mothersMaidenName: "RIVERA,TERESA,MENDOZA,",
       learningModality: "Face to Face",
       remarks: "T/I DATE:2026-06-08",
       gradeLevel: "Grade 7",
@@ -266,7 +271,7 @@ describe("LIS field mapping", () => {
 
     const female = model.records[2].learner;
     expect(female).toMatchObject({
-      guardianName: "ACRUZ, ROWENA",
+      guardianName: "GARCIA, LILIA",
       guardianRelationship: "Mother",
       contactNumber: "09171234567",
     });
@@ -275,9 +280,9 @@ describe("LIS field mapping", () => {
   it("parses the MM-DD-YYYY birth dates LIS writes as plain text", async () => {
     const model = await processSF1Buffer(sampleWorkbook(), { filename: "a.xls", fileIndex: 0 });
     expect(model.records.map((r) => r.learner.birthDate)).toEqual([
-      "2014-03-26",
-      "2013-10-25",
-      "2014-07-31",
+      "2013-05-14",
+      "2012-11-02",
+      "2013-08-19",
     ]);
   });
 

@@ -3,7 +3,7 @@
 // about "which cell is which field" — normalization/validation happen later.
 //
 // The LIS export keeps a learner's whole name in one cell, so this is also where
-// "ANTOLIJAO,ROEL ADRIAN, BERDIN" becomes discrete last/first/middle parts.
+// "SANTIAGO,MARIA ELENA, RIVERA" becomes discrete last/first/middle parts.
 
 import { isBlankRow, cellText } from "../shared/excelReader.js";
 import { parsePersonName } from "../shared/nameParser.js";

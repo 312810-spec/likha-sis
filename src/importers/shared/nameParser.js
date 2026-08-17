@@ -2,15 +2,19 @@
 // Splits the single combined name cell used by DepEd LIS exports into discrete
 // name parts. SF1 stores a learner as one string in the NAME column, e.g.
 //
-//   "ANTOLIJAO,ROEL ADRIAN, BERDIN"   -> last / first / middle
-//   "CAL,JOHN PAUL, -"                -> a "-" means "no middle name"
-//   "CUBERO,NOEL, JR. NARCISO"        -> the suffix rides along with the middle
-//   "JAYME,JOHN ROMEO, III ARCENAL"   -> same, with a roman-numeral suffix
-//   "BULFA,MICHELLE,,"                -> trailing empty segments are noise
+//   "SANTIAGO,MARIA ELENA, RIVERA"   -> last / first / middle
+//   "BAUTISTA,ANA MARIE, -"          -> a "-" means "no middle name"
+//   "DELGADO,RAMON, JR. SALAZAR"     -> the suffix rides along with the middle
+//   "MERCADO,LUIS MIGUEL, III NAVARRO" -> same, with a roman-numeral suffix
+//   "TOLENTINO,CARMEN,,"             -> trailing empty segments are noise
 //
 // Parent names use the same column but frequently carry only ONE comma, with
-// the given and middle names separated by spaces ("JAYME, ROMEO YUSON JR").
+// the given and middle names separated by spaces ("MERCADO, ROMEO VILLAR JR").
 // Both shapes are handled here so callers never re-implement the rules.
+//
+// The examples above are invented. Never copy learner names, LRNs or birth
+// dates out of a real DepEd export into this repository — see the note in
+// sf1LisLayout.test.js.
 
 /** Name-extension tokens DepEd uses. Compared case-insensitively, dots ignored. */
 const SUFFIX_TOKENS = new Set([
@@ -39,7 +43,7 @@ function clean(value) {
 
 /**
  * Pull a name extension out of a free-text segment. The suffix may lead the
- * segment ("JR. NARCISO") or trail it ("ROMEO YUSON JR"), so both ends are
+ * segment ("JR. SALAZAR") or trail it ("ROMEO VILLAR JR"), so both ends are
  * checked. Never strips the ONLY token, so a lone "JR" stays as the name.
  * @returns {{ suffix: string, rest: string }}
  */
@@ -96,7 +100,7 @@ export function parsePersonName(value) {
       firstName: firstSeg.rest,
       middleName: middleSeg.rest,
       // A suffix can sit on either segment; the middle one wins because that is
-      // where LIS actually puts it ("NOEL, JR. NARCISO").
+      // where LIS actually puts it ("RAMON, JR. SALAZAR").
       nameExtension: middleSeg.suffix || firstSeg.suffix,
     };
   }
