@@ -112,6 +112,20 @@ export default function SchoolIdentityFields({
       </label>
 
       <label className={labelClass}>
+        School ID
+        <input
+          className={inputClass}
+          inputMode="numeric"
+          value={values.schoolId || ""}
+          onChange={(e) => onChange("schoolId", e.target.value)}
+          placeholder="e.g. 303105"
+        />
+        <span className="text-[11px] font-normal text-gray-400 dark:text-gray-500">
+          Your DepEd School ID. Printed in the header of SF1, SF2, and the SF8 nutrition report.
+        </span>
+      </label>
+
+      <label className={labelClass}>
         School Address
         <input
           className={inputClass}
@@ -181,6 +195,19 @@ export default function SchoolIdentityFields({
             placeholder="Select a region first to pick from the list"
           />
         )}
+      </label>
+
+      <label className={labelClass}>
+        Division Name (full)
+        <input
+          className={inputClass}
+          value={values.divisionName || ""}
+          onChange={(e) => onChange("divisionName", e.target.value)}
+          placeholder="Department of Education - Division of Mandaue City"
+        />
+        <span className="text-[11px] font-normal text-gray-400 dark:text-gray-500">
+          The full division line printed on certificates, separate from the Division Office above.
+        </span>
       </label>
 
       <label className={labelClass}>

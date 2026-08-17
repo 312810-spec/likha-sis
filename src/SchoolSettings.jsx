@@ -22,7 +22,9 @@ const labelClass = "flex flex-col gap-1.5 text-xs font-semibold text-gray-600 da
 
 const DEFAULT_SCHOOL_FIELDS = {
   schoolName: "",
+  schoolId: "",
   schoolAddress: "",
+  divisionName: "",
   region: "",
   regionCode: "",
   divisionOffice: "",

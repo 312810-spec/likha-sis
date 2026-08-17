@@ -5,6 +5,9 @@
 
 const schoolConfig = {
   schoolName: "Tingub National High School",
+  // DepEd School ID -- printed in the SF1, SF2, and SF8 report headers, all of
+  // which render it blank until the school fills this in via School Settings.
+  schoolId: "",
   schoolAddress: "Tingub, [City/Municipality], Cebu",
   divisionName: "Department of Education - Division of [Division Name]",
   principalName: "[Principal Full Name]",
