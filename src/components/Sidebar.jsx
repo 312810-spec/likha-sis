@@ -13,6 +13,7 @@ import {
   UploadCloud,
   UserCog,
   ClipboardList,
+  Megaphone,
   AlertTriangle,
   HeartPulse,
   ArrowLeftRight,
@@ -26,6 +27,8 @@ import {
 
 const icons = {
   Dashboard: LayoutDashboard,
+  Announcements: Megaphone,
+  'School Calendar': CalendarDays,
   'User Management': UserCog,
   Branding: Palette,
   'Branding Settings': Palette,
@@ -70,6 +73,11 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
 
   const nav = [
     { label: 'Dashboard', page: 'dashboard' },
+    // Announcements and School Calendar sit directly under Dashboard because
+    // every assigned role can open them — they're the school-wide pages, not
+    // module-specific ones.
+    { label: 'Announcements', page: 'announcements' },
+    { label: 'School Calendar', page: 'schoolCalendar' },
     // NOTE: Access control for User Management will be restricted to ictCoordinator/principal roles in Phase B.
     { label: 'User Management', page: 'userManagement' },
     { label: 'Branding', page: 'brandingSettings' },

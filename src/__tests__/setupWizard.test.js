@@ -22,6 +22,10 @@ vi.mock("firebase/auth", () => ({
 vi.mock("firebase/firestore", () => ({
   doc: vi.fn((_db, ...path) => ({ path: path.join("/") })),
   setDoc: vi.fn(() => Promise.resolve()),
+  // Step 1 now embeds SchoolIdentityFields, which reads the school-maintained
+  // district/school suggestion lists from referenceData/schoolDirectory.
+  // Resolving to a non-existent doc mirrors a school that hasn't saved any.
+  getDoc: vi.fn(() => Promise.resolve({ exists: () => false, data: () => ({}) })),
   serverTimestamp: vi.fn(() => "MOCK_TIMESTAMP"),
 }));
 

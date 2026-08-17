@@ -10,6 +10,8 @@ import {
   makeDefaultShsSubjects,
   makeDefaultShsClusters,
 } from "./utils/keyStagesConfig.js";
+import SchoolIdentityFields from "./components/SchoolIdentityFields.jsx";
+import { toCoordinate } from "./utils/coordinates.js";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
 import {
@@ -85,6 +87,10 @@ function SetupWizard({ onComplete }) {
     ...initialConfig,
     gradeLevelsOffered: initialGradeLevels,
   });
+  function updateSchoolField(field, value) {
+    setSchoolData((prev) => ({ ...prev, [field]: value }));
+  }
+
   const [selectedKeyStages, setSelectedKeyStages] = useState(() => ({
     ks1: false,
     ks2: initialGradeLevels.some((grade) => ["Grade 4", "Grade 5", "Grade 6"].includes(grade)),
@@ -240,6 +246,10 @@ function SetupWizard({ onComplete }) {
 
       await setDoc(doc(db, "settings", "schoolConfig"), {
         ...schoolData,
+        // Coordinates are typed as text but consumed as numbers by the weather
+        // card and the nearby-earthquake radius, so normalize on write.
+        latitude: toCoordinate(schoolData.latitude),
+        longitude: toCoordinate(schoolData.longitude),
         gradeLevelsOffered,
         shs,
         setupCompletedAt: serverTimestamp(),
@@ -385,48 +395,13 @@ function SetupWizard({ onComplete }) {
             }}
           >
             <div className="grid grid-cols-1 gap-3">
-              <label className="text-sm">School Name</label>
-              <input
-                className="border p-2 rounded"
-                value={schoolData.schoolName}
-                onChange={(e) => setSchoolData({ ...schoolData, schoolName: e.target.value })}
+              <SchoolIdentityFields
+                values={schoolData}
+                onChange={updateSchoolField}
+                inputClass="border p-2 rounded w-full"
+                labelClass="flex flex-col gap-1 text-sm"
               />
               {errors.schoolName && <p className="text-red-600 text-sm">{errors.schoolName}</p>}
-
-              <label className="text-sm">School Address</label>
-              <input
-                className="border p-2 rounded"
-                value={schoolData.schoolAddress}
-                onChange={(e) => setSchoolData({ ...schoolData, schoolAddress: e.target.value })}
-              />
-
-              <label className="text-sm">Region</label>
-              <input
-                className="border p-2 rounded"
-                value={schoolData.region}
-                onChange={(e) => setSchoolData({ ...schoolData, region: e.target.value })}
-              />
-
-              <label className="text-sm">Division Office</label>
-              <input
-                className="border p-2 rounded"
-                value={schoolData.divisionOffice}
-                onChange={(e) => setSchoolData({ ...schoolData, divisionOffice: e.target.value })}
-              />
-
-              <label className="text-sm">District</label>
-              <input
-                className="border p-2 rounded"
-                value={schoolData.district}
-                onChange={(e) => setSchoolData({ ...schoolData, district: e.target.value })}
-              />
-
-              <label className="text-sm">Municipality / City / Province</label>
-              <input
-                className="border p-2 rounded"
-                value={schoolData.municipalityCityProvince}
-                onChange={(e) => setSchoolData({ ...schoolData, municipalityCityProvince: e.target.value })}
-              />
 
               <label className="text-sm">Principal Name</label>
               <input

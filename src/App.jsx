@@ -32,6 +32,8 @@ import TransfersLog from "./TransfersLog";
 import BrandingSettings from "./BrandingSettings";
 import SchoolSettings from "./SchoolSettings";
 import AccountSettings from "./AccountSettings";
+import Announcements from "./Announcements";
+import SchoolCalendar from "./SchoolCalendar";
 import { canAccessPage } from "./pageAccess.js";
 import { useUserProfile } from "./hooks/useUserProfile.js";
 
@@ -224,6 +226,26 @@ function App() {
         pageTitle = "Account Settings";
         pageContent = <AccountSettings user={user} goBack={() => setCurrentPage("dashboard")} />;
         break;
+      case "announcements":
+        pageTitle = "Announcements";
+        pageContent = (
+          <Announcements
+            user={user}
+            userRoles={userRoles}
+            goBack={() => setCurrentPage("dashboard")}
+          />
+        );
+        break;
+      case "schoolCalendar":
+        pageTitle = "School Calendar";
+        pageContent = (
+          <SchoolCalendar
+            user={user}
+            userRoles={userRoles}
+            goBack={() => setCurrentPage("dashboard")}
+          />
+        );
+        break;
       default:
         // Dashboard
         pageTitle = "Dashboard";
@@ -237,6 +259,7 @@ function App() {
             goToCertificates={() => setCurrentPage("certificates")}
             goToIDGenerator={() => setCurrentPage("idGenerator")}
             goToLardo={() => setCurrentPage("lardoTracking")}
+            goToSchoolSettings={() => setCurrentPage("schoolSettings")}
           />
         );
     }

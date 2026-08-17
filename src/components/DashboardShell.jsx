@@ -4,8 +4,10 @@ import { auth } from '../firebase';
 import { Bell, LogOut, Settings, Sun, Moon, Monitor, Menu } from 'lucide-react';
 import useDarkMode from '../hooks/useDarkMode';
 import useBrandTheme from '../hooks/useBrandTheme';
+import useNotifications from '../hooks/useNotifications.js';
 import { ROLE_LABELS } from '../utils/roles.js';
 import Sidebar from './Sidebar';
+import NotificationPanel from './NotificationPanel';
 
 function initialsFor(user) {
   const source = user?.displayName || user?.email || '';
@@ -22,6 +24,8 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const notifications = useNotifications();
 
   const notifRef = useRef(null);
   const profileRef = useRef(null);
@@ -136,24 +140,42 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
             <div className="relative" ref={notifRef}>
               <button
                 type="button"
-                aria-label="Notifications"
+                aria-label={
+                  notifications.unreadCount > 0
+                    ? `Notifications (${notifications.unreadCount} new)`
+                    : 'Notifications'
+                }
                 onClick={() => {
-                  setNotifOpen((s) => !s);
+                  const opening = !notifOpen;
+                  setNotifOpen(opening);
                   setProfileOpen(false);
+                  // Opening the panel is what "seeing" means — clear the badge
+                  // then, not on navigation, so an alert raised while the user
+                  // is on another page still announces itself.
+                  if (opening) notifications.markAllSeen();
                 }}
-                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 dark:hover:bg-gray-800 dark:text-gray-300 transition-colors"
+                className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 dark:hover:bg-gray-800 dark:text-gray-300 transition-colors"
               >
                 <Bell size={19} />
+                {notifications.unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-bold tabular-nums ring-2 ring-white dark:ring-gray-900">
+                    {notifications.unreadCount > 9 ? '9+' : notifications.unreadCount}
+                  </span>
+                )}
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</h4>
                   </div>
-                  <div className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
-                    You're all caught up.
-                  </div>
+                  <NotificationPanel
+                    notifications={notifications}
+                    onNavigate={(page) => {
+                      setNotifOpen(false);
+                      onNavigate(page);
+                    }}
+                  />
                 </div>
               )}
             </div>

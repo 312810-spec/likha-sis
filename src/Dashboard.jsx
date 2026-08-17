@@ -3,6 +3,7 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { Users, CheckCircle2, FileText, CalendarDays, Plus, ClipboardList, FilePlus2, ShieldAlert, Inbox, LifeBuoy } from 'lucide-react';
 import { db } from './firebase';
 import { canAccessPage } from './pageAccess.js';
+import WeatherCard from './components/WeatherCard.jsx';
 
 function StatTile({ icon: Icon, tint, label, value }) {
   return (
@@ -121,8 +122,11 @@ function LardoRiskSummary({ goToLardo }) {
   );
 }
 
-function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, userRoles }) {
+function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, goToSchoolSettings, userRoles }) {
   const canSeeLardo = canAccessPage('lardoTracking', userRoles);
+  // Only offer the "set your coordinates" shortcut to roles that can actually
+  // open School Settings — otherwise it's a link into an access-denied page.
+  const canEditSchoolSettings = canAccessPage('schoolSettings', userRoles);
 
   return (
     <div className="font-sans text-gray-900 dark:text-gray-100 animate-slide-up">
@@ -184,6 +188,8 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, userRoles })
         </div>
 
         <aside className="space-y-4">
+          <WeatherCard onOpenSettings={canEditSchoolSettings ? goToSchoolSettings : undefined} />
+
           {canSeeLardo && <LardoRiskSummary goToLardo={goToLardo} />}
 
           <SectionCard title="Quick Actions">

@@ -165,6 +165,44 @@ service cloud.firestore {
       allow write: if hasAnyRole(["ictCoordinator", "principal"]) || !isSetupComplete();
     }
 
+    // ---- announcements (school notices, DepEd issuances, NDRRMC advisories) ----
+    // Read: every real ROLE_OPTIONS role. A class suspension or NDRRMC advisory
+    // is useless if the teachers and stakeholders it applies to can't see it,
+    // so viewing is deliberately as wide as the role list gets. Still an
+    // ALLOWLIST rather than isSignedIn(), so a bare Auth account with no
+    // users/{uid} doc reads nothing.
+    // Write: principal and ictCoordinator ONLY -- the server-side half of
+    // canPostAnnouncements() in pageAccess.js. This matters more than usual
+    // here: an ndrrmcAdvisory or classSuspension post renders as a DANGER alert
+    // in every user's notification bell and blocks out days on the School
+    // Calendar, so the ability to post one is the ability to tell the whole
+    // school that classes are cancelled.
+    match /announcements/{announcementId} {
+      allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
+      allow write: if hasAnyRole(["principal", "ictCoordinator"]);
+    }
+
+    // ---- schoolEvents (School Calendar entries) ----
+    // Same split as announcements, and for the same reason: the calendar is a
+    // school-wide reference everyone reads, authored by the two roles that own
+    // school-wide scheduling. Mirrors canManageSchoolEvents() in pageAccess.js.
+    match /schoolEvents/{eventId} {
+      allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
+      allow write: if hasAnyRole(["principal", "ictCoordinator"]);
+    }
+
+    // ---- referenceData (school-maintained dropdown suggestions) ----
+    // Regions and Schools Division Offices ship as static data in
+    // src/data/depedReferenceData.js, but district names and neighbouring
+    // school names have no stable public machine-readable source, so the
+    // school maintains its own suggestion lists here (one document per list,
+    // e.g. referenceData/districts, referenceData/schools). Read is open to
+    // every role because these feed comboboxes on forms many roles fill in.
+    match /referenceData/{listId} {
+      allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
+      allow write: if hasAnyRole(["principal", "ictCoordinator"]);
+    }
+
     // Catch-all: anything NOT explicitly listed above is blocked completely,
     // even for logged-in users. This is a safety net so we never accidentally
     // leave a new collection wide open later without thinking about it.

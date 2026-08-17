@@ -13,6 +13,8 @@ import {
   makeDefaultShsSubjects,
   makeDefaultShsClusters,
 } from "./utils/keyStagesConfig.js";
+import SchoolIdentityFields from "./components/SchoolIdentityFields.jsx";
+import { toCoordinate } from "./utils/coordinates.js";
 import { ArrowLeft, Settings, Save, CheckCircle2, AlertCircle } from "lucide-react";
 
 const inputClass = "w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors";
@@ -22,9 +24,12 @@ const DEFAULT_SCHOOL_FIELDS = {
   schoolName: "",
   schoolAddress: "",
   region: "",
+  regionCode: "",
   divisionOffice: "",
   district: "",
   municipalityCityProvince: "",
+  latitude: "",
+  longitude: "",
   principalName: "",
   principalPosition: "",
 };
@@ -157,6 +162,10 @@ export default function SchoolSettings({ goBack }) {
         doc(db, "settings", "schoolConfig"),
         {
           ...schoolData,
+          // Coordinates are typed as text but consumed as numbers by
+          // useLocalWeather and the earthquake radius, so normalize on write.
+          latitude: toCoordinate(schoolData.latitude),
+          longitude: toCoordinate(schoolData.longitude),
           gradeLevelsOffered,
           shs,
           updatedAt: serverTimestamp(),
@@ -225,30 +234,12 @@ export default function SchoolSettings({ goBack }) {
         <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">School Identity</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className={labelClass}>
-              School Name
-              <input className={inputClass} value={schoolData.schoolName || ""} onChange={(e) => updateField("schoolName", e.target.value)} />
-            </label>
-            <label className={labelClass}>
-              School Address
-              <input className={inputClass} value={schoolData.schoolAddress || ""} onChange={(e) => updateField("schoolAddress", e.target.value)} />
-            </label>
-            <label className={labelClass}>
-              Region
-              <input className={inputClass} value={schoolData.region || ""} onChange={(e) => updateField("region", e.target.value)} />
-            </label>
-            <label className={labelClass}>
-              Division Office
-              <input className={inputClass} value={schoolData.divisionOffice || ""} onChange={(e) => updateField("divisionOffice", e.target.value)} />
-            </label>
-            <label className={labelClass}>
-              District
-              <input className={inputClass} value={schoolData.district || ""} onChange={(e) => updateField("district", e.target.value)} />
-            </label>
-            <label className={labelClass}>
-              Municipality / City / Province
-              <input className={inputClass} value={schoolData.municipalityCityProvince || ""} onChange={(e) => updateField("municipalityCityProvince", e.target.value)} />
-            </label>
+            <SchoolIdentityFields
+              values={schoolData}
+              onChange={updateField}
+              inputClass={inputClass}
+              labelClass={labelClass}
+            />
             <label className={labelClass}>
               Principal Name
               <input className={inputClass} value={schoolData.principalName || ""} onChange={(e) => updateField("principalName", e.target.value)} />
