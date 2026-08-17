@@ -52,7 +52,11 @@ describe("SF10 importer — official DepEd layout", () => {
       "Mathematics",
       "Science",
     ]);
-    expect(areas[0].grades).toEqual([85, 86, 87, 88, 87]);
+    // `grades` holds the four quarterly ratings only; the FINAL RATING column is
+    // kept separately so the two can be told apart.
+    expect(areas[0].grades).toEqual([85, 86, 87, 88]);
+    expect(areas[0].finalRating).toBe(87);
+    expect(areas[0].remarks).toBe("PASSED");
   });
 
   it("captures the general average and promotion status", async () => {

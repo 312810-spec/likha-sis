@@ -151,10 +151,17 @@ export function extractHeaderContext(rows, limit = 20) {
     const text = row.map(cellText);
 
     // Two-cell "label | value" layouts.
+    //
+    // The gap between a label and its value is set by the template's column
+    // widths, not by any convention: the real SF1 puts "School ID" in column 0
+    // and its value in column 5, and the real SF10 puts the LRN label in column
+    // 1 and its value in column 11. A fixed look-ahead window therefore drops
+    // most of the school context, so the scan runs to the end of the row and
+    // relies on "stop at the next label" to stay inside the current pair.
     for (let i = 0; i < text.length - 1; i++) {
       const field = contextField(text[i]);
       if (!field) continue;
-      for (let j = i + 1; j < Math.min(text.length, i + 4); j++) {
+      for (let j = i + 1; j < text.length; j++) {
         if (text[j] === "") continue; // merged-cell filler
         if (contextField(text[j])) break; // the next label — this one had no value
         assign(field, text[j]);

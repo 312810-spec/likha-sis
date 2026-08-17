@@ -1,15 +1,22 @@
 // src/importers/sf10/detectSF10Structure.js
 // Detects the layout of an SF10 (Learner's Permanent Academic Record) worksheet
 // WITHOUT assuming a fixed row layout. It scans worksheet contents to locate:
-//   - the learner identity header (LRN / name columns)
-//   - the school / school-year / grade / section context block
-//   - the learning-areas (subjects) grades table
+//   - the learner identity block (label/value pairs, one learner per form)
+//   - every SCHOLASTIC RECORD block, each with its own school/grade/year context
+//   - the learning-areas grades table inside each block
 //
-// NOTE: This parser was written generically because no real SF10 sample file was
-// available in the project at implementation time. The official SF10 groups
-// learning areas + grades under a "LEARNING AREAS" / "SUBJECTS" heading with a
-// "GENERAL AVERAGE" footer, and repeats that block per school year. The detection
-// below keys off those robust, content-based markers rather than fixed positions.
+// The shape of the real form drives two decisions here:
+//
+//  1. One SF10 holds MANY scholastic blocks — one per school year the learner
+//     completed (Grade 7, Grade 8, … each with their own school, section and
+//     adviser). Reading only the first block threw away every prior year, so
+//     detection returns a list of blocks and the importer emits one record each.
+//
+//  2. The school context sits BELOW the identity, under "SCHOLASTIC RECORD" —
+//     and an "ELIGIBILITY FOR JHS ENROLLMENT" block ABOVE it carries the
+//     ELEMENTARY school's name and ID. Scanning the sheet top-down would read
+//     the elementary School ID as the record's school, so each block's context
+//     is scanned only within that block's own row range.
 
 import { normText, extractHeaderContext } from "../shared/documentDetector.js";
 import { normalizeHeader, normalizeSchoolYear } from "../shared/normalization.js";
@@ -17,12 +24,15 @@ import { cellText } from "../shared/excelReader.js";
 
 const AREA_HEADER = /LEARNINGAREAS|LEARNINGAREA|SUBJECTS|SUBJECT|SUBJECTSINSTRUCTIONALTIME/;
 const AREA_FOOTER = /GENERALAVERAGE|GENERAL?AVERAGE|PROMOTED|PROMOTION|REMARKS|ADMISSION|GRADUAT(E|ION)/;
+const GENERAL_AVERAGE = /GENERALAVERAGE/;
 const IDENTITY_NON_KEYS = /NAME|LRN|REFERENCE|SEX|BIRTH|AGE|GENDER/;
 
+// The remedial-classes table repeats the words "Learning Areas" but grades a
+// re-take, not the school year, so it must never be mistaken for a grade block.
+const REMEDIAL = /REMEDIAL/;
+
 // Marks the start of the learner identity block and the start of the scholastic
-// record beneath it. The official SF10 writes identity as label/value pairs
-// spread over SEVERAL rows under "LEARNER'S INFORMATION", then puts the school
-// context under "SCHOLASTIC RECORD" *below* the identity block.
+// record beneath it.
 const IDENTITY_BLOCK_START = /LEARNERSINFORMATION|LEARNERINFORMATION/;
 const SCHOLASTIC_MARKER = /SCHOLASTICRECORD|SCHOLASTICRECORDS/;
 
@@ -46,10 +56,10 @@ function rowKey(row) {
 /**
  * Read label/value pairs for the learner identity out of a block of rows.
  *
- * The value belonging to a label is rarely in the very next cell: merged cells
- * read back as nulls, so the scan walks forward to the next non-empty cell and
- * gives up if it reaches the following label (which is how an empty "Name
- * Extension" is correctly left blank rather than filled with the next label).
+ * The value belonging to a label is rarely in the next cell — the real form puts
+ * the LRN label in column 1 and its value in column 12 — so the scan runs to the
+ * end of the row and stops at the following label, which is how an empty "Name
+ * Extension" is correctly left blank rather than filled with the next label.
  */
 export function extractIdentityPairs(rows, startRow, endRow) {
   const identity = {};
@@ -60,7 +70,7 @@ export function extractIdentityPairs(rows, startRow, endRow) {
     for (let i = 0; i < text.length; i++) {
       const field = normalizeHeader(text[i]);
       if (!field || !IDENTITY_FIELDS.has(field) || identity[field]) continue;
-      for (let j = i + 1; j < Math.min(text.length, i + 5); j++) {
+      for (let j = i + 1; j < text.length; j++) {
         if (text[j] === "") continue;
         const nextField = normalizeHeader(text[j]);
         if (nextField && IDENTITY_FIELDS.has(nextField)) break;
@@ -92,6 +102,91 @@ export function findSF10IdentityRow(rows) {
   return null;
 }
 
+/** True when a row heads a learning-areas grade table (and is not the remedial one). */
+function isAreaHeaderRow(row) {
+  const key = rowKey(row);
+  return AREA_HEADER.test(key) && !REMEDIAL.test(key);
+}
+
+/**
+ * Columns of the quarterly-rating sub-header ("1 2 3 4"), or [] when absent.
+ * Using the sub-header rather than "every numeric cell in the row" is what keeps
+ * the final rating out of the quarterly list.
+ */
+function quarterColumns(row) {
+  if (!Array.isArray(row)) return [];
+  const cols = [];
+  row.forEach((cell, col) => {
+    const t = cellText(cell);
+    if (/^[1-4]$/.test(t)) cols.push(col);
+  });
+  return cols.length >= 2 ? cols : [];
+}
+
+/** Column index of the first cell in `row` matching `pattern`, or null. */
+function columnMatching(row, pattern) {
+  if (!Array.isArray(row)) return null;
+  for (let c = 0; c < row.length; c++) {
+    if (pattern.test(normText(row[c]))) return c;
+  }
+  return null;
+}
+
+/**
+ * Build one scholastic block descriptor from its header row.
+ * `contextStart` bounds how far back the block's school context may be read, so
+ * a block never borrows the previous block's (or the elementary block's) school.
+ */
+function buildBlock(rows, areaHeaderRow, contextStart, nextBoundary) {
+  const subHeader = rows[areaHeaderRow + 1];
+  const quarterCols = quarterColumns(subHeader);
+  const areaStartRow = quarterCols.length > 0 ? areaHeaderRow + 2 : areaHeaderRow + 1;
+
+  const headerRow = rows[areaHeaderRow];
+  const finalCol = columnMatching(headerRow, /FINALRATING|^FINAL/);
+  const remarksCol = columnMatching(headerRow, /REMARKS/);
+
+  // The block ends at its GENERAL AVERAGE footer; fall back to the next block.
+  let generalAverageRow = null;
+  for (let r = areaStartRow; r < nextBoundary; r++) {
+    if (GENERAL_AVERAGE.test(rowKey(rows[r]))) {
+      generalAverageRow = r;
+      break;
+    }
+  }
+  const areaEndRow = generalAverageRow !== null ? generalAverageRow : nextBoundary;
+
+  const rawContext = extractHeaderContext(
+    rows.slice(contextStart, areaHeaderRow),
+    Math.max(0, areaHeaderRow - contextStart)
+  );
+
+  return {
+    areaHeaderRow,
+    areaStartRow,
+    areaEndRow,
+    // Where the next block begins — bounds the search for a promotion/remarks
+    // row printed BELOW the general average rather than beside it.
+    blockEnd: nextBoundary,
+    generalAverageRow,
+    quarterCols,
+    finalCol,
+    remarksCol,
+    context: {
+      schoolId: rawContext.schoolId,
+      schoolName: rawContext.schoolName,
+      division: rawContext.division,
+      district: rawContext.district,
+      schoolYear: normalizeSchoolYear(rawContext.schoolYear),
+      // Kept as bare digits: academicRecords.gradeLevel is digits by contract
+      // (utils/sf10Records.js formats it on read and the document id depends
+      // on it) — unlike SF1, which stores the canonical "Grade N".
+      gradeLevel: rawContext.grade ? String(rawContext.grade).trim() : "",
+      section: rawContext.section ? String(rawContext.section).trim() : "",
+    },
+  };
+}
+
 /**
  * Detect the SF10 structure of a worksheet.
  * @param {Object} sheet
@@ -102,15 +197,77 @@ export function detectSF10Structure(sheet) {
   const rows = sheet.rows;
   const identityRow = findSF10IdentityRow(rows);
 
+  // Locate the section markers.
+  let infoMarkerRow = null;
+  let scholasticRow = null;
+  for (let r = 0; r < rows.length; r++) {
+    const key = rowKey(rows[r]);
+    if (
+      infoMarkerRow === null &&
+      (identityRow === null || r <= identityRow) &&
+      IDENTITY_BLOCK_START.test(key)
+    ) {
+      infoMarkerRow = r;
+    }
+    if (scholasticRow === null && SCHOLASTIC_MARKER.test(key)) scholasticRow = r;
+  }
+
+  // Every learning-areas table on the sheet, in order.
+  const areaHeaderRows = [];
+  for (let r = 0; r < rows.length; r++) {
+    if (isAreaHeaderRow(rows[r])) areaHeaderRows.push(r);
+  }
+
+  // Identity block: from the "LEARNER'S INFORMATION" heading down to wherever
+  // the scholastic record starts.
+  let identity = {};
+  let identityBlockStart = null;
+  let identityBlockEnd = null;
+  if (identityRow !== null) {
+    identityBlockStart =
+      infoMarkerRow !== null ? infoMarkerRow + 1 : Math.max(0, identityRow - 4);
+    identityBlockEnd = Math.min(rows.length, identityRow + 5);
+    if (scholasticRow !== null && scholasticRow > identityRow) {
+      identityBlockEnd = scholasticRow;
+    } else if (areaHeaderRows.length > 0) {
+      const firstBelow = areaHeaderRows.find((r) => r > identityRow);
+      if (firstBelow !== undefined) identityBlockEnd = firstBelow;
+    }
+    identity = extractIdentityPairs(rows, identityBlockStart, identityBlockEnd);
+  }
+
+  const blocks = areaHeaderRows.map((headerRowIndex, i) => {
+    // A block's context may only be read from below the previous block (or, for
+    // the first block, from the SCHOLASTIC RECORD marker / end of the identity).
+    // Two SF10 layouts exist and the SCHOLASTIC RECORD marker tells them apart:
+    //  - with the marker, the school context sits BELOW the identity and an
+    //    eligibility block above it names the learner's ELEMENTARY school, so
+    //    the scan must start at the marker or that elementary School ID wins;
+    //  - without it, the context is a plain header block ABOVE the identity, so
+    //    the scan has to start at the top of the sheet.
+    let contextStart;
+    if (i > 0) {
+      contextStart = areaHeaderRows[i - 1] + 1;
+    } else if (scholasticRow !== null) {
+      contextStart = scholasticRow;
+    } else {
+      contextStart = 0;
+    }
+    const nextBoundary =
+      i + 1 < areaHeaderRows.length ? areaHeaderRows[i + 1] : rows.length;
+    return buildBlock(rows, headerRowIndex, contextStart, nextBoundary);
+  });
+
   if (identityRow === null) {
     return {
       identityRow: null,
       headerRow: null,
       columnMap: {},
-      areaStartRow: null,
-      areaEndRow: null,
-      gradesRows: [],
-      context: emptyContext(),
+      identity: {},
+      blocks,
+      areaStartRow: blocks[0] ? blocks[0].areaStartRow : null,
+      areaEndRow: blocks[0] ? blocks[0].areaEndRow : null,
+      context: blocks[0] ? blocks[0].context : emptyContext(),
       warnings: ["Could not locate an SF10 learner identity header (LRN + name)."],
     };
   }
@@ -122,65 +279,7 @@ export function detectSF10Structure(sheet) {
     if (key && !columnMap[key]) columnMap[col] = key;
   });
 
-  // Locate the section markers so the identity block and the school context are
-  // each read from the right region of the sheet.
-  let infoMarkerRow = null;
-  let scholasticRow = null;
-  let areaHeaderRow = null;
-
-  for (let r = 0; r < rows.length; r++) {
-    const key = rowKey(rows[r]);
-    if (infoMarkerRow === null && r <= identityRow && IDENTITY_BLOCK_START.test(key)) infoMarkerRow = r;
-    if (scholasticRow === null && SCHOLASTIC_MARKER.test(key)) scholasticRow = r;
-    if (areaHeaderRow === null && AREA_HEADER.test(key)) areaHeaderRow = r;
-  }
-
-  // The identity block runs from the "LEARNER'S INFORMATION" heading (or a few
-  // rows above the LRN line when there is no heading) down to wherever the
-  // scholastic record starts.
-  const identityBlockStart = infoMarkerRow !== null ? infoMarkerRow + 1 : Math.max(0, identityRow - 4);
-  let identityBlockEnd = Math.min(rows.length, identityRow + 5);
-  if (scholasticRow !== null && scholasticRow > identityRow) {
-    identityBlockEnd = scholasticRow;
-  } else if (areaHeaderRow !== null && areaHeaderRow > identityRow) {
-    identityBlockEnd = areaHeaderRow;
-  }
-
-  const identity = extractIdentityPairs(rows, identityBlockStart, identityBlockEnd);
-
-  // The school context is NOT above the identity block on an SF10 — it sits
-  // under SCHOLASTIC RECORD, below it. Scan everything down to the grade table
-  // so both layouts are covered.
-  const contextEnd = areaHeaderRow !== null ? areaHeaderRow : rows.length;
-  const rawContext = extractHeaderContext(rows.slice(0, contextEnd), contextEnd);
-  const context = {
-    schoolId: rawContext.schoolId,
-    schoolName: rawContext.schoolName,
-    division: rawContext.division,
-    district: rawContext.district,
-    schoolYear: normalizeSchoolYear(rawContext.schoolYear),
-    gradeLevel: rawContext.grade ? String(rawContext.grade).trim() : "",
-    section: rawContext.section ? String(rawContext.section).trim() : "",
-  };
-
-  // Locate the learning-areas grades table: its header row mentions
-  // LEARNING AREAS / SUBJECTS, and it ends at a GENERAL AVERAGE / REMARKS footer.
-  let areaStartRow = null;
-  let areaEndRow = null;
-  for (let r = identityRow + 1; r < rows.length; r++) {
-    if (AREA_HEADER.test(normText(rows[r].map(cellText).join(" ")))) {
-      // walk down until the footer
-      areaStartRow = r + 1;
-      let end = r + 1;
-      while (end < rows.length && !AREA_FOOTER.test(normText(rows[end].map(cellText).join(" ")))) {
-        end++;
-      }
-      areaEndRow = end;
-      break;
-    }
-  }
-
-  if (areaStartRow === null) {
+  if (blocks.length === 0) {
     warnings.push(
       "No learning-areas (SUBJECTS) grade table was detected. Academic grades may not be extracted."
     );
@@ -188,14 +287,17 @@ export function detectSF10Structure(sheet) {
 
   return {
     identityRow,
-    headerRow: rows[identityRow],
+    headerRow,
     columnMap,
     identity,
     identityBlockStart,
     identityBlockEnd,
-    areaStartRow,
-    areaEndRow,
-    context,
+    blocks,
+    // First-block shortcuts, kept so callers that only care about one block
+    // (and the existing single-block tests) keep working.
+    areaStartRow: blocks[0] ? blocks[0].areaStartRow : null,
+    areaEndRow: blocks[0] ? blocks[0].areaEndRow : null,
+    context: blocks[0] ? blocks[0].context : emptyContext(),
     warnings,
   };
 }
@@ -209,11 +311,7 @@ function emptyContext() {
     schoolYear: "",
     gradeLevel: "",
     section: "",
-    name: "",
-    lrn: "",
-    birthDate: "",
-    sex: "",
   };
 }
 
-export { IDENTITY_NON_KEYS };
+export { IDENTITY_NON_KEYS, AREA_FOOTER };

@@ -40,7 +40,10 @@ const HEADER_ALIASES = {
   "middleinitial": "middleName",
   "nameextension": "nameExtension",
   "extensions": "nameExtension",
+  "extension": "nameExtension",
   "ext": "nameExtension",
+  // The SF10 spells it "NAME EXT. (Jr,I,II):" — the qualifier is stripped first.
+  "nameext": "nameExtension",
 
   "sex": "sex",
   "gender": "sex",
@@ -57,6 +60,15 @@ const HEADER_ALIASES = {
   "residentialaddress": "address",
   "householdaddress": "address",
 
+  // The official SF1 splits ADDRESS across four sub-header columns rather than
+  // one free-text cell, so each part is captured and recomposed later.
+  "barangay": "barangay",
+  "brgy": "barangay",
+  "municipalitycity": "municipalityCity",
+  "citymunicipality": "municipalityCity",
+  "municipality": "municipalityCity",
+  "province": "province",
+
   "fathersname": "fathersName",
   "fathername": "fathersName",
   "nameoffather": "fathersName",
@@ -67,6 +79,8 @@ const HEADER_ALIASES = {
   "guardian": "guardian",
   "guardianname": "guardian",
   "nameofguardian": "guardian",
+  "relationship": "guardianRelationship",
+  "guardianrelationship": "guardianRelationship",
 
   "contactnumber": "contactNumber",
   "contactno": "contactNumber",
@@ -110,6 +124,10 @@ const HEADER_PATTERNS = [
   [/^dateofbirth/, "birthDate"],
   [/^lrn/, "lrn"],
   [/^learners?referencenumber/, "lrn"],
+  // "House #/ Street/ Sitio/ Purok" — the sub-header wording varies by template.
+  [/^house/, "houseStreetSitio"],
+  // "Contact Number of Parent or Guardian"
+  [/^contactn(o|umber)/, "contactNumber"],
 ];
 
 /**
@@ -126,26 +144,75 @@ export function normalizeHeader(headerCell) {
   return null;
 }
 
+// DepEd LIS exports write "no value" as a dash rather than leaving the cell
+// blank ("CAL,JOHN PAUL, -"), so a lone dash must not become a middle name.
+const NAME_PLACEHOLDER = /^[-–—.]+$/;
+
+// Generational suffixes. The LIS packs these into the middle-name segment
+// ("CUBERO,NOEL, JR. NARCISO"), so they are lifted back out into nameExtension.
+const NAME_EXTENSION = /^(JR|SR|II|III|IV|V|VI)\.?$/i;
+
+const cleanNamePart = (part) => {
+  const t = String(part ?? "").trim();
+  return NAME_PLACEHOLDER.test(t) ? "" : t;
+};
+
 /**
- * Split a packed "Last Name, First Name Middle Name" string into its parts.
- * Returns null when the value does not look like a packed name.
+ * Split a packed name column into its parts.
+ *
+ * Two spellings occur in the wild and they must be told apart:
+ *
+ *   "Dela Cruz, Juan Santos"          — one comma: surname, then the rest split
+ *                                       on whitespace (first word = first name).
+ *   "ANTOLIJAO,ROEL ADRIAN, BERDIN"   — two commas, which is what the official
+ *                                       LIS SF1 export produces: the segments
+ *                                       are LAST, FIRST, MIDDLE and the first
+ *                                       name may itself be several words.
+ *
+ * Splitting the second form on whitespace (as this used to) yields
+ * firstName "ROEL" and middleName "ADRIAN, BERDIN", so the comma count decides.
+ *
+ * @returns {{lastName, firstName, middleName, nameExtension}|null} null when the
+ *          value is not a packed name (no comma at all).
  */
 export function splitFullName(value) {
   if (value === null || value === undefined) return null;
   const s = String(value).trim();
-  if (!s) return null;
+  if (!s || s.indexOf(",") === -1) return null;
 
-  const commaIndex = s.indexOf(",");
-  if (commaIndex === -1) return null;
+  const segments = s.split(",");
+  const lastName = cleanNamePart(segments[0]);
+  if (!lastName) return null;
 
-  const lastName = s.slice(0, commaIndex).trim();
-  const rest = s.slice(commaIndex + 1).trim().split(/\s+/).filter(Boolean);
-  if (!lastName || rest.length === 0) return null;
+  let firstName;
+  let middleRaw;
+
+  if (segments.length >= 3) {
+    // LAST, FIRST, MIDDLE — trailing empty segments are common ("X,Y,Z,").
+    firstName = cleanNamePart(segments[1]);
+    middleRaw = segments
+      .slice(2)
+      .map(cleanNamePart)
+      .filter(Boolean)
+      .join(" ");
+  } else {
+    const rest = cleanNamePart(segments[1]).split(/\s+/).filter(Boolean);
+    firstName = rest[0] || "";
+    middleRaw = rest.slice(1).join(" ");
+  }
+
+  // A generational suffix leads the middle-name segment when present.
+  let nameExtension = "";
+  const middleParts = middleRaw.split(/\s+/).filter(Boolean);
+  if (middleParts.length > 0 && NAME_EXTENSION.test(middleParts[0])) {
+    nameExtension = middleParts.shift();
+  }
 
   return {
     lastName,
-    firstName: rest[0],
-    middleName: rest.slice(1).join(" "),
+    firstName,
+    middleName: middleParts.join(" "),
+    nameExtension,
   };
 }
 
@@ -183,6 +250,26 @@ export function normalizeGrade(value) {
   const g = String(value).trim();
   const m = g.match(/\d+/);
   return m ? m[0] : "";
+}
+
+/**
+ * Canonical "Grade N" form used by the `learners` collection.
+ *
+ * The rest of the app compares a learner's gradeLevel against the configured
+ * gradeLevelsOffered (["Grade 7", "Grade 8", …] — see hooks/useSchoolConfig.js
+ * and utils/keyStagesConfig.js), so an imported learner stored as a bare "7"
+ * would silently drop out of the nutrition/SMEA rollups. The official SF1 header
+ * cell is often truncated by the LIS export ("Grade 7 (Year"), which is why the
+ * number is extracted and the label rebuilt rather than trusted verbatim.
+ *
+ * Note this is deliberately NOT applied to SF10: `academicRecords.gradeLevel` is
+ * bare digits by contract (utils/sf10Records.js formats it on read, and the
+ * document id `${lrn}_${schoolYear}_${gradeLevel}` depends on that form).
+ */
+export function canonicalGradeLevel(value) {
+  const n = normalizeGrade(value);
+  if (!n) return String(value ?? "").trim();
+  return `Grade ${n}`;
 }
 
 /**

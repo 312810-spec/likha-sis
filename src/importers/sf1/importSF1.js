@@ -233,9 +233,11 @@ export async function analyzeSF1Files(files, existingByLrn = {}) {
  *
  * @param {Array} fileModels
  * @param {Object} existingByLrn
+ * @param {Object} [options] - forwarded to detectDuplicates (e.g. `keyOf`, which
+ *        SF10 narrows so one learner's several school years are not duplicates)
  * @returns {Array} updated fileModels
  */
-export function applyDuplicates(fileModels, existingByLrn = {}) {
+export function applyDuplicates(fileModels, existingByLrn = {}, options = {}) {
   const byId = new Map();
   const flat = fileModels.flatMap((f) =>
     (f.records || []).map((r) => {
@@ -262,7 +264,7 @@ export function applyDuplicates(fileModels, existingByLrn = {}) {
     })
   );
 
-  const res = detectDuplicates(flat, existingByLrn);
+  const res = detectDuplicates(flat, existingByLrn, options);
 
   res.records.forEach((annotated) => {
     const orig = annotated._original;

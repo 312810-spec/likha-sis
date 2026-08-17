@@ -11,7 +11,11 @@ import {
   extractHeaderContext,
   normText,
 } from "../shared/documentDetector.js";
-import { normalizeHeader, normalizeSchoolYear } from "../shared/normalization.js";
+import {
+  normalizeHeader,
+  normalizeSchoolYear,
+  canonicalGradeLevel,
+} from "../shared/normalization.js";
 import { cellText, isBlankRow } from "../shared/excelReader.js";
 
 const BLANK_ROW_STR = "__BLANK__";
@@ -117,7 +121,7 @@ export function detectSF1Structure(sheet) {
     division: rawContext.division,
     district: rawContext.district,
     schoolYear: normalizeSchoolYear(rawContext.schoolYear),
-    gradeLevel: rawContext.grade ? String(rawContext.grade).trim() : "",
+    gradeLevel: canonicalGradeLevel(rawContext.grade),
     section: rawContext.section ? String(rawContext.section).trim() : "",
   };
 
@@ -152,6 +156,11 @@ export function detectSF1Structure(sheet) {
       break;
     }
     dataRows.push(row);
+
+    // "<=== COMBINED" is the grand total that closes the learner table. Anything
+    // below it is the indicator legend / signature block, so stopping here keeps
+    // the legend text out of the dropped-rows list the reviewer is shown.
+    if (isCombinedTotalRow(row)) break;
   }
 
   return {
@@ -177,6 +186,12 @@ export function isSubtotalRow(row) {
   return false;
 }
 
+/** The "<=== COMBINED" grand-total row that closes the SF1 learner table. */
+export function isCombinedTotalRow(row) {
+  if (!Array.isArray(row)) return false;
+  return /\bCOMBINED\b/.test(row.map(cellText).join(" ").toUpperCase());
+}
+
 /**
  * Detect whether a row belongs to the signature / "prepared by" footer that
  * closes an SF1. Reaching one of these means the learner table has ended.
@@ -198,35 +213,56 @@ export function isSummaryOrFooterRow(row) {
   return isSubtotalRow(row) || isFooterRow(row);
 }
 
-/** Reconstruct a "grade + section" row summary if present (used for statistics comparison). */
+/**
+ * Collect the workbook's own MALE / FEMALE totals, used to cross-check the
+ * independently counted statistics.
+ *
+ * The male and female totals sit on SEPARATE rows (the male subtotal closes the
+ * male block, the female subtotal closes the female block), so both rows are
+ * scanned and merged instead of returning at the first match. The official LIS
+ * export also writes the count to the LEFT of its label ("11 | <=== TOTAL
+ * MALE"), which is why the number is looked for on either side.
+ */
 export function findSummaryRow(sheet, headerRow) {
   const rows = sheet.rows;
+  let male = null;
+  let female = null;
+  let rowIndex = null;
+  let raw = "";
+
   for (let r = headerRow + 1; r < rows.length; r++) {
     const row = rows[r];
     if (!Array.isArray(row)) continue;
     const t = row.map(cellText).join(" ").toUpperCase();
-    if (/TOTAL\s*MALE|TOTAL\s*FEMALE|COMBINED/.test(t)) {
-      const males = extractCount(t, "TOTAL MALE");
-      const females = extractCount(t, "TOTAL FEMALE");
-      if (males !== null || females !== null) {
-        return {
-          male: males,
-          female: females,
-          raw: t,
-          rowIndex: r,
-        };
-      }
+    if (!/TOTAL\s*MALE|TOTAL\s*FEMALE|COMBINED/.test(t)) continue;
+
+    if (male === null) male = extractCount(t, "TOTAL MALE");
+    if (female === null) female = extractCount(t, "TOTAL FEMALE");
+    if (rowIndex === null && (male !== null || female !== null)) {
+      rowIndex = r;
+      raw = t;
     }
+    if (male !== null && female !== null) break;
   }
-  return null;
+
+  if (male === null && female === null) return null;
+  return { male, female, raw, rowIndex };
 }
 
+/**
+ * Read the count belonging to `label`, which may be written after the label
+ * ("TOTAL MALE: 11") or before it ("11 <=== TOTAL MALE").
+ */
 function extractCount(text, label) {
   const idx = text.indexOf(label);
   if (idx === -1) return null;
-  const after = text.slice(idx + label.length);
-  const m = after.match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : null;
+
+  const after = text.slice(idx + label.length).match(/(\d+)/);
+  if (after) return parseInt(after[1], 10);
+
+  // Fall back to the last number appearing before the label.
+  const before = text.slice(0, idx).match(/(\d+)(?!.*\d)/);
+  return before ? parseInt(before[1], 10) : null;
 }
 
 function emptyContext() {

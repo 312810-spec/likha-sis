@@ -19,13 +19,21 @@ import { identityFingerprint } from "./validation.js";
  * @param {Object} existingByLrn - Firestore map: { [lrn]: { id, data } }
  * @returns {{ records, duplicates: {within:Object, cross:Object}, conflicts:Array }}
  */
-export function detectDuplicates(records, existingByLrn = {}) {
-  const byLrn = new Map(); // lrn -> array of record refs
+export function detectDuplicates(records, existingByLrn = {}, options = {}) {
+  // What counts as "the same record" differs by document type. For SF1 a repeated
+  // LRN is always a duplicate learner. For SF10 it is not: one permanent record
+  // legitimately lists the same learner once per school year + grade level, so
+  // the caller narrows the key to keep those from being reported as duplicates.
+  const { keyOf = (r) => r.lrn } = options;
+
+  const byLrn = new Map(); // dedupe key -> array of record refs
 
   records.forEach((r) => {
     if (!r.lrn) return;
-    if (!byLrn.has(r.lrn)) byLrn.set(r.lrn, []);
-    byLrn.get(r.lrn).push(r);
+    const key = keyOf(r);
+    if (!key) return;
+    if (!byLrn.has(key)) byLrn.set(key, []);
+    byLrn.get(key).push(r);
   });
 
   const within = {};
@@ -40,7 +48,9 @@ export function detectDuplicates(records, existingByLrn = {}) {
   const indexOf = new Map();
   annotated.forEach((r) => indexOf.set(r._id, r));
 
-  byLrn.forEach((group, lrn) => {
+  byLrn.forEach((group) => {
+    // Report the learner's LRN, which is not necessarily the dedupe key.
+    const lrn = group[0].lrn;
     // 1 + 2: duplicate LRN within file / across files
     const byFile = {};
     group.forEach((r) => {
