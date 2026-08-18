@@ -286,4 +286,140 @@ describe("deriveTeacherLoad", () => {
       expect(load.totals.uncountedMinutesPerWeek).toBe(0);
     });
   });
+
+  describe("ancillaryLoad (Fix A)", () => {
+    it("counts an ancillary designation's minutes into the total and its own breakdown line", () => {
+      const teacher = {
+        ...CAMPOSO,
+        ancillaryLoad: [
+          { label: "Test Coordinator", meetingsPerWeek: 5, minutesPerMeeting: 40 },
+        ],
+      };
+
+      const load = deriveTeacherLoad({
+        teacher,
+        sections: amSections(),
+        shiftsById: SHIFTS,
+      });
+
+      // 400 teaching minutes (from the base fixture) + 5 x 40 = 200 ancillary.
+      expect(load.totals.countedMinutesPerWeek).toBe(600);
+
+      const line = load.totals.breakdown.find((b) => b.label === "Test Coordinator");
+      expect(line).toBeDefined();
+      expect(line.minutesPerWeek).toBe(200);
+    });
+
+    it("ignores a malformed ancillary entry without producing NaN", () => {
+      const teacher = {
+        ...CAMPOSO,
+        ancillaryLoad: [
+          { label: "Missing meetings", minutesPerMeeting: 40 },
+          { label: "Zero meetings", meetingsPerWeek: 0, minutesPerMeeting: 40 },
+          { label: "Non-numeric", meetingsPerWeek: "five", minutesPerMeeting: 40 },
+        ],
+      };
+
+      const load = deriveTeacherLoad({
+        teacher,
+        sections: amSections(),
+        shiftsById: SHIFTS,
+      });
+
+      // None of the malformed entries should contribute; the base teaching
+      // total (400) is unaffected and nothing is NaN.
+      expect(load.totals.countedMinutesPerWeek).toBe(400);
+      expect(Number.isNaN(load.totals.countedMinutesPerWeek)).toBe(false);
+      expect(
+        load.totals.breakdown.some((b) =>
+          ["Missing meetings", "Zero meetings", "Non-numeric"].includes(b.label)
+        )
+      ).toBe(false);
+    });
+
+    it("counts an ancillary entry with no grid placement at all via the empty-grid path", () => {
+      const teacher = {
+        id: "coordinator-only",
+        displayName: "Teacher B",
+        handles: [],
+        dutySlots: {},
+        ancillaryLoad: [
+          { label: "Committee Head", meetingsPerWeek: 1, minutesPerMeeting: 5 },
+        ],
+      };
+
+      const load = deriveTeacherLoad({
+        teacher,
+        sections: amSections(),
+        shiftsById: SHIFTS,
+      });
+
+      expect(load.totals.countedMinutesPerWeek).toBe(5);
+      // Single-digit minute, not zero-padded.
+      expect(load.totals.countedLabel).toBe("0h 5m");
+    });
+  });
+
+  describe("row duration drives teaching minutes, not a hardcoded meeting length", () => {
+    it("counts a 60-minute row as 60, not 40", () => {
+      const LONG_SHIFT = {
+        id: "LONG",
+        label: "Long Period",
+        startTime: "2:00",
+        periodDuration: 60,
+        periodsPerDay: 1,
+        fixedBlocks: [],
+      };
+
+      const section = {
+        id: "civics",
+        gradeLevel: "11",
+        name: "CIVICS",
+        shiftId: "LONG",
+        subjects: [{ subject: "Phil.Pol.", teacherId: "camposo", sessionsPerWeek: 1 }],
+        cells: { P1: { mon: { subject: "Phil.Pol.", teacherId: "camposo" } } },
+      };
+
+      const load = deriveTeacherLoad({
+        teacher: CAMPOSO,
+        sections: [section],
+        shiftsById: { ...SHIFTS, LONG: LONG_SHIFT },
+      });
+
+      expect(load.totals.countedMinutesPerWeek).toBe(60);
+    });
+  });
+
+  describe("formatDuration shape (Fix C)", () => {
+    it("renders Xh Ym with a single-digit minute left unpadded", () => {
+      const teacher = {
+        id: "format-check",
+        displayName: "Teacher C",
+        handles: [],
+        dutySlots: {},
+        // 1 x 65 = 65 minutes -> 1h 5m. A bare MOD (as in the workbook's own
+        // formula) never zero-pads, so this must read "5m", not "05m".
+        ancillaryLoad: [
+          { label: "Short Meeting", meetingsPerWeek: 1, minutesPerMeeting: 65 },
+        ],
+      };
+
+      const load = deriveTeacherLoad({
+        teacher,
+        sections: amSections(),
+        shiftsById: SHIFTS,
+      });
+
+      expect(load.totals.countedLabel).toBe("1h 5m");
+
+      // The workbook's own zero-minutes case, e.g. "20h 0m" -- still not
+      // zero-padded to "00m".
+      const ghost = deriveTeacherLoad({
+        teacher: { id: "ghost2", displayName: "Teacher D", handles: [], dutySlots: {} },
+        sections: amSections(),
+        shiftsById: SHIFTS,
+      });
+      expect(ghost.totals.countedLabel).toBe("0h 0m");
+    });
+  });
 });

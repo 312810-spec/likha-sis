@@ -17,8 +17,38 @@ function formatDuration(totalMinutes) {
   return `${hours}h ${minutes}m`;
 }
 
+// Ancillary designations (e.g. a "Mapeh Coor" coordinatorship) carry real
+// weekly minutes per the source workbook's own formula
+// (=INT(SUM(F2:F11)/60) & "h " & MOD(SUM(F2:F11),60) & "m", F = D * E) but
+// occupy no cell on any section's class program, so the grid-derived totals
+// below would otherwise give them zero. These docs are hand-seeded, so stay
+// defensive: an entry with a missing/zero/non-numeric meetingsPerWeek or
+// minutesPerMeeting is ignored rather than allowed to produce NaN on a
+// printed document.
+function sumAncillaryLoad(ancillaryLoad) {
+  const entries = Array.isArray(ancillaryLoad) ? ancillaryLoad : [];
+  let ancillaryMinutes = 0;
+  const breakdown = [];
+
+  entries.forEach((entry) => {
+    const meetingsPerWeek = Number(entry && entry.meetingsPerWeek);
+    const minutesPerMeeting = Number(entry && entry.minutesPerMeeting);
+    if (!Number.isFinite(meetingsPerWeek) || meetingsPerWeek <= 0) return;
+    if (!Number.isFinite(minutesPerMeeting) || minutesPerMeeting <= 0) return;
+
+    const minutesPerWeek = meetingsPerWeek * minutesPerMeeting;
+    ancillaryMinutes += minutesPerWeek;
+    breakdown.push({ label: entry.label, minutesPerWeek });
+  });
+
+  return { ancillaryMinutes, breakdown };
+}
+
 export function deriveTeacherLoad({ teacher, sections = [], shiftsById = {} }) {
   const dutySlots = teacher.dutySlots || {};
+  const { ancillaryMinutes, breakdown: ancillaryBreakdown } = sumAncillaryLoad(
+    teacher.ancillaryLoad
+  );
 
   // 1. Which shifts does this teacher actually appear in?
   const touchedShiftIds = [];
@@ -49,10 +79,10 @@ export function deriveTeacherLoad({ teacher, sections = [], shiftsById = {} }) {
       rows: [],
       totals: {
         preparations: 0,
-        countedMinutesPerWeek: 0,
-        countedLabel: "0h 0m",
+        countedMinutesPerWeek: ancillaryMinutes,
+        countedLabel: formatDuration(ancillaryMinutes),
         uncountedMinutesPerWeek: 0,
-        breakdown: [],
+        breakdown: ancillaryBreakdown,
       },
     };
   }
@@ -135,8 +165,9 @@ export function deriveTeacherLoad({ teacher, sections = [], shiftsById = {} }) {
   if (dutyMinutes > 0) {
     breakdown.push({ label: "Ancillary duties", minutesPerWeek: dutyMinutes });
   }
+  breakdown.push(...ancillaryBreakdown);
 
-  const counted = teachingMinutes + dutyMinutes;
+  const counted = teachingMinutes + dutyMinutes + ancillaryMinutes;
 
   return {
     rows: loadRows,

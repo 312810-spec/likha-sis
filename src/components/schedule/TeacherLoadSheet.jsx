@@ -110,8 +110,9 @@ export default function TeacherLoadSheet({
         </tbody>
       </table>
       <p className="mt-1 text-xs">
-        Total counts teaching periods and tagged ancillary duties. The DepEd basis for
-        the previous 21h 40m figure is under confirmation.
+        Total counts every assignment at its actual frequency (meetings per week ×
+        minutes per meeting), including advisory, HGP, Aral Basa, and ancillary
+        designations. Preparation and monitoring blocks are not counted.
       </p>
 
       <div className="grid grid-cols-3 gap-4 mt-6 text-xs text-center">
