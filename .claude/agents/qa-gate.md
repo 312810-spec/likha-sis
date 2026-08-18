@@ -2,10 +2,9 @@
 name: qa-gate
 description: >-
   Final quality gate for LIKHA-SIS changes. Use after implementing a feature
-  or fix and before considering it done, especially after grading, LARDO,
-  print, or Firestore schema changes made by grading-auditor/schema-guardian.
-  Fails the change if lint, tests, or CLAUDE.md mandates aren't met — does
-  not implement fixes itself, only reports pass/fail with specifics.
+  or fix, before considering it done — especially after grading, LARDO,
+  print, or Firestore schema changes. Fails on lint/test/CLAUDE.md mandate
+  violations; reports pass/fail only, doesn't fix.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---

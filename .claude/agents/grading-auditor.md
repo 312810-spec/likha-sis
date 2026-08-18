@@ -2,11 +2,9 @@
 name: grading-auditor
 description: >-
   Read-only analyst for LIKHA-SIS grading and LARDO/behavioral-risk logic.
-  Use when grading computations, transmutation, or attendance/LARDO trigger
-  code has changed and needs a DO 15 s.2026 / DO 006 s.2026 compliance check
-  before it ships, or when asked for a second opinion on whether a grading
-  or LARDO change is correct. Does not write code — hands findings back for
-  the caller (or schema-guardian) to act on.
+  Use when grading, transmutation, or attendance/LARDO trigger code changes
+  and needs a DO 15 / DO 006 s.2026 compliance check before shipping, or for
+  a second opinion on a grading/LARDO change. Does not write code.
 tools: Read, Grep, Glob, Bash
 model: opus
 ---
