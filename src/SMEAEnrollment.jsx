@@ -13,11 +13,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
-import { academicCalendar, getCurrentTermForSchoolYear } from "./academicCalendar";
+import { getCurrentTermForSchoolYear } from "./academicCalendar";
+import useAcademicCalendar from "./hooks/useAcademicCalendar";
 import { BarChart3, Users, AlertTriangle } from "lucide-react";
-
-// Selectable school years derived from the academic calendar configuration, sorted descending.
-const SCHOOL_YEARS = Object.keys(academicCalendar).sort((a, b) => b.localeCompare(a));
 
 // Normalize a learner's sex into "Male" | "Female" | "" (unrecognized/empty).
 function normalizeSex(sex) {
@@ -134,6 +132,9 @@ function buildReport(allLearners, selectedSY) {
 }
 
 function SMEAEnrollment() {
+  // School years come from School Settings > Academic Calendar (falling back
+  // to the built-in SY 2026-2027), not from a hardcoded module constant.
+  const { calendar, schoolYears } = useAcademicCalendar();
   const [selectedSY, setSelectedSY] = useState("2026-2027");
   const [learners, setLearners] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -165,10 +166,16 @@ function SMEAEnrollment() {
     };
   }, []);
 
+  // Keep the current selection listed even if the school later removes that
+  // year from its academic calendar, so the dropdown never shows a blank value.
+  const schoolYearOptions = schoolYears.includes(selectedSY)
+    ? schoolYears
+    : [selectedSY, ...schoolYears];
+
   const report = useMemo(() => buildReport(learners, selectedSY), [learners, selectedSY]);
 
   // Derive the current term using the shared academic calendar helper.
-  const currentTerm = getCurrentTermForSchoolYear(selectedSY, new Date());
+  const currentTerm = getCurrentTermForSchoolYear(selectedSY, new Date(), calendar);
   const termLabel = currentTerm ? currentTerm.label : "Outside configured academic period";
 
   const schoolYearLabel = String(selectedSY).replace("-", "–");
@@ -201,7 +208,7 @@ function SMEAEnrollment() {
   if (report.inSYCount === 0) {
     return (
       <div className="max-w-6xl mx-auto space-y-4 animate-slide-up">
-        <ReportControls selectedSY={selectedSY} setSelectedSY={setSelectedSY} schoolYearLabel={schoolYearLabel} termLabel={termLabel} />
+        <ReportControls selectedSY={selectedSY} setSelectedSY={setSelectedSY} schoolYears={schoolYearOptions} schoolYearLabel={schoolYearLabel} termLabel={termLabel} />
         <div className="flex flex-col items-center justify-center gap-2 py-16 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
           <Users size={22} className="text-gray-300 dark:text-gray-600" />
           <p className="text-sm text-gray-400 dark:text-gray-500">No enrollment records found for SY {schoolYearLabel}.</p>
@@ -212,7 +219,7 @@ function SMEAEnrollment() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-4 animate-slide-up">
-      <ReportControls selectedSY={selectedSY} setSelectedSY={setSelectedSY} schoolYearLabel={schoolYearLabel} termLabel={termLabel} />
+      <ReportControls selectedSY={selectedSY} setSelectedSY={setSelectedSY} schoolYears={schoolYearOptions} schoolYearLabel={schoolYearLabel} termLabel={termLabel} />
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -323,7 +330,7 @@ function RowGroup({ row }) {
 }
 
 // School year selector + term display (shared by all states).
-function ReportControls({ selectedSY, setSelectedSY, schoolYearLabel, termLabel }) {
+function ReportControls({ selectedSY, setSelectedSY, schoolYears, schoolYearLabel, termLabel }) {
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
@@ -344,7 +351,7 @@ function ReportControls({ selectedSY, setSelectedSY, schoolYearLabel, termLabel 
             value={selectedSY}
             onChange={(e) => setSelectedSY(e.target.value)}
           >
-            {SCHOOL_YEARS.map((sy) => (
+            {schoolYears.map((sy) => (
               <option key={sy} value={sy}>
                 {String(sy).replace("-", "–")}
               </option>

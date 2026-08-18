@@ -4,6 +4,9 @@ import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import SetupWizard from "../SetupWizard.jsx";
+import { setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { verifySettingsKey } from "../utils/settingsLock.js";
 
 // Mock Firebase Auth & Firestore
 vi.mock("../firebase.js", () => ({
@@ -87,9 +90,12 @@ describe("SetupWizard 4-step flow", () => {
     fireEvent.change(textInputs[0], { target: { value: "Juan Dela Cruz" } });
     fireEvent.change(textInputs[1], { target: { value: "juan@school.edu" } });
 
+    // 0/1 = login password + confirm, 2/3 = School Settings key + confirm.
     const passwordInputs = container.querySelectorAll("input[type='password']");
     fireEvent.change(passwordInputs[0], { target: { value: "password123" } });
     fireEvent.change(passwordInputs[1], { target: { value: "password123" } });
+    fireEvent.change(passwordInputs[2], { target: { value: "settings-key-123" } });
+    fireEvent.change(passwordInputs[3], { target: { value: "settings-key-123" } });
 
     fireEvent.click(screen.getByRole("button", { name: /Create account/i }));
 
@@ -104,6 +110,63 @@ describe("SetupWizard 4-step flow", () => {
     expect(screen.getByRole("button", { name: "Save and Continue" })).toBeTruthy();
   });
 
+  it("blocks Step 2 until a valid School Settings key is provided", async () => {
+    const { container } = render(React.createElement(SetupWizard));
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await waitFor(() => expect(screen.getByText("Step 2 of 4")).toBeTruthy());
+
+    const textInputs = container.querySelectorAll("input:not([type='password']):not([type='checkbox'])");
+    fireEvent.change(textInputs[0], { target: { value: "Juan Dela Cruz" } });
+    fireEvent.change(textInputs[1], { target: { value: "juan@school.edu" } });
+
+    const passwordInputs = container.querySelectorAll("input[type='password']");
+    fireEvent.change(passwordInputs[0], { target: { value: "password123" } });
+    fireEvent.change(passwordInputs[1], { target: { value: "password123" } });
+    // Settings key left blank.
+
+    fireEvent.click(screen.getByRole("button", { name: /Create account/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/Please enter a School Settings key/i)).toBeTruthy()
+    );
+    expect(createUserWithEmailAndPassword).not.toHaveBeenCalled();
+    expect(screen.getByText("Step 2 of 4")).toBeTruthy();
+  });
+
+  it("stores only a hash of the School Settings key, never the key itself", async () => {
+    const { container } = render(React.createElement(SetupWizard));
+
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await waitFor(() => expect(screen.getByText("Step 2 of 4")).toBeTruthy());
+
+    const textInputs = container.querySelectorAll("input:not([type='password']):not([type='checkbox'])");
+    fireEvent.change(textInputs[0], { target: { value: "Juan Dela Cruz" } });
+    fireEvent.change(textInputs[1], { target: { value: "juan@school.edu" } });
+
+    const passwordInputs = container.querySelectorAll("input[type='password']");
+    fireEvent.change(passwordInputs[0], { target: { value: "password123" } });
+    fireEvent.change(passwordInputs[1], { target: { value: "password123" } });
+    fireEvent.change(passwordInputs[2], { target: { value: "settings-key-123" } });
+    fireEvent.change(passwordInputs[3], { target: { value: "settings-key-123" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /Create account/i }));
+    await waitFor(() => expect(screen.getByText("Step 3 of 4")).toBeTruthy());
+
+    const securityCall = setDoc.mock.calls.find((call) => call[0]?.path === "settings/security");
+    expect(securityCall).toBeTruthy();
+
+    const payload = securityCall[1];
+    expect(payload.algo).toBe("PBKDF2-SHA256");
+    expect(payload.salt).toMatch(/^[0-9a-f]{32}$/);
+    expect(payload.hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(payload)).not.toContain("settings-key-123");
+
+    // And the key is verifiable afterwards.
+    await expect(verifySettingsKey("settings-key-123", payload)).resolves.toBe(true);
+    await expect(verifySettingsKey("wrong-key-9999", payload)).resolves.toBe(false);
+  });
+
   it("allows skipping Step 3 and advances to Step 4 (Import Learners)", async () => {
     const { container } = render(React.createElement(SetupWizard));
 
@@ -116,9 +179,12 @@ describe("SetupWizard 4-step flow", () => {
     fireEvent.change(textInputs[0], { target: { value: "Juan Dela Cruz" } });
     fireEvent.change(textInputs[1], { target: { value: "juan@school.edu" } });
 
+    // 0/1 = login password + confirm, 2/3 = School Settings key + confirm.
     const passwordInputs = container.querySelectorAll("input[type='password']");
     fireEvent.change(passwordInputs[0], { target: { value: "password123" } });
     fireEvent.change(passwordInputs[1], { target: { value: "password123" } });
+    fireEvent.change(passwordInputs[2], { target: { value: "settings-key-123" } });
+    fireEvent.change(passwordInputs[3], { target: { value: "settings-key-123" } });
 
     fireEvent.click(screen.getByRole("button", { name: /Create account/i }));
 
@@ -151,9 +217,12 @@ describe("SetupWizard 4-step flow", () => {
     fireEvent.change(textInputs[0], { target: { value: "Juan Dela Cruz" } });
     fireEvent.change(textInputs[1], { target: { value: "juan@school.edu" } });
 
+    // 0/1 = login password + confirm, 2/3 = School Settings key + confirm.
     const passwordInputs = container.querySelectorAll("input[type='password']");
     fireEvent.change(passwordInputs[0], { target: { value: "password123" } });
     fireEvent.change(passwordInputs[1], { target: { value: "password123" } });
+    fireEvent.change(passwordInputs[2], { target: { value: "settings-key-123" } });
+    fireEvent.change(passwordInputs[3], { target: { value: "settings-key-123" } });
 
     fireEvent.click(screen.getByRole("button", { name: /Create account/i }));
     await waitFor(() => expect(screen.getByText("Step 3 of 4")).toBeTruthy());

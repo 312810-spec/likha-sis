@@ -7,6 +7,7 @@ import {
   normalizeSex,
   normalizeDate,
   normalizeGrade,
+  splitFullName,
 } from "../shared/normalization.js";
 
 /** The canonical learner field shape the rest of the app understands. */
@@ -22,9 +23,17 @@ export function emptyLearner() {
     age: "",
     religion: "",
     address: "",
+    // The official SF1 splits the address into four sub-header columns; they are
+    // kept individually (the learner document has matching legacy fields) and
+    // also recomposed into `address`.
+    houseStreetSitio: "",
+    barangay: "",
+    municipalityCity: "",
+    province: "",
     fathersName: "",
     mothersName: "",
     guardian: "",
+    guardianRelationship: "",
     contactNumber: "",
     learningModality: "",
     remarks: "",
@@ -58,15 +67,48 @@ export function normalizeLearner(raw) {
   learner.lastName = text(raw.lastName);
   learner.firstName = text(raw.firstName);
   learner.middleName = text(raw.middleName);
+
   learner.nameExtension = text(raw.nameExtension);
+
+  // Forms that merge the name into a single "NAME (Last Name, First Name,
+  // Middle Name)" column deliver it packed — "Dela Cruz, Juan Santos" on older
+  // templates, "ANTOLIJAO,ROEL ADRIAN, BERDIN" on the official LIS export.
+  if (!learner.lastName) {
+    const parts = splitFullName(raw.fullName);
+    if (parts) {
+      learner.lastName = parts.lastName;
+      learner.firstName = learner.firstName || parts.firstName;
+      learner.middleName = learner.middleName || parts.middleName;
+      learner.nameExtension = learner.nameExtension || parts.nameExtension;
+    }
+  }
+
   learner.sex = normalizeSex(raw.sex);
   learner.birthDate = normalizeDate(raw.birthDate);
   learner.age = text(raw.age);
   learner.religion = text(raw.religion);
-  learner.address = text(raw.address);
+
+  learner.houseStreetSitio = text(raw.houseStreetSitio);
+  learner.barangay = text(raw.barangay);
+  learner.municipalityCity = text(raw.municipalityCity);
+  learner.province = text(raw.province);
+  // A single free-text ADDRESS column wins when the form has one; otherwise the
+  // address is rebuilt from the split columns so the learner still has one.
+  learner.address =
+    text(raw.address) ||
+    [
+      learner.houseStreetSitio,
+      learner.barangay,
+      learner.municipalityCity,
+      learner.province,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
   learner.fathersName = text(raw.fathersName);
   learner.mothersName = text(raw.mothersName);
   learner.guardian = text(raw.guardian);
+  learner.guardianRelationship = text(raw.guardianRelationship);
   learner.contactNumber = text(raw.contactNumber);
   learner.learningModality = text(raw.learningModality);
   learner.remarks = text(raw.remarks);
