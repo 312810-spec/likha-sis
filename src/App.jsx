@@ -22,6 +22,7 @@ import LardoTracking from "./LardoTracking";
 import CertificateGenerator from "./CertificateGenerator";
 import IDGenerator from "./IDGenerator";
 import SMEAEnrollment from "./SMEAEnrollment";
+import AnecdotalRecords from "./AnecdotalRecords";
 import ImportCenter from "./pages/ImportCenter";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
@@ -203,6 +204,16 @@ function App() {
       case "smeaEnrollment":
         pageTitle = "SMEA — Enrollment";
         pageContent = <SMEAEnrollment />;
+        break;
+      case "anecdotalRecords":
+        pageTitle = "Anecdotal Records";
+        pageContent = (
+          <AnecdotalRecords
+            user={user}
+            userRoles={userRoles}
+            goBack={() => setCurrentPage("dashboard")}
+          />
+        );
         break;
       case "importCenter":
         pageTitle = "Import Center";

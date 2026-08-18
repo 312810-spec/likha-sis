@@ -99,6 +99,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
       label: 'SMEA',
       children: [
         { label: 'Enrollment', page: 'smeaEnrollment' },
+        { label: 'Anecdotal Records', page: 'anecdotalRecords' },
       ],
     },
     {
@@ -125,10 +126,6 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     .filter(Boolean);
 
   const future = [
-    {
-      label: 'SMEA',
-      children: [{ label: 'Anecdotal Records' }],
-    },
     {
       label: 'Academic',
       children: [{ label: 'Grades' }, { label: 'Attendance' }],
