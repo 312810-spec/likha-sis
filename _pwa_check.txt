@@ -1,0 +1,4 @@
+firebase version: 12.17.1
+persistentLocalCache: true
+persistentMultiTabManager: false
+enableMultiTabIndexedDbPersistence: true

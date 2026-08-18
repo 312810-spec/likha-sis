@@ -16,7 +16,6 @@ export const PAGE_ACCESS = {
   certificates: ["adviser", "subjectTeacher", "principal"],
   idGenerator: ["adviser", "ictCoordinator", "principal"],
   smeaEnrollment: ["principal", "masterTeacher", "ictCoordinator", "smeaCoordinator"],
-  smeaAnecdotal: ["principal", "masterTeacher", "ictCoordinator", "smeaCoordinator", "guidance", "adviser"],
   smeaAcademicHub: ["principal", "masterTeacher", "ictCoordinator", "smeaCoordinator", "adviser", "subjectTeacher"],
   importCenter: ["ictCoordinator", "principal"],
   sf1Import: ["ictCoordinator", "principal"],

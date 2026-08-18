@@ -1,0 +1,20 @@
+TabManager:
+PersistentTabManager,PersistentMultipleTabManager,persistentMultipleTabManager,PersistentSingleTabManager,persistentSingleTabManager
+persistentLocalCache def:
+true
+---- context ----
+ * On failure, `enableMultiTabIndexedDbPersistence()` will reject the promise or
+export declare function enableMultiTabIndexedDbPersistence(firestore: Firestore): Promise<void>;
+    tabManager?: PersistentTabManager;
+ * To use, create an instance using the factory function {@link persistentLocalCache()}, then
+export declare function persistentLocalCache(settings?: PersistentCacheSettings): PersistentLocalCache;
+export declare interface PersistentMultipleTabManager {
+ * Creates an instance of `PersistentMultipleTabManager`.
+export declare function persistentMultipleTabManager(): PersistentMultipleTabManager;
+export declare interface PersistentSingleTabManager {
+ * Creates an instance of `PersistentSingleTabManager`.
+export declare function persistentSingleTabManager(settings: PersistentSingleTabManagerSettings | undefined): PersistentSingleTabManager;
+ * Type to configure an `PersistentSingleTabManager` instance.
+export declare interface PersistentSingleTabManagerSettings {
+export declare type PersistentTabManager = PersistentSingleTabManager | PersistentMultipleTabManager;
+ * `enableIndexedDbPersistence()` or `enableMultiTabIndexedDbPersistence()`
