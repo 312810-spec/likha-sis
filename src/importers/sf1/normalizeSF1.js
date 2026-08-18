@@ -21,6 +21,8 @@ export function emptyLearner() {
     sex: "",
     birthDate: "",
     age: "",
+    motherTongue: "",
+    ipEthnicGroup: "",
     religion: "",
     address: "",
     // The official SF1 splits the address into four sub-header columns; they are
@@ -86,6 +88,8 @@ export function normalizeLearner(raw) {
   learner.sex = normalizeSex(raw.sex);
   learner.birthDate = normalizeDate(raw.birthDate);
   learner.age = text(raw.age);
+  learner.motherTongue = text(raw.motherTongue);
+  learner.ipEthnicGroup = text(raw.ipEthnicGroup);
   learner.religion = text(raw.religion);
 
   learner.houseStreetSitio = text(raw.houseStreetSitio);
@@ -106,8 +110,8 @@ export function normalizeLearner(raw) {
       .join(", ");
 
   learner.fathersName = text(raw.fathersName);
-  learner.mothersName = text(raw.mothersName);
-  learner.guardian = text(raw.guardian);
+    learner.mothersName = text(raw.mothersName || raw.mothersMaidenName);
+  learner.guardian = text(raw.guardian || raw.guardianName);
   learner.guardianRelationship = text(raw.guardianRelationship);
   learner.contactNumber = text(raw.contactNumber);
   learner.learningModality = text(raw.learningModality);
@@ -121,6 +125,10 @@ export function normalizeLearner(raw) {
   learner.schoolYear = text(ctx.schoolYear);
   learner.gradeLevel = text(ctx.gradeLevel);
   learner.section = text(ctx.section);
+  // Ensure backward compatibility: if gradeLevel is empty but raw has a grade field
+  if (!learner.gradeLevel && raw.gradeLevel) {
+    learner.gradeLevel = text(raw.gradeLevel);
+  }
 
   learner._rowIndex = raw._rowIndex;
   return learner;

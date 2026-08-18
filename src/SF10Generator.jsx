@@ -148,6 +148,10 @@ function SF10Document({ learner, history, shsConfig }) {
 export default function SF10Generator({ goBack }) {
   const { config } = useSchoolConfig();
 
+  // Mode state: "single" for single-learner, "section" for section-batch
+  const [mode, setMode] = useState("single"); // "single" | "section"
+  const [sectionFilter, setSectionFilter] = useState("");
+
   const getSHSAwareWeights = useMemo(
     () =>
       makeSubjectWeightsResolver(
@@ -167,9 +171,6 @@ export default function SF10Generator({ goBack }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
-
-  const [mode, setMode] = useState("single"); // "single" | "section"
-  const [sectionFilter, setSectionFilter] = useState("");
 
   useEffect(() => {
     async function fetchData() {
@@ -265,18 +266,14 @@ export default function SF10Generator({ goBack }) {
         <button
           type="button"
           onClick={() => setMode("single")}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            mode === "single" ? "bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          }`}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${mode === "single" ? "bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
         >
           Single Learner
         </button>
         <button
           type="button"
           onClick={() => setMode("section")}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            mode === "section" ? "bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          }`}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${mode === "section" ? "bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
         >
           Section Batch
         </button>

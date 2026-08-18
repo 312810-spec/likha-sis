@@ -23,14 +23,7 @@ const app = initializeApp(firebaseConfig);
 // 'auth' handles teacher login/logout
 // 'db' handles reading/writing data (forms, records, grades)
 const auth = getAuth(app);
-const db = getFirestore(app, {
-  // Enable multi-tab IndexedDB persistence so data is shared across browser tabs
-  // This uses the modern persistentLocalCache API in firebase/firestore v12+
-});
-
-// Gracefully handle offline mode by checking if Firestore is online/offline
-db.onSnapChanged(() => {
-  // Just a no-op to ensure the persistence mechanism is initialized
-});
+// getFirestore uses persistent local cache (IndexedDB) by default in Firebase v12+
+const db = getFirestore(app);
 
 export { auth, db };

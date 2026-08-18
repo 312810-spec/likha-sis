@@ -9,6 +9,7 @@ export const PAGE_ACCESS = {
   consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"],
   reportCard: ["adviser", "principal"],
   viewLearners: "all",
+  editLearners: ["adviser", "ictCoordinator", "principal"],
   lardoTracking: ["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"],
   nutritionStatus: ["adviser", "smeaCoordinator"],
   nutritionConsolidator: ["adviser", "smeaCoordinator", "principal"],
@@ -31,4 +32,12 @@ export function canAccessPage(page, userRoles = []) {
   if (!allowed || allowed === "all") return true;
   if (!Array.isArray(userRoles) || userRoles.length === 0) return false;
   return userRoles.some((role) => allowed.includes(role));
+}
+
+export function canEditLearners(userRoles = []) {
+  return canAccessPage("editLearners", userRoles);
+}
+
+export function canAccessDisciplineRecords(userRoles = []) {
+  return canAccessPage("lardoTracking", userRoles);
 }
