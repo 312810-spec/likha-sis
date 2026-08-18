@@ -21,8 +21,11 @@ export const PAGE_ACCESS = {
   sf10Import: ["ictCoordinator"],
   sf10Generate: ["adviser", "principal", "ictCoordinator"],
   userManagement: ["ictCoordinator", "principal"],
-  brandingSettings: ["ictCoordinator", "principal"],
-  schoolSettings: ["ictCoordinator", "principal"],
+  // School Settings is the ICT Coordinator's own console: school identity,
+  // grade levels/SHS, branding and the academic calendar, all behind the
+  // School Settings key (see utils/settingsLock.js). Branding is a tab in
+  // there now rather than its own page, so `brandingSettings` is gone.
+  schoolSettings: ["ictCoordinator"],
   accountSettings: "all"
 };
 

@@ -12,6 +12,7 @@ import {
 } from "./utils/keyStagesConfig.js";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
+import { hashSettingsKey, validateSettingsKey, SETTINGS_KEY_MIN_LENGTH } from "./utils/settingsLock.js";
 import {
   Upload,
   Sparkles,
@@ -105,6 +106,10 @@ function SetupWizard({ onComplete }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // The School Settings key -- a SECOND secret, separate from the login
+  // password, required later before any school setting can be edited.
+  const [settingsKey, setSettingsKey] = useState("");
+  const [confirmSettingsKey, setConfirmSettingsKey] = useState("");
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -200,6 +205,10 @@ function SetupWizard({ onComplete }) {
     if (!password) e.password = "Password is required.";
     if (password && password.length < 6) e.password = "Password must be at least 6 characters.";
     if (password !== confirmPassword) e.confirmPassword = "Passwords do not match.";
+
+    const settingsKeyError = validateSettingsKey(settingsKey, confirmSettingsKey);
+    if (settingsKeyError) e.settingsKey = settingsKeyError;
+
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -230,6 +239,17 @@ function SetupWizard({ onComplete }) {
         assignments: [],
         createdAt: serverTimestamp(),
         createdByEmail: email,
+      });
+
+      // Store the School Settings key BEFORE schoolConfig: writing
+      // setupCompletedAt below flips isSetupComplete() in firestore.rules, and
+      // this write is simplest while first-run bootstrap access still applies.
+      // Only the PBKDF2 hash is persisted -- never the key itself.
+      const hashedSettingsKey = await hashSettingsKey(settingsKey);
+      await setDoc(doc(db, "settings", "security"), {
+        ...hashedSettingsKey,
+        updatedAt: serverTimestamp(),
+        updatedByEmail: email,
       });
 
       // Only persist SHS configuration when Key Stage 4 is actually enabled --
@@ -608,6 +628,34 @@ function SetupWizard({ onComplete }) {
             <label className="text-sm">Confirm Password</label>
             <input type="password" className="border p-2 rounded w-full mb-2" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
             {errors.confirmPassword && <p className="text-red-600 text-sm">{errors.confirmPassword}</p>}
+
+            <div className="mt-5 pt-4 border-t border-gray-200">
+              <p className="text-sm font-medium text-gray-700">School Settings Key</p>
+              <p className="text-xs text-gray-500 mt-1 mb-3">
+                A second secret, separate from the password above. It will be required before school
+                identity, grade levels, branding or the academic calendar can ever be changed. Minimum{" "}
+                {SETTINGS_KEY_MIN_LENGTH} characters — store it somewhere safe, it cannot be recovered.
+              </p>
+
+              <label className="text-sm">School Settings Key</label>
+              <input
+                type="password"
+                autoComplete="off"
+                className="border p-2 rounded w-full mb-2"
+                value={settingsKey}
+                onChange={(e) => setSettingsKey(e.target.value)}
+              />
+
+              <label className="text-sm">Confirm School Settings Key</label>
+              <input
+                type="password"
+                autoComplete="off"
+                className="border p-2 rounded w-full mb-2"
+                value={confirmSettingsKey}
+                onChange={(e) => setConfirmSettingsKey(e.target.value)}
+              />
+              {errors.settingsKey && <p className="text-red-600 text-sm">{errors.settingsKey}</p>}
+            </div>
 
             {submitError && <p className="text-red-600 text-sm mt-2">{submitError}</p>}
 
