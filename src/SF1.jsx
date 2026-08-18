@@ -102,12 +102,12 @@ function toFormLearner(id, d) {
     barangay: d.barangay ?? "",
     municipalityCity: d.municipalityCity ?? "",
     province: d.province ?? "",
-    fathersName: d.fathersName ?? "",
-    mothersMaidenName: d.mothersMaidenName ?? "",
-    guardianName: d.guardianName ?? "",
+    fathersName: d.fathersName ?? d.fatherName ?? "",
+    mothersMaidenName: d.mothersMaidenName ?? d.mothersName ?? d.motherName ?? "",
+    guardianName: d.guardianName ?? d.guardian ?? "",
     guardianRelationship: d.guardianRelationship ?? "",
-    contactNumber: d.contactNumber ?? "",
-    remarks: d.remarks ?? "",
+    contactNumber: d.contactNumber ?? d.contactNo ?? d.contact ?? "",
+    remarks: d.remarks ?? d.remark ?? "",
   };
 }
 

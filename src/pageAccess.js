@@ -9,7 +9,6 @@ export const PAGE_ACCESS = {
   consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"],
   reportCard: ["adviser", "principal"],
   viewLearners: "all",
-  editLearners: ["adviser", "ictCoordinator", "principal"],
   lardoTracking: ["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"],
   nutritionStatus: ["adviser", "smeaCoordinator"],
   nutritionConsolidator: ["adviser", "smeaCoordinator", "principal"],
@@ -22,20 +21,30 @@ export const PAGE_ACCESS = {
   sf1Import: ["ictCoordinator", "principal"],
   sf10Import: ["ictCoordinator", "principal"],
   sf10Generate: ["adviser", "principal", "ictCoordinator"],
-  userManagement: ["ictCoordinator"],
-  schoolSettings: ["ictCoordinator", "principal"],
+  userManagement: ["ictCoordinator", "principal"],
+  schoolSettings: ["ictCoordinator"],
   accountSettings: "all",
 };
 
+export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder"];
+export const VIEW_LEARNERS_EDIT_ROLES = ["adviser"];
+
 export function canAccessPage(page, userRoles = []) {
-  const allowed = PAGE_ACCESS[page];
-  if (!allowed || allowed === "all") return true;
   if (!Array.isArray(userRoles) || userRoles.length === 0) return false;
+  const allowed = PAGE_ACCESS[page];
+  if (!allowed) return false;
+  if (page === "viewLearners") {
+    if (userRoles.some((role) => VIEW_LEARNERS_BLOCKED_ROLES.includes(role))) {
+      return false;
+    }
+  }
+  if (allowed === "all") return true;
   return userRoles.some((role) => allowed.includes(role));
 }
 
 export function canEditLearners(userRoles = []) {
-  return canAccessPage("editLearners", userRoles);
+  if (!Array.isArray(userRoles) || userRoles.length === 0) return false;
+  return userRoles.some((role) => VIEW_LEARNERS_EDIT_ROLES.includes(role));
 }
 
 export function canAccessDisciplineRecords(userRoles = []) {

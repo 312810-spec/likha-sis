@@ -109,13 +109,13 @@ export function normalizeLearner(raw) {
       .filter(Boolean)
       .join(", ");
 
-  learner.fathersName = text(raw.fathersName);
-    learner.mothersName = text(raw.mothersName || raw.mothersMaidenName);
+  learner.fathersName = text(raw.fathersName || raw.fatherName);
+  learner.mothersName = text(raw.mothersName || raw.mothersMaidenName || raw.motherName);
   learner.guardian = text(raw.guardian || raw.guardianName);
   learner.guardianRelationship = text(raw.guardianRelationship);
-  learner.contactNumber = text(raw.contactNumber);
+  learner.contactNumber = text(raw.contactNumber || raw.contactNo || raw.contact);
   learner.learningModality = text(raw.learningModality);
-  learner.remarks = text(raw.remarks);
+  learner.remarks = text(raw.remarks || raw.remark);
 
   // Context attached from the workbook (source of truth), not the filename.
   learner.schoolId = text(ctx.schoolId);
