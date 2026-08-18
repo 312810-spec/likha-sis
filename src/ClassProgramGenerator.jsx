@@ -31,6 +31,10 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
   const [loading, setLoading] = useState(true);
   const [loadFailed, setLoadFailed] = useState(false);
   const [dirtySectionIds, setDirtySectionIds] = useState(new Set());
+  // Data-integrity warnings (sessionsPerWeek repairs, degraded roster sources)
+  // live in their own channel so an ordinary action like Seed or Save -- which
+  // writes to `status` -- can never silently erase them.
+  const [dataWarnings, setDataWarnings] = useState([]);
 
   const editable = SCHEDULE_EDIT_ROLES.some((role) => userRoles.includes(role));
 
@@ -38,14 +42,18 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
     async function load() {
       try {
         const base = doc(db, "schedules", schoolYear);
+        let usersListDegraded = false;
         const [configSnap, sectionSnap, teacherSnap, userSnap] = await Promise.all([
           getDoc(base),
           getDocs(collection(base, "sections")),
           getDocs(collection(base, "teachers")),
           getDocs(collection(db, "users")).catch((err) => {
-            // adviser/masterTeacher cannot LIST users (firestore.rules:142-144); they
-            // read schedules only, so fall back to the stored teacher docs for names.
+            // adviser/masterTeacher cannot LIST users (firestore.rules:142-144), and
+            // an ictCoordinator/principal can hit a transient network error too; they
+            // read schedules only, so fall back to the stored teacher docs for names
+            // (see buildTeacherRoster's storedTeachers source).
             console.warn("users list unavailable for this role:", err);
+            usersListDegraded = true;
             return { docs: [] };
           }),
         ]);
@@ -82,9 +90,14 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
         });
         setSections(loadedSections);
         if (loadedSections.length > 0) setActiveSectionId(loadedSections[0].id);
-        if (sessionsPerWeekWarnings.length > 0) {
-          setStatus(sessionsPerWeekWarnings.join(" "));
+
+        const warnings = [...sessionsPerWeekWarnings];
+        if (usersListDegraded) {
+          warnings.push(
+            "Teacher accounts could not be loaded; names are shown from the schedule's own teacher records."
+          );
         }
+        if (warnings.length > 0) setDataWarnings(warnings);
 
         const stored = teacherSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         const storedHandles = {};
@@ -101,6 +114,7 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
             users: userSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
             adhocTeachers: stored.filter((t) => t.source === "adhoc"),
             storedHandles,
+            storedTeachers: stored.filter((t) => t.source !== "adhoc"),
           }).map((t) => {
             // Join on doc id, per the teacher-doc-id === user-id convention above.
             const match = stored.find((s) => s.id === t.id);
@@ -149,6 +163,21 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
   const sectionConflicts = conflicts.filter(
     (c) => !c.sectionId || c.sectionId === activeSectionId
   );
+
+  // The per-section emission (one conflict per involved section) is correct
+  // for the grid -- ScheduleGrid needs it to scope red cells -- but it makes
+  // every double-booking appear twice in the summary panel below. Dedupe by
+  // message for the panel only; the grid keeps consuming `conflicts` as-is.
+  const dedupedConflicts = useMemo(() => {
+    const seen = new Set();
+    const result = [];
+    conflicts.forEach((c) => {
+      if (seen.has(c.message)) return;
+      seen.add(c.message);
+      result.push(c);
+    });
+    return result;
+  }, [conflicts]);
 
   // Derived once per render so the Teacher's Load tab can both draw sheets and
   // report how many teachers were silently excluded (a teacher doc id that
@@ -201,6 +230,16 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
   }
 
   function handleSeed() {
+    // generatePeriodRows returns [] for any malformed shift (see shiftProblems
+    // above); seeding against an empty row set would call seedSectionCells
+    // with rows: [], which returns {} and wipes the section's grid on the
+    // next Save. Refuse instead of quietly destroying the stored timetable.
+    if (activeRows.length === 0) {
+      setStatus(
+        "Cannot seed: this section's shift has no valid periods. Fix the shift configuration first."
+      );
+      return;
+    }
     updateSection(activeSectionId, (section) => ({
       ...section,
       cells: seedSectionCells({ section, rows: activeRows }),
@@ -213,13 +252,21 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
     // (ictCoordinator + principal) working on different sections silently
     // destroy each other's work. Only write sections actually touched here.
     const idsToSave = sections.filter((section) => dirtySectionIds.has(section.id));
+    const savedIds = idsToSave.map((section) => section.id);
     try {
       await Promise.all(
         idsToSave.map((section) =>
           setDoc(doc(db, "schedules", schoolYear, "sections", section.id), section)
         )
       );
-      setDirtySectionIds(new Set());
+      // Clear only the ids just written, not the whole set -- the coordinator
+      // may have kept editing (a different section, or this one) during the
+      // await, and that edit is still dirty and unsaved.
+      setDirtySectionIds((prev) => {
+        const next = new Set(prev);
+        savedIds.forEach((id) => next.delete(id));
+        return next;
+      });
       setStatus("Saved.");
     } catch (err) {
       console.error("Failed to save schedule:", err);
@@ -247,6 +294,18 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
             Coordinator or Principal needs to set up the shifts before class
             programs can be built.
           </p>
+        )}
+        {/* Data-integrity warnings (e.g. the users-list degradation notice) can
+            fire even when there is no config doc yet, so render them here too
+            instead of dropping them with this early return. */}
+        {dataWarnings.length > 0 && (
+          <div className="text-sm space-y-1">
+            {dataWarnings.map((warning, i) => (
+              <p key={i} className="text-amber-700 dark:text-amber-400">
+                {warning}
+              </p>
+            ))}
+          </div>
         )}
       </div>
     );
@@ -317,9 +376,14 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
         </button>
       </div>
 
-      {(status || shiftProblems.length > 0) && (
+      {(status || dataWarnings.length > 0 || shiftProblems.length > 0) && (
         <div className="no-print text-sm space-y-1">
           {status && <p className="text-gray-600 dark:text-gray-300">{status}</p>}
+          {dataWarnings.map((warning, i) => (
+            <p key={i} className="text-amber-700 dark:text-amber-400">
+              {warning}
+            </p>
+          ))}
           {shiftProblems.map((problem, i) => (
             <p key={i} className="text-red-600 dark:text-red-400">
               {problem}
@@ -356,14 +420,16 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
                 <button
                   type="button"
                   onClick={handleSeed}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+                  disabled={activeRows.length === 0}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Wand2 size={15} /> Seed
                 </button>
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="px-3 py-2 rounded-lg text-sm bg-primary text-white font-medium"
+                  disabled={activeRows.length === 0}
+                  className="px-3 py-2 rounded-lg text-sm bg-primary text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Save
                 </button>
@@ -382,13 +448,13 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
               editable={editable}
             />
 
-            {conflicts.length > 0 && (
+            {dedupedConflicts.length > 0 && (
               <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3">
                 <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
-                  {conflicts.length} issue(s) to review
+                  {dedupedConflicts.length} issue(s) to review
                 </p>
                 <ul className="text-xs text-amber-800 dark:text-amber-200 space-y-0.5">
-                  {conflicts.slice(0, 12).map((c, i) => (
+                  {dedupedConflicts.slice(0, 12).map((c, i) => (
                     <li key={i}>{c.message}</li>
                   ))}
                 </ul>

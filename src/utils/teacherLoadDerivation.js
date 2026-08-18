@@ -51,6 +51,7 @@ export function deriveTeacherLoad({ teacher, sections = [], shiftsById = {} }) {
         preparations: 0,
         countedMinutesPerWeek: 0,
         countedLabel: "0h 0m",
+        uncountedMinutesPerWeek: 0,
         breakdown: [],
       },
     };
@@ -73,6 +74,7 @@ export function deriveTeacherLoad({ teacher, sections = [], shiftsById = {} }) {
   let gapOrdinal = 0;
   let teachingMinutes = 0;
   let dutyMinutes = 0;
+  let uncountedMinutes = 0;
 
   const loadRows = rows.map((row) => {
     const timeLabel = formatRange(row.startMin, row.endMin);
@@ -110,6 +112,11 @@ export function deriveTeacherLoad({ teacher, sections = [], shiftsById = {} }) {
         return;
       }
 
+      // Rotation filler -- IMs Preparation / Checking & Monitoring of Outputs /
+      // Lesson Planning -- is deliberately NOT counted toward the weekly total
+      // (spec section 14.1), but its minutes are tracked so the printed sheet
+      // can state that magnitude honestly instead of a hardcoded zero.
+      uncountedMinutes += duration;
       const index = (gapOrdinal + dayIndex) % DUTY_ROTATION.length;
       byDay[day] = { kind: "duty", text: DUTY_ROTATION[index] };
     });
@@ -137,6 +144,7 @@ export function deriveTeacherLoad({ teacher, sections = [], shiftsById = {} }) {
       preparations: preparations.size,
       countedMinutesPerWeek: counted,
       countedLabel: formatDuration(counted),
+      uncountedMinutesPerWeek: uncountedMinutes,
       breakdown,
     },
   };

@@ -242,5 +242,48 @@ describe("deriveTeacherLoad", () => {
     expect(load.rows).toEqual([]);
     expect(load.totals.preparations).toBe(0);
     expect(load.totals.countedMinutesPerWeek).toBe(0);
+    expect(load.totals.uncountedMinutesPerWeek).toBe(0);
+  });
+
+  describe("uncountedMinutesPerWeek (N7)", () => {
+    it("accumulates the rotation-filler gap-row minutes, excluded from the counted total", () => {
+      const load = deriveTeacherLoad({
+        teacher: CAMPOSO,
+        sections: amSections(),
+        shiftsById: SHIFTS,
+      });
+
+      // P2 and P4 are gap rows (rotation filler), 40 min x 5 days each = 400.
+      expect(load.totals.uncountedMinutesPerWeek).toBe(400);
+      // The counted total must not include it.
+      expect(load.totals.countedMinutesPerWeek).toBe(400);
+    });
+
+    it("excludes a tagged dutySlots override from the uncounted total", () => {
+      const teacher = {
+        ...CAMPOSO,
+        dutySlots: { "6:50 – 7:30": { mon: "Advisory Functions" } },
+      };
+
+      const load = deriveTeacherLoad({
+        teacher,
+        sections: amSections(),
+        shiftsById: SHIFTS,
+      });
+
+      // One of the ten 40-minute rotation-filler slots became a tagged (counted)
+      // duty instead, so uncounted drops by 40: 400 - 40 = 360.
+      expect(load.totals.uncountedMinutesPerWeek).toBe(360);
+    });
+
+    it("is zero for a teacher with no assignments", () => {
+      const load = deriveTeacherLoad({
+        teacher: { id: "ghost", displayName: "Teacher A", handles: [], dutySlots: {} },
+        sections: amSections(),
+        shiftsById: SHIFTS,
+      });
+
+      expect(load.totals.uncountedMinutesPerWeek).toBe(0);
+    });
   });
 });

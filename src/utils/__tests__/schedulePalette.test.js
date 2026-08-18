@@ -78,6 +78,64 @@ describe("buildTeacherRoster", () => {
   });
 });
 
+describe("buildTeacherRoster storedTeachers fallback (N1)", () => {
+  it("falls back to storedTeachers for names and handles when users is empty", () => {
+    const roster = buildTeacherRoster({
+      users: [],
+      adhocTeachers: [],
+      storedTeachers: [
+        { id: "u1", source: "user", displayName: "Ann A. Camposo", handles: ["Math 7"] },
+        // An adhoc-sourced stored doc must NOT surface through storedTeachers --
+        // that source is the adhocTeachers param's job.
+        { id: "a1", source: "adhoc", displayName: "Teacher A", handles: ["ESP 7"] },
+      ],
+    });
+
+    expect(roster).toHaveLength(1);
+    const camposo = roster.find((t) => t.id === "u1");
+    expect(camposo.displayName).toBe("Ann A. Camposo");
+    expect(camposo.handles).toEqual(["Math 7"]);
+    expect(camposo.source).toBe("user");
+  });
+
+  it("does not duplicate a row when users already has the id -- merges instead", () => {
+    const roster = buildTeacherRoster({
+      users: USERS,
+      adhocTeachers: [],
+      storedTeachers: [
+        { id: "u1", source: "user", displayName: "Stale Name", handles: ["Stale Subject"] },
+      ],
+    });
+
+    const matches = roster.filter((t) => t.id === "u1");
+    expect(matches).toHaveLength(1);
+    // users stays the primary source, so nothing changes for editing roles.
+    expect(matches[0].displayName).toBe("Ann A. Camposo");
+    expect(matches[0].handles).toEqual(["Math 7"]);
+  });
+
+  it("falls back to the stored doc id as displayName when the doc has none", () => {
+    const roster = buildTeacherRoster({
+      users: [],
+      adhocTeachers: [],
+      storedTeachers: [{ id: "u5", source: "user", handles: [] }],
+    });
+
+    expect(roster[0].displayName).toBe("u5");
+  });
+
+  it("lets storedHandles override a stored doc's own handles, same as the users path", () => {
+    const roster = buildTeacherRoster({
+      users: [],
+      adhocTeachers: [],
+      storedHandles: { u1: ["Math 7", "Math 8"] },
+      storedTeachers: [{ id: "u1", source: "user", displayName: "Ann", handles: ["Old"] }],
+    });
+
+    expect(roster[0].handles).toEqual(["Math 7", "Math 8"]);
+  });
+});
+
 describe("subjectsForTeacher", () => {
   it("returns the handles list", () => {
     expect(subjectsForTeacher({ handles: ["Math 7", "Math 8"] })).toEqual([

@@ -87,7 +87,9 @@ export default function TeacherLoadSheet({
             <td className="border border-black px-2 py-1" colSpan={DAYS.length}>
               Preparation &amp; monitoring blocks — not counted
             </td>
-            <td className="border border-black px-2 py-1 text-center">0h 00m</td>
+            <td className="border border-black px-2 py-1 text-center">
+              {formatDuration(load.totals.uncountedMinutesPerWeek || 0)}
+            </td>
           </tr>
           <tr>
             <td className="border border-black px-2 py-1 font-semibold" colSpan={DAYS.length}>
