@@ -23,7 +23,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { academicCalendar } from "./academicCalendar";
+import useAcademicCalendar from "./hooks/useAcademicCalendar";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
 import {
@@ -75,21 +75,24 @@ function countWeekdays(monthValue) {
   return count;
 }
 
-// School year options come from the centralized academic calendar.
-const SCHOOL_YEARS = Object.keys(academicCalendar).length
-  ? Object.keys(academicCalendar).sort((a, b) => b.localeCompare(a))
-  : ["2026-2027"];
-
 // Blank mortality inputs (previous month / for the month).
 const DEFAULT_MORTALITY = { previousMonths: 0, forTheMonth: 0 };
 
 function SF4({ user, goBack }) {
   const { config } = useSchoolConfig();
+  // School year options come from School Settings > Academic Calendar,
+  // falling back to the built-in SY 2026-2027 calendar.
+  const { schoolYears } = useAcademicCalendar();
   const gradeOptions =
     config?.gradeLevelsOffered ||
     ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 
   const [schoolYear, setSchoolYear] = useState("2026-2027");
+  // Keep the current selection listed even if the school later removes that
+  // year from its academic calendar, so the dropdown never shows a blank value.
+  const schoolYearOptions = schoolYears.includes(schoolYear)
+    ? schoolYears
+    : [schoolYear, ...schoolYears];
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "");
   // monthValue: the raw "YYYY-MM" string from the month input, same pattern as SF2.
   const [monthValue, setMonthValue] = useState(() => {
@@ -420,7 +423,7 @@ function SF4({ user, goBack }) {
               onChange={(e) => setSchoolYear(e.target.value)}
               className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             >
-              {SCHOOL_YEARS.map((sy) => (
+              {schoolYearOptions.map((sy) => (
                 <option key={sy} value={sy}>{sy}</option>
               ))}
             </select>

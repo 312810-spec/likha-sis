@@ -154,20 +154,36 @@ service cloud.firestore {
         );
     }
 
-    // ---- settings (school config, branding, setup state) ----
+    // ---- settings/security (School Settings key) ----
+    // Holds ONLY the PBKDF2 salt+hash of the School Settings key -- never the
+    // key itself. Deliberately narrower than the rest of /settings: no other
+    // role has any reason to read the hash, so it is ictCoordinator-only.
+    // MUST come with the `document != 'security'` guard on the generic rule
+    // below, because Firestore allow rules are additive -- a narrower match
+    // block cannot take away access granted by a broader one.
+    // The !isSetupComplete() branch lets SetupWizard write it during
+    // first-run bootstrap, before the first user doc grants any role.
+    match /settings/security {
+      allow read, write: if hasAnyRole(["ictCoordinator"]) || !isSetupComplete();
+    }
+
+    // ---- settings (school config, branding, academic calendar, setup state) ----
     // Read: any signed-in user BEFORE setup completes (needed for
     // SetupWizard/App.jsx to check setup state during first-run bootstrap,
     // when a brand-new account has no users/{uid} doc -- and therefore no
     // role -- yet). Once setup is complete, requires a real ROLE_OPTIONS
     // role like every other collection, so a signed-in account with no
     // assigned role can't read school config after launch.
-    // Write: ictCoordinator/principal normally, OR anyone during first-run
-    // setup (before isSetupComplete), so a brand-new school can write its
-    // own settings/schoolConfig doc while bootstrapping.
+    // Write: ictCoordinator only -- School Settings is the ICT Coordinator's
+    // console (branding included, now that it is a tab in there) -- OR anyone
+    // during first-run setup (before isSetupComplete), so a brand-new school
+    // can write its own settings/schoolConfig doc while bootstrapping.
     match /settings/{document} {
-      allow read: if !isSetupComplete()
-        || hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
-      allow write: if hasAnyRole(["ictCoordinator", "principal"]) || !isSetupComplete();
+      allow read: if document != 'security'
+        && (!isSetupComplete()
+          || hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]));
+      allow write: if document != 'security'
+        && (hasAnyRole(["ictCoordinator"]) || !isSetupComplete());
     }
 
     // Catch-all: anything NOT explicitly listed above is blocked completely,
