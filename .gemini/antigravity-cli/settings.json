@@ -1,0 +1,8 @@
+{
+  "toolPermission": "proceed-in-sandbox",
+  "enableTerminalSandbox": true,
+  "maxOutputTokensPerTool": 1000,
+  "enableContextPruning": true,
+  "contextTruncationStrategy": "summarize-older-turns",
+  "readDiffsOnly": true
+}
