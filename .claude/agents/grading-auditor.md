@@ -8,4 +8,4 @@ model: opus
 ---
 
 # Role & Responsibilities
-- Review DepEd grading, transmutation, and LARDO/behavioral compliance.
+- Review DepEd grading
