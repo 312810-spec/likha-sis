@@ -108,6 +108,21 @@ service cloud.firestore {
       allow read, write: if hasAnyRole(["smeaCoordinator", "principal", "guidance"]);
     }
 
+    // ---- anecdotal_records (SMEA Anecdotal Records & Incident Monitoring
+    // Hub, SMEAAnecdotal.jsx) ----
+    // Learner-level incident records covering DO 006 categories (behavioral/
+    // disciplinary, academic concern, commendation, guidance referral, chronic
+    // attendance). Per DO 006 s.2026 this is LARDO/behavioral data, so access
+    // is restricted to smeaCoordinator, principal, guidance only -- exactly the
+    // role set as the disciplinaryRecords block above. Deliberately NOT the
+    // wider smeaAnecdotal page-access list in pageAccess.js (which also names
+    // masterTeacher/ictCoordinator/adviser); that list must be narrowed to
+    // match before the module goes live, or those roles get a page they can
+    // open but no data they can read.
+    match /anecdotal_records/{recordId} {
+      allow read, write: if hasAnyRole(["smeaCoordinator", "principal", "guidance"]);
+    }
+
     // ---- transfers ----
     match /transfers/{transferId} {
       allow read, write: if hasAnyRole(["adviser", "ictCoordinator", "principal", "smeaCoordinator"]);
