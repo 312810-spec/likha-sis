@@ -26,6 +26,7 @@ import ImportCenter from "./pages/ImportCenter";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
 import SF10Generator from "./SF10Generator";
+import ClassProgramGenerator from "./ClassProgramGenerator";
 import UserManagement from "./pages/UserManagement";
 import NutritionStatus from "./NutritionStatus";
 import TransfersLog from "./TransfersLog";
@@ -163,6 +164,14 @@ function App() {
       case "sf10Generate":
         pageTitle = "SF10 Generator";
         pageContent = <SF10Generator goBack={() => setCurrentPage("dashboard")} />;
+        break;
+      case "classProgram":
+        pageContent = (
+          <ClassProgramGenerator
+            goBack={() => setCurrentPage("dashboard")}
+            userRoles={userRoles}
+          />
+        );
         break;
       case "viewLearners":
         pageTitle = "View Learners";
