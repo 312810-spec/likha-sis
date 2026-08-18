@@ -28,7 +28,7 @@ describe("findConflicts", () => {
     expect(findConflicts({ sections, teachersById: TEACHERS })).toEqual([]);
   });
 
-  it("flags a teacher booked in two sections at the same period and day", () => {
+  it("flags a teacher booked in two sections at the same period and day, once per section", () => {
     const sections = [
       sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "camposo" } } }),
       sectionWith(
@@ -40,11 +40,17 @@ describe("findConflicts", () => {
     const conflicts = findConflicts({ sections, teachersById: TEACHERS });
     const doubled = conflicts.filter((c) => c.type === "teacherDoubleBooked");
 
-    expect(doubled).toHaveLength(1);
-    expect(doubled[0].teacherId).toBe("camposo");
-    expect(doubled[0].periodId).toBe("P1");
-    expect(doubled[0].day).toBe("mon");
-    expect(doubled[0].message).toContain("Mrs. Camposo");
+    // One conflict per involved section (FIX-11) -- not one shared conflict --
+    // so ScheduleGrid can scope the red cell to the sections actually involved
+    // and an unrelated section's grid stays clean.
+    expect(doubled).toHaveLength(2);
+    expect(doubled.map((c) => c.sectionId).sort()).toEqual(["s7hope", "s7love"]);
+    doubled.forEach((c) => {
+      expect(c.teacherId).toBe("camposo");
+      expect(c.periodId).toBe("P1");
+      expect(c.day).toBe("mon");
+      expect(c.message).toContain("Mrs. Camposo");
+    });
   });
 
   it("does not flag the same teacher in two sections on different days", () => {
@@ -128,6 +134,36 @@ describe("findConflicts", () => {
 
     const conflicts = findConflicts({ sections, teachersById: TEACHERS });
     expect(conflicts.some((c) => c.type === "outOfQualification")).toBe(false);
+  });
+
+  it("flags a cell whose teacherId no longer matches any known teacher", () => {
+    const sections = [
+      sectionWith(
+        { P1: { mon: { subject: "Math 7", teacherId: "deleted-uid" } } },
+        { subjects: [{ subject: "Math 7", teacherId: "deleted-uid", sessionsPerWeek: 1 }] }
+      ),
+    ];
+
+    const conflicts = findConflicts({ sections, teachersById: TEACHERS });
+    const unknown = conflicts.filter((c) => c.type === "unknownTeacher");
+
+    expect(unknown).toHaveLength(1);
+    expect(unknown[0].sectionId).toBe("s7love");
+    expect(unknown[0].periodId).toBe("P1");
+    expect(unknown[0].day).toBe("mon");
+    expect(unknown[0].subject).toBe("Math 7");
+    expect(unknown[0].teacherId).toBe("deleted-uid");
+    expect(unknown[0].message).toContain("LOVE");
+    expect(unknown[0].message).toContain("deleted-uid");
+  });
+
+  it("does not flag unknownTeacher for a blank teacherId, which unstaffed already covers", () => {
+    const sections = [
+      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "" } } }),
+    ];
+
+    const conflicts = findConflicts({ sections, teachersById: TEACHERS });
+    expect(conflicts.some((c) => c.type === "unknownTeacher")).toBe(false);
   });
 
   it("tolerates missing cells and missing subjects arrays", () => {

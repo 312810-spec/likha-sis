@@ -17,13 +17,17 @@ export default function ScheduleGrid({
   rows = [],
   cells = {},
   conflicts = [],
+  activeSectionId,
   armed,
   onPaint,
   editable = true,
 }) {
+  // Conflicts now carry the section(s) they belong to (see scheduleConflicts.js
+  // teacherDoubleBooked). Matching on sectionId here -- not just periodId|day --
+  // stops a double-booking in one section from painting a cell red in another.
   const conflicted = new Set(
     conflicts
-      .filter((c) => c.periodId && c.day)
+      .filter((c) => c.periodId && c.day && c.sectionId === activeSectionId)
       .map((c) => `${c.periodId}|${c.day}`)
   );
 

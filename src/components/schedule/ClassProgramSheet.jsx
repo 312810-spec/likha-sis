@@ -44,10 +44,9 @@ export default function ClassProgramSheet({
         <tbody>
           {rows.map((row) => {
             if (row.kind === "fixed") {
+              const baseline = (row.labelByDay && row.labelByDay.mon) || row.label;
               const uniform = DAYS.every(
-                (day) =>
-                  ((row.labelByDay && row.labelByDay[day]) || row.label) ===
-                  ((row.labelByDay && row.labelByDay.mon) || row.label)
+                (day) => ((row.labelByDay && row.labelByDay[day]) || row.label) === baseline
               );
 
               return (
@@ -57,7 +56,7 @@ export default function ClassProgramSheet({
                   </td>
                   {uniform ? (
                     <td className="border border-black px-2 py-1 text-center font-medium" colSpan={DAYS.length}>
-                      {row.label}
+                      {baseline}
                     </td>
                   ) : (
                     DAYS.map((day) => (

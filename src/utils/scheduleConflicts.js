@@ -38,12 +38,17 @@ export function findConflicts({ sections = [], teachersById = {} }) {
       .map((s) => `${s.gradeLevel} - ${s.name}`)
       .join(" and ");
 
-    conflicts.push({
-      type: "teacherDoubleBooked",
-      teacherId,
-      periodId,
-      day,
-      message: `${name} is booked in ${where} at the same time.`,
+    // One conflict per involved section, each carrying that section's id, so a
+    // double-booking between Grades 8 and 9 does not paint red in Grade 7.
+    occupiedSections.forEach((section) => {
+      conflicts.push({
+        type: "teacherDoubleBooked",
+        teacherId,
+        sectionId: section.id,
+        periodId,
+        day,
+        message: `${name} is booked in ${where} at the same time.`,
+      });
     });
   });
 
@@ -81,6 +86,26 @@ export function findConflicts({ sections = [], teachersById = {} }) {
           `${entry.subject} in ${section.gradeLevel} - ${section.name} is placed ` +
           `${placed} time(s) but expects ${entry.sessionsPerWeek} per week.`,
       });
+    });
+  });
+
+  // A cell's teacherId points at nobody in the roster (e.g. a deleted user).
+  // Neither "unstaffed" (the id is truthy) nor "outOfQualification" (an
+  // early-return on the undefined lookup) catches this, so it needs its own type.
+  eachCell(sections, ({ section, periodId, day, cell }) => {
+    if (!cell.teacherId) return;
+    if (teachersById[cell.teacherId]) return;
+
+    conflicts.push({
+      type: "unknownTeacher",
+      sectionId: section.id,
+      periodId,
+      day,
+      subject: cell.subject,
+      teacherId: cell.teacherId,
+      message:
+        `${section.gradeLevel} - ${section.name} has ${cell.subject} assigned to ` +
+        `teacher id "${cell.teacherId}", which no longer exists.`,
     });
   });
 

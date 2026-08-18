@@ -33,10 +33,73 @@ export function formatRange(startMin, endMin) {
   return `${formatTime(startMin)} – ${formatTime(endMin)}`;
 }
 
+// The shift config is hand-seeded in the Firebase console with no validating
+// UI, so ordinary entry errors (a malformed "6:00 AM" startTime, a missing
+// periodsPerDay) are expected. Returns an array of human-readable problem
+// strings; an empty array means the shift is safe to lay out.
+export function validateShift(shift) {
+  if (!shift || typeof shift !== "object") {
+    return ["Shift configuration is missing."];
+  }
+
+  const problems = [];
+
+  if (Number.isNaN(parseTime(shift.startTime))) {
+    problems.push(
+      `startTime ${JSON.stringify(shift.startTime)} is not a valid H:MM time.`
+    );
+  }
+
+  const periodsPerDay = shift.periodsPerDay;
+  const hasValidPeriodsPerDay = Number.isInteger(periodsPerDay) && periodsPerDay > 0;
+  if (!hasValidPeriodsPerDay) {
+    problems.push(
+      `periodsPerDay must be a positive integer (got ${JSON.stringify(periodsPerDay)}).`
+    );
+  }
+
+  const periodDuration = shift.periodDuration;
+  if (
+    typeof periodDuration !== "number" ||
+    !Number.isFinite(periodDuration) ||
+    periodDuration <= 0
+  ) {
+    problems.push(
+      `periodDuration must be a positive number (got ${JSON.stringify(periodDuration)}).`
+    );
+  }
+
+  const blocks = Array.isArray(shift.fixedBlocks) ? shift.fixedBlocks : [];
+  blocks.forEach((block, index) => {
+    if (
+      typeof block.duration !== "number" ||
+      !Number.isFinite(block.duration) ||
+      block.duration <= 0
+    ) {
+      problems.push(`fixedBlocks[${index}].duration must be a positive number.`);
+    }
+
+    const upperBound = hasValidPeriodsPerDay ? periodsPerDay : null;
+    const withinBounds =
+      Number.isInteger(block.afterPeriod) &&
+      block.afterPeriod >= 0 &&
+      (upperBound === null || block.afterPeriod <= upperBound);
+    if (!withinBounds) {
+      problems.push(
+        `fixedBlocks[${index}].afterPeriod must be an integer between 0 and periodsPerDay.`
+      );
+    }
+  });
+
+  return problems;
+}
+
 // Walks the shift sequence, emitting fixed blocks at their declared position and
 // teaching periods in between. afterPeriod: 0 places a block before period 1;
 // afterPeriod equal to periodsPerDay places it after the last period.
 export function generatePeriodRows(shift) {
+  if (validateShift(shift).length > 0) return [];
+
   const rows = [];
   const blocks = Array.isArray(shift.fixedBlocks) ? shift.fixedBlocks : [];
   let cursor = parseTime(shift.startTime);

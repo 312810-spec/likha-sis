@@ -6,6 +6,7 @@ import {
   formatRange,
   generatePeriodRows,
   mergeRowSets,
+  validateShift,
 } from "../scheduleModel";
 
 // The morning shift exactly as it appears in
@@ -139,6 +140,64 @@ describe("generatePeriodRows", () => {
     const rows = generatePeriodRows({ ...AM_SHIFT, startTime: "6:30" });
 
     expect(formatTime(rows[0].startMin)).toBe("6:30");
+  });
+});
+
+describe("validateShift", () => {
+  it("accepts the reference morning shift", () => {
+    expect(validateShift(AM_SHIFT)).toEqual([]);
+  });
+
+  it("flags a startTime that doesn't parse as H:MM", () => {
+    const problems = validateShift({ ...AM_SHIFT, startTime: "6:00 AM" });
+    expect(problems.some((p) => p.includes("startTime"))).toBe(true);
+  });
+
+  it("flags a missing periodsPerDay", () => {
+    const shift = { ...AM_SHIFT };
+    delete shift.periodsPerDay;
+    const problems = validateShift(shift);
+    expect(problems.some((p) => p.includes("periodsPerDay"))).toBe(true);
+  });
+
+  it("flags a non-positive periodDuration", () => {
+    const problems = validateShift({ ...AM_SHIFT, periodDuration: 0 });
+    expect(problems.some((p) => p.includes("periodDuration"))).toBe(true);
+  });
+
+  it("flags a fixedBlocks entry with a non-positive duration", () => {
+    const shift = {
+      ...AM_SHIFT,
+      fixedBlocks: [{ afterPeriod: 0, label: "Broken", duration: 0 }],
+    };
+    const problems = validateShift(shift);
+    expect(problems.some((p) => p.includes("fixedBlocks[0].duration"))).toBe(true);
+  });
+
+  it("flags a fixedBlocks entry whose afterPeriod is outside 0..periodsPerDay", () => {
+    const shift = {
+      ...AM_SHIFT,
+      fixedBlocks: [{ afterPeriod: 99, label: "Broken", duration: 10 }],
+    };
+    const problems = validateShift(shift);
+    expect(problems.some((p) => p.includes("fixedBlocks[0].afterPeriod"))).toBe(true);
+  });
+
+  it("returns a problem for a missing shift object", () => {
+    expect(validateShift(undefined)).toHaveLength(1);
+  });
+});
+
+describe("generatePeriodRows guards against a malformed shift", () => {
+  it("returns an empty array instead of NaN rows for an unparseable startTime", () => {
+    const rows = generatePeriodRows({ ...AM_SHIFT, startTime: "6:00 AM" });
+    expect(rows).toEqual([]);
+  });
+
+  it("returns an empty array instead of a silently blank table for a missing periodsPerDay", () => {
+    const shift = { ...AM_SHIFT };
+    delete shift.periodsPerDay;
+    expect(generatePeriodRows(shift)).toEqual([]);
   });
 });
 

@@ -7,7 +7,7 @@ import { ArrowLeft, Printer, Wand2 } from "lucide-react";
 import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { SCHEDULE_EDIT_ROLES } from "./pageAccess";
-import { generatePeriodRows } from "./utils/scheduleModel";
+import { generatePeriodRows, validateShift } from "./utils/scheduleModel";
 import { findConflicts } from "./utils/scheduleConflicts";
 import { deriveTeacherLoad } from "./utils/teacherLoadDerivation";
 import { buildTeacherRoster } from "./utils/schedulePalette";
@@ -29,6 +29,8 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
   const [armed, setArmed] = useState(null);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [dirtySectionIds, setDirtySectionIds] = useState(new Set());
 
   const editable = SCHEDULE_EDIT_ROLES.some((role) => userRoles.includes(role));
 
@@ -40,29 +42,58 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
           getDoc(base),
           getDocs(collection(base, "sections")),
           getDocs(collection(base, "teachers")),
-          getDocs(collection(db, "users")),
+          getDocs(collection(db, "users")).catch((err) => {
+            // adviser/masterTeacher cannot LIST users (firestore.rules:142-144); they
+            // read schedules only, so fall back to the stored teacher docs for names.
+            console.warn("users list unavailable for this role:", err);
+            return { docs: [] };
+          }),
         ]);
 
         setConfig(configSnap.exists() ? configSnap.data() : null);
+
+        const sessionsPerWeekWarnings = [];
         const loadedSections = sectionSnap.docs.map((d) => {
           const data = d.data();
           const subjects = Array.isArray(data.subjects)
-            ? data.subjects.map((entry) => ({
-                ...entry,
-                sessionsPerWeek: Number.isFinite(entry.sessionsPerWeek)
-                  ? entry.sessionsPerWeek
-                  : 0,
-              }))
+            ? data.subjects.map((entry) => {
+                const raw = entry.sessionsPerWeek;
+                const wasAlreadyValid =
+                  typeof raw === "number" && Number.isFinite(raw) && raw >= 0;
+                const coerced = Number(raw);
+                const repairable = Number.isFinite(coerced) && coerced >= 0;
+                const finalValue = repairable ? coerced : 0;
+
+                if (!wasAlreadyValid) {
+                  sessionsPerWeekWarnings.push(
+                    `${entry.subject} in ${data.gradeLevel} - ${data.name}: sessionsPerWeek ` +
+                      `${JSON.stringify(raw)} ${
+                        repairable
+                          ? `was repaired to ${finalValue}`
+                          : "could not be repaired and was set to 0"
+                      }.`
+                  );
+                }
+
+                return { ...entry, sessionsPerWeek: finalValue };
+              })
             : [];
           return { id: d.id, ...data, subjects };
         });
         setSections(loadedSections);
         if (loadedSections.length > 0) setActiveSectionId(loadedSections[0].id);
+        if (sessionsPerWeekWarnings.length > 0) {
+          setStatus(sessionsPerWeekWarnings.join(" "));
+        }
 
         const stored = teacherSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         const storedHandles = {};
         stored.forEach((t) => {
-          if (t.userId && Array.isArray(t.handles)) storedHandles[t.userId] = t.handles;
+          // Convention: schedules/{sy}/teachers/{id} doc id === the user id.
+          // (adviserId, elsewhere, is a roster id -- not a user id.) A hand-created
+          // doc may omit the redundant userId field, so key on the doc id first.
+          const key = t.id || t.userId;
+          if (key && Array.isArray(t.handles)) storedHandles[key] = t.handles;
         });
 
         setTeachers(
@@ -71,6 +102,7 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
             adhocTeachers: stored.filter((t) => t.source === "adhoc"),
             storedHandles,
           }).map((t) => {
+            // Join on doc id, per the teacher-doc-id === user-id convention above.
             const match = stored.find((s) => s.id === t.id);
             return match ? { ...t, ...match, handles: t.handles } : t;
           })
@@ -78,6 +110,7 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
       } catch (err) {
         console.error("Failed to load schedules:", err);
         setStatus("Could not load schedules. Please refresh and try again.");
+        setLoadFailed(true);
       } finally {
         setLoading(false);
       }
@@ -117,10 +150,43 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
     (c) => !c.sectionId || c.sectionId === activeSectionId
   );
 
+  // Derived once per render so the Teacher's Load tab can both draw sheets and
+  // report how many teachers were silently excluded (a teacher doc id that
+  // doesn't match any cell's teacherId, or a section referencing an absent
+  // shiftId) instead of the packet just quietly coming up short.
+  const teacherLoads = useMemo(
+    () =>
+      teachers.map((teacher) => ({
+        teacher,
+        load: deriveTeacherLoad({ teacher, sections, shiftsById }),
+      })),
+    [teachers, sections, shiftsById]
+  );
+
+  const excludedTeacherCount = teacherLoads.filter(
+    ({ load }) => load.rows.length === 0
+  ).length;
+
+  // A misconfigured shift (hand-seeded in the Firebase console, no validating
+  // UI) must produce a visible message rather than a silently blank document.
+  const shiftProblems = useMemo(() => {
+    const problems = [];
+    ((config && config.shifts) || []).forEach((shift) => {
+      const issues = validateShift(shift);
+      if (issues.length > 0) {
+        problems.push(
+          `Shift "${shift.id || shift.label || "unknown"}" is misconfigured: ${issues.join(" ")}`
+        );
+      }
+    });
+    return problems;
+  }, [config]);
+
   function updateSection(sectionId, updater) {
     setSections((prev) =>
       prev.map((s) => (s.id === sectionId ? updater(s) : s))
     );
+    setDirtySectionIds((prev) => new Set(prev).add(sectionId));
   }
 
   function handlePaint(periodId, day, value) {
@@ -143,12 +209,17 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
   }
 
   async function handleSave() {
+    // Full-replace setDoc on every section would let two authorized editors
+    // (ictCoordinator + principal) working on different sections silently
+    // destroy each other's work. Only write sections actually touched here.
+    const idsToSave = sections.filter((section) => dirtySectionIds.has(section.id));
     try {
       await Promise.all(
-        sections.map((section) =>
+        idsToSave.map((section) =>
           setDoc(doc(db, "schedules", schoolYear, "sections", section.id), section)
         )
       );
+      setDirtySectionIds(new Set());
       setStatus("Saved.");
     } catch (err) {
       console.error("Failed to save schedule:", err);
@@ -166,11 +237,17 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
         <button type="button" onClick={goBack} className="text-sm text-primary">
           ← Back
         </button>
-        <p className="text-sm text-gray-600 dark:text-gray-300">
-          No schedule configuration exists for S.Y. {schoolYear} yet. An ICT
-          Coordinator or Principal needs to set up the shifts before class
-          programs can be built.
-        </p>
+        {loadFailed ? (
+          <p className="text-sm text-red-600 dark:text-red-400">
+            {status || "Could not load schedules. Please refresh and try again."}
+          </p>
+        ) : (
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            No schedule configuration exists for S.Y. {schoolYear} yet. An ICT
+            Coordinator or Principal needs to set up the shifts before class
+            programs can be built.
+          </p>
+        )}
       </div>
     );
   }
@@ -240,8 +317,15 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
         </button>
       </div>
 
-      {status && (
-        <p className="no-print text-sm text-gray-600 dark:text-gray-300">{status}</p>
+      {(status || shiftProblems.length > 0) && (
+        <div className="no-print text-sm space-y-1">
+          {status && <p className="text-gray-600 dark:text-gray-300">{status}</p>}
+          {shiftProblems.map((problem, i) => (
+            <p key={i} className="text-red-600 dark:text-red-400">
+              {problem}
+            </p>
+          ))}
+        </div>
       )}
 
       {activeTab === "Builder" && (
@@ -292,6 +376,7 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
               rows={activeRows}
               cells={(activeSection && activeSection.cells) || {}}
               conflicts={sectionConflicts}
+              activeSectionId={activeSectionId}
               armed={armed}
               onPaint={handlePaint}
               editable={editable}
@@ -337,26 +422,33 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
       )}
 
       {activeTab === "Teacher's Load" && (
-        <div className="schedule-print-area space-y-6">
-          {teachers.map((teacher) => {
-            const load = deriveTeacherLoad({ teacher, sections, shiftsById });
-            if (load.rows.length === 0) return null;
+        <div className="space-y-6">
+          {excludedTeacherCount > 0 && (
+            <p className="no-print text-sm text-amber-700 dark:text-amber-400">
+              {excludedTeacherCount} teacher(s) have no assigned load and were excluded
+              from this packet.
+            </p>
+          )}
+          <div className="schedule-print-area space-y-6">
+            {teacherLoads.map(({ teacher, load }) => {
+              if (load.rows.length === 0) return null;
 
-            const advisory = sections.find((s) => s.adviserId === teacher.id);
+              const advisory = sections.find((s) => s.adviserId === teacher.id);
 
-            return (
-              <TeacherLoadSheet
-                key={teacher.id}
-                teacher={teacher}
-                load={load}
-                schoolYear={schoolYear}
-                advisoryLabel={
-                  advisory ? `Grade ${advisory.gradeLevel} - ${advisory.name}` : ""
-                }
-                signatories={config.signatories || {}}
-              />
-            );
-          })}
+              return (
+                <TeacherLoadSheet
+                  key={teacher.id}
+                  teacher={teacher}
+                  load={load}
+                  schoolYear={schoolYear}
+                  advisoryLabel={
+                    advisory ? `Grade ${advisory.gradeLevel} - ${advisory.name}` : ""
+                  }
+                  signatories={config.signatories || {}}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

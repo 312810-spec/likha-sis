@@ -13,6 +13,14 @@ const DAY_LABELS = {
   fri: "FRIDAY",
 };
 
+// Matches the countedLabel style produced by teacherLoadDerivation.js, without
+// importing it -- this module stays presentation-only.
+function formatDuration(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}h ${minutes}m`;
+}
+
 export default function TeacherLoadSheet({
   teacher,
   load,
@@ -65,6 +73,22 @@ export default function TeacherLoadSheet({
               {load.totals.countedLabel}
             </td>
           </tr>
+          {(load.totals.breakdown || []).map((entry) => (
+            <tr key={entry.label}>
+              <td className="border border-black px-2 py-1" colSpan={DAYS.length}>
+                {entry.label}
+              </td>
+              <td className="border border-black px-2 py-1 text-center">
+                {formatDuration(entry.minutesPerWeek)}
+              </td>
+            </tr>
+          ))}
+          <tr>
+            <td className="border border-black px-2 py-1" colSpan={DAYS.length}>
+              Preparation &amp; monitoring blocks — not counted
+            </td>
+            <td className="border border-black px-2 py-1 text-center">0h 00m</td>
+          </tr>
           <tr>
             <td className="border border-black px-2 py-1 font-semibold" colSpan={DAYS.length}>
               TOTAL NUMBER OF PREPARATIONS
@@ -83,6 +107,10 @@ export default function TeacherLoadSheet({
           </tr>
         </tbody>
       </table>
+      <p className="mt-1 text-xs">
+        Total counts teaching periods and tagged ancillary duties. The DepEd basis for
+        the previous 21h 40m figure is under confirmation.
+      </p>
 
       <div className="grid grid-cols-3 gap-4 mt-6 text-xs text-center">
         <div>
@@ -108,7 +136,7 @@ export default function TeacherLoadSheet({
           <p><span className="font-semibold">M.A.:</span> {bio.ma || ""}</p>
           <p><span className="font-semibold">Eligibility:</span> {bio.eligibility || ""}</p>
           <p><span className="font-semibold">First day of service:</span> {bio.firstDayOfService || ""}</p>
-          <p><span className="font-semibold">No. of years in DepEd:</span> {bio.yearsInDepEd || ""}</p>
+          <p><span className="font-semibold">No. of years in DepEd:</span> {bio.yearsInDepEd ?? ""}</p>
         </div>
         <div>
           <p className="font-semibold">Ancillary / Designation:</p>
