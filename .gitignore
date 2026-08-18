@@ -44,3 +44,4 @@ public/*_SF10.xlsx
 *.njsproj
 *.sln
 *.sw?
+.aider*
