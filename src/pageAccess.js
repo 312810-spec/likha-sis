@@ -12,4 +12,24 @@ export const PAGE_ACCESS = {
   lardoTracking: ["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"],
   nutritionStatus: ["adviser", "smeaCoordinator"],
   nutritionConsolidator: ["adviser", "smeaCoordinator", "principal"],
-  trans
+  transfersLog: ["adviser", "ictCoordinator", "principal", "smeaCoordinator"],
+  certificates: ["adviser", "subjectTeacher", "principal"],
+  idGenerator: ["adviser", "ictCoordinator", "principal"],
+  smeaEnrollment: ["principal", "masterTeacher", "ictCoordinator", "smeaCoordinator"],
+  smeaAnecdotal: ["principal", "masterTeacher", "ictCoordinator", "smeaCoordinator", "guidance", "adviser"],
+  smeaAcademicHub: ["principal", "masterTeacher", "ictCoordinator", "smeaCoordinator", "adviser", "subjectTeacher"],
+  importCenter: ["ictCoordinator", "principal"],
+  sf1Import: ["ictCoordinator", "principal"],
+  sf10Import: ["ictCoordinator", "principal"],
+  sf10Generate: ["adviser", "principal", "ictCoordinator"],
+  userManagement: ["ictCoordinator"],
+  schoolSettings: ["ictCoordinator", "principal"],
+  accountSettings: "all",
+};
+
+export function canAccessPage(page, userRoles = []) {
+  const allowed = PAGE_ACCESS[page];
+  if (!allowed || allowed === "all") return true;
+  if (!Array.isArray(userRoles) || userRoles.length === 0) return false;
+  return userRoles.some((role) => allowed.includes(role));
+}
