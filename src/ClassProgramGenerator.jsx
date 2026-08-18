@@ -192,8 +192,15 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
     [teachers, sections, shiftsById]
   );
 
+  // A teacher with no grid rows but real counted minutes -- e.g. a full-time
+  // coordinator whose only load is an ancillary designation -- still has a
+  // weekly load under the DepEd loading-minutes rule, so their sheet must be
+  // printed rather than dropped. Only a genuinely empty load is excluded.
+  const hasPrintableLoad = (load) =>
+    load.rows.length > 0 || load.totals.countedMinutesPerWeek > 0;
+
   const excludedTeacherCount = teacherLoads.filter(
-    ({ load }) => load.rows.length === 0
+    ({ load }) => !hasPrintableLoad(load)
   ).length;
 
   // A misconfigured shift (hand-seeded in the Firebase console, no validating
@@ -497,7 +504,7 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
           )}
           <div className="schedule-print-area space-y-6">
             {teacherLoads.map(({ teacher, load }) => {
-              if (load.rows.length === 0) return null;
+              if (!hasPrintableLoad(load)) return null;
 
               const advisory = sections.find((s) => s.adviserId === teacher.id);
 
