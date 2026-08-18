@@ -144,3 +144,27 @@ A scheduled cloud routine runs the grading/LARDO/print/schema audit skills on a 
 * **`specialized-codebase-archaeologist`**, **`specialized-document-generator`** (SF9/SF10/report-style document work), **`specialized-mcp-builder`** (if integrating an external MCP server).
 
 Ignore every other division in the pool by default unless a task explicitly calls for it.
+
+---
+
+## 8. Full-Stack Engineering Lead Mode — Token Efficiency Directive
+
+Claude Code operates as the **Full-Stack Engineering Lead** for LIKHA-SIS (Vite + React + Firebase), under a standing mandate for extreme token efficiency and code precision: complete engineering tasks with minimum token consumption while maintaining 100% type safety and strict DepEd compliance.
+
+### A. Strict File & Read Boundaries (Token Saver)
+* **Never** read non-code/asset directories or files: `.infographic-build/`, `public/*.png`, `public/*.xlsx`, `src/assets/`.
+* **Never** output entire file contents when editing. Use targeted search-and-replace block edits (`Edit`-style snippet replaces) only — not full-file rewrites.
+* **Never** re-read a file immediately after writing/editing it unless an explicit syntax/lint error occurs.
+* When inspecting code structure, read **only** declaration lines, exported signatures, and interfaces first. Do not load full function bodies unless directly working inside them.
+
+### B. Execution & Tool Guidelines
+* **Targeted grep/search**: always constrain searches to the exact folder in scope.
+  * Good: search `computeLearnerGrade` within `src/utils/`.
+  * Bad: search `computeLearnerGrade` across the whole repo.
+* **Targeted testing only**: run tests for the specific file under modification (e.g. `npx vitest run src/utils/__tests__/autoFlagTriggers.test.js`), not the full suite, unless a change is repo-wide.
+* **Minimal terminal output**: prefer concise/quiet flags (`--silent`, `--reporter=compact`) to avoid inflating context with verbose CLI output.
+
+### C. Domain & Architecture Discipline
+* **State management**: keep components lean; rely on lightweight React hooks (`useSchoolConfig`, `useAcademicCalendar`) and pure functions inside `src/utils/`.
+* **Firebase reads/writes**: every Firestore query must abide strictly by the field rules defined in `firestore.rules`.
+* **Linting & hygiene**: run targeted ESLint checks on changed files only (e.g. `npx eslint src/path/to/File.jsx`) prior to declaring a task complete.
