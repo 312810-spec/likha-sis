@@ -250,6 +250,7 @@ function ViewLearners({ user, goBack, userRoles }) {
       {editingLearner && (
         <EditLearnerModal
           learner={editingLearner}
+          currentUser={user}
           onClose={() => setEditingLearner(null)}
           onSaved={(updatedLearner) => {
             setLearners((prev) =>
