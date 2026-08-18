@@ -39,12 +39,17 @@ describe("pageAccess", () => {
       expect(canAccessPage("sf10Generate", ["subjectTeacher"])).toBe(false);
       expect(canAccessPage("sf10Generate", ["stakeholder"])).toBe(false);
 
-      // brandingSettings: ["ictCoordinator", "principal"]
-      expect(canAccessPage("brandingSettings", ["ictCoordinator"])).toBe(true);
-      expect(canAccessPage("brandingSettings", ["principal"])).toBe(true);
-      expect(canAccessPage("brandingSettings", ["adviser"])).toBe(false);
-      expect(canAccessPage("brandingSettings", ["subjectTeacher"])).toBe(false);
-      expect(canAccessPage("brandingSettings", ["stakeholder"])).toBe(false);
+      // schoolSettings: ["ictCoordinator"] -- branding folded in as a tab, and
+      // principal no longer edits school configuration.
+      expect(canAccessPage("schoolSettings", ["ictCoordinator"])).toBe(true);
+      expect(canAccessPage("schoolSettings", ["principal"])).toBe(false);
+      expect(canAccessPage("schoolSettings", ["adviser"])).toBe(false);
+      expect(canAccessPage("schoolSettings", ["subjectTeacher"])).toBe(false);
+      expect(canAccessPage("schoolSettings", ["stakeholder"])).toBe(false);
+
+      // brandingSettings is retired as a standalone page.
+      expect(canAccessPage("brandingSettings", ["ictCoordinator"])).toBe(false);
+      expect(canAccessPage("brandingSettings", ["principal"])).toBe(false);
 
       // consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"]
       expect(canAccessPage("consolidatedGrades", ["subjectTeacher"])).toBe(true);

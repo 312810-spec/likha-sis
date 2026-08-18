@@ -26,6 +26,14 @@ skills-lock.json
 # graphify knowledge-graph output (generated, not project source)
 graphify-out/
 
+# Real DepEd sample workbooks used to validate the SF1/SF10 importers locally.
+# They hold real learner personal information (full names, LRNs, birth dates,
+# parents' names and addresses of minors) and everything under public/ is copied
+# verbatim into the build output and served publicly, so they must never be
+# committed. src/importers/realSamples.test.js skips when they are absent.
+public/SF1_*.xls
+public/*_SF10.xlsx
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

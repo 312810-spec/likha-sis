@@ -73,7 +73,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     { label: 'Dashboard', page: 'dashboard' },
     // NOTE: Access control for User Management will be restricted to ictCoordinator/principal roles in Phase B.
     { label: 'User Management', page: 'userManagement' },
-    { label: 'Branding', page: 'brandingSettings' },
+    // Branding is a tab inside School Settings now, not a separate page.
     { label: 'School Settings', page: 'schoolSettings' },
     { label: 'Import Center', page: 'importCenter' },
     {

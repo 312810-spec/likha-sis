@@ -59,15 +59,16 @@ export function toFirestoreLearner(learner, { importId, sourceFileFingerprint, u
     age: learner.age || calculateAge(learner.birthDate),
     religion: learner.religion || "",
     address: learner.address || "",
-    // legacy address fields (importer keeps them empty; populated via Edit modal)
-    houseStreetSitio: "",
-    barangay: "",
-    municipalityCity: "",
-    province: "",
+    // The official SF1 supplies these as separate sub-header columns, so they
+    // are carried through rather than left for the Edit modal to fill in.
+    houseStreetSitio: learner.houseStreetSitio || "",
+    barangay: learner.barangay || "",
+    municipalityCity: learner.municipalityCity || "",
+    province: learner.province || "",
     fathersName: learner.fathersName || "",
     mothersMaidenName: learner.mothersName || "",
     guardianName: learner.guardian || "",
-    guardianRelationship: "",
+    guardianRelationship: learner.guardianRelationship || "",
     contactNumber: learner.contactNumber || "",
     learningModality: learner.learningModality || "",
     remarks: learner.remarks || "",

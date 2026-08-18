@@ -11,10 +11,19 @@ import {
   extractHeaderContext,
   normText,
 } from "../shared/documentDetector.js";
-import { normalizeHeader, normalizeSchoolYear } from "../shared/normalization.js";
+import {
+  normalizeHeader,
+  normalizeSchoolYear,
+  canonicalGradeLevel,
+} from "../shared/normalization.js";
 import { cellText, isBlankRow } from "../shared/excelReader.js";
 
 const BLANK_ROW_STR = "__BLANK__";
+
+// How many consecutive blank rows end the learner table. Real SF1 templates
+// carry a spacer row between the male and female blocks, so a single blank row
+// must not be treated as the end of the data.
+const MAX_BLANK_RUN = 3;
 
 /**
  * Build the column -> canonical-field map from a header row.
@@ -28,6 +37,32 @@ function buildColumnMap(headerRow) {
     if (key) map[col] = key;
   });
   return map;
+}
+
+/** True when the column map contains a column for `field`. */
+function hasField(columnMap, field) {
+  return Object.values(columnMap).includes(field);
+}
+
+/**
+ * True when `row` is the SECOND row of a two-row header rather than learner data.
+ *
+ * The official SF1 spreads its header over two rows: the top row carries the
+ * merged group headings ("LRN", "NAME (Last Name, First Name, Middle Name)",
+ * "Address", "Parents"), and the row beneath carries the sub-headings that
+ * actually name the columns ("Last Name", "First Name", "Middle Name",
+ * "Barangay", "Father's Name"). Reading only the top row leaves the name columns
+ * unmapped, and every learner is then dropped for having no last name.
+ *
+ * A sub-header row names at least two known fields and — unlike a learner row —
+ * carries no LRN-shaped value.
+ */
+function isSubHeaderRow(row) {
+  if (!Array.isArray(row) || isBlankRow(row)) return false;
+  const recognized = Object.keys(buildColumnMap(row)).length;
+  if (recognized < 2) return false;
+  const hasLrnValue = row.some((cell) => /^\d{9,}$/.test(cellText(cell).replace(/\D/g, "")));
+  return !hasLrnValue;
 }
 
 /**
@@ -53,12 +88,26 @@ export function detectSF1Structure(sheet) {
   }
 
   const columnMap = buildColumnMap(rows[headerRow]);
-  if (!columnMap.lrn) {
+
+  // Fold in the second header row when the form uses a two-row header. The
+  // sub-header wins for the columns it names, except for a bare "Name" (which
+  // belongs to the Guardian group, not to the learner) — that would otherwise
+  // clobber a real mapping from the top row.
+  let dataStartRow = headerRow + 1;
+  if (isSubHeaderRow(rows[headerRow + 1])) {
+    const subMap = buildColumnMap(rows[headerRow + 1]);
+    Object.entries(subMap).forEach(([col, field]) => {
+      if (field !== "fullName") columnMap[col] = field;
+    });
+    dataStartRow = headerRow + 2;
+  }
+
+  if (!hasField(columnMap, "lrn")) {
     warnings.push(
       "The learner table was found but no LRN column could be identified."
     );
   }
-  if (!columnMap.lastName) {
+  if (!hasField(columnMap, "lastName") && !hasField(columnMap, "fullName")) {
     warnings.push("The learner table has no recognized Last Name column.");
   }
 
@@ -72,89 +121,148 @@ export function detectSF1Structure(sheet) {
     division: rawContext.division,
     district: rawContext.district,
     schoolYear: normalizeSchoolYear(rawContext.schoolYear),
-    gradeLevel: rawContext.grade ? String(rawContext.grade).trim() : "",
+    gradeLevel: canonicalGradeLevel(rawContext.grade),
     section: rawContext.section ? String(rawContext.section).trim() : "",
   };
 
-  // The learner data rows run from just after the header row until we hit a
-  // summary / signature / footer region. We scan and stop at the first block
-  // that is not learner data (blank, TOTAL/COMBINED summary, or signature).
+  // The learner data rows run from just after the header until the signature /
+  // footer block. The official SF1 is NOT one contiguous run: it lists the MALE
+  // block, a "MALE | TOTAL" subtotal, often a blank spacer row, then the FEMALE
+  // block. Stopping at the first blank or subtotal row — as this scan used to —
+  // silently discarded every female learner, so subtotal and spacer rows are
+  // skipped over instead, and only the footer or a long run of blanks ends the
+  // block. Non-learner rows that slip through are dropped by parseSF1, which
+  // requires both an LRN and a surname.
   const dataRows = [];
-  for (let r = headerRow + 1; r < rows.length; r++) {
+  let consecutiveBlanks = 0;
+  for (let r = dataStartRow; r < rows.length; r++) {
     const row = rows[r];
-    if (!row.length || isBlankRow(row)) {
-      // A single blank row ends the learner block (SF1 tables are contiguous
-      // and are followed by summary/signature rows).
-      dataRows.push(BLANK_ROW_STR);
-      break;
+    const blank = !row.length || isBlankRow(row);
+
+    if (blank) {
+      consecutiveBlanks++;
+      // A long run of blank rows means the table is over.
+      if (consecutiveBlanks >= MAX_BLANK_RUN) {
+        dataRows.push(BLANK_ROW_STR);
+        break;
+      }
+      dataRows.push(BLANK_ROW_STR); // keeps dataRows aligned with sheet rows
+      continue;
     }
-    if (isSummaryOrFooterRow(row)) {
+    consecutiveBlanks = 0;
+
+    if (isFooterRow(row)) {
       dataRows.push(BLANK_ROW_STR);
       break;
     }
     dataRows.push(row);
+
+    // "<=== COMBINED" is the grand total that closes the learner table. Anything
+    // below it is the indicator legend / signature block, so stopping here keeps
+    // the legend text out of the dropped-rows list the reviewer is shown.
+    if (isCombinedTotalRow(row)) break;
   }
 
   return {
     headerRow,
     columnMap,
     dataRows,
-    dataStartRow: headerRow + 1,
+    dataStartRow,
     context,
     warnings,
   };
 }
 
 /**
- * Detect whether a row is SF1 summary/footer/signature content (NOT a learner).
- * We intentionally ignore: TOTAL MALE / TOTAL FEMALE / COMBINED, signature lines,
- * "Prepared by", "Checked by", etc.
+ * Detect whether a row is a subtotal row (TOTAL MALE / MALE TOTAL / COMBINED).
+ * These sit BETWEEN the male and female blocks, so they are skipped, not treated
+ * as the end of the learner table.
  */
-export function isSummaryOrFooterRow(row) {
-  if (!Array.isArray(row)) return true;
+export function isSubtotalRow(row) {
+  if (!Array.isArray(row)) return false;
   const t = row.map(cellText).join(" ").toUpperCase();
-
-  if (/TOTAL\s*MALE/.test(t) || /TOTAL\s*FEMALE/.test(t)) return true;
+  if (/\bTOTAL\b/.test(t) && /\b(MALE|FEMALE)\b/.test(t)) return true;
   if (/\bCOMBINED\b/.test(t)) return true;
-  if (/TOTAL\s*[MALE|FEMALE|].*learner/.test(t)) return true;
-  // Signature / prepared-by footer block
-  if (/PREPARED BY|CHECKED BY|NOTED BY|CERTIFIED|SIGNATURE|SIGNED BY|Date Signed/i.test(t)) {
-    return true;
-  }
-  // A row whose first cell is a raw count and the rest mostly empty is usually
-  // summary as well; but we keep that conservative to avoid dropping learners.
   return false;
 }
 
-/** Reconstruct a "grade + section" row summary if present (used for statistics comparison). */
+/** The "<=== COMBINED" grand-total row that closes the SF1 learner table. */
+export function isCombinedTotalRow(row) {
+  if (!Array.isArray(row)) return false;
+  return /\bCOMBINED\b/.test(row.map(cellText).join(" ").toUpperCase());
+}
+
+/**
+ * Detect whether a row belongs to the signature / "prepared by" footer that
+ * closes an SF1. Reaching one of these means the learner table has ended.
+ */
+export function isFooterRow(row) {
+  if (!Array.isArray(row)) return true;
+  const t = row.map(cellText).join(" ");
+  return /PREPARED BY|CHECKED BY|NOTED BY|CERTIFIED|SIGNATURE|SIGNED BY|DATE SIGNED|SCHOOL HEAD|ADVISER/i.test(
+    t
+  );
+}
+
+/**
+ * Detect whether a row is SF1 summary/footer/signature content (NOT a learner).
+ * Retained for callers that only need "this row is not a learner".
+ */
+export function isSummaryOrFooterRow(row) {
+  if (!Array.isArray(row)) return true;
+  return isSubtotalRow(row) || isFooterRow(row);
+}
+
+/**
+ * Collect the workbook's own MALE / FEMALE totals, used to cross-check the
+ * independently counted statistics.
+ *
+ * The male and female totals sit on SEPARATE rows (the male subtotal closes the
+ * male block, the female subtotal closes the female block), so both rows are
+ * scanned and merged instead of returning at the first match. The official LIS
+ * export also writes the count to the LEFT of its label ("11 | <=== TOTAL
+ * MALE"), which is why the number is looked for on either side.
+ */
 export function findSummaryRow(sheet, headerRow) {
   const rows = sheet.rows;
+  let male = null;
+  let female = null;
+  let rowIndex = null;
+  let raw = "";
+
   for (let r = headerRow + 1; r < rows.length; r++) {
     const row = rows[r];
     if (!Array.isArray(row)) continue;
     const t = row.map(cellText).join(" ").toUpperCase();
-    if (/TOTAL\s*MALE|TOTAL\s*FEMALE|COMBINED/.test(t)) {
-      const males = extractCount(t, "TOTAL MALE");
-      const females = extractCount(t, "TOTAL FEMALE");
-      if (males !== null || females !== null) {
-        return {
-          male: males,
-          female: females,
-          raw: t,
-          rowIndex: r,
-        };
-      }
+    if (!/TOTAL\s*MALE|TOTAL\s*FEMALE|COMBINED/.test(t)) continue;
+
+    if (male === null) male = extractCount(t, "TOTAL MALE");
+    if (female === null) female = extractCount(t, "TOTAL FEMALE");
+    if (rowIndex === null && (male !== null || female !== null)) {
+      rowIndex = r;
+      raw = t;
     }
+    if (male !== null && female !== null) break;
   }
-  return null;
+
+  if (male === null && female === null) return null;
+  return { male, female, raw, rowIndex };
 }
 
+/**
+ * Read the count belonging to `label`, which may be written after the label
+ * ("TOTAL MALE: 11") or before it ("11 <=== TOTAL MALE").
+ */
 function extractCount(text, label) {
   const idx = text.indexOf(label);
   if (idx === -1) return null;
-  const after = text.slice(idx + label.length);
-  const m = after.match(/(\d+)/);
-  return m ? parseInt(m[1], 10) : null;
+
+  const after = text.slice(idx + label.length).match(/(\d+)/);
+  if (after) return parseInt(after[1], 10);
+
+  // Fall back to the last number appearing before the label.
+  const before = text.slice(0, idx).match(/(\d+)(?!.*\d)/);
+  return before ? parseInt(before[1], 10) : null;
 }
 
 function emptyContext() {

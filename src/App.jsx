@@ -30,7 +30,6 @@ import UserManagement from "./pages/UserManagement";
 import NutritionStatus from "./NutritionStatus";
 import NutritionConsolidator from "./NutritionConsolidator";
 import TransfersLog from "./TransfersLog";
-import BrandingSettings from "./BrandingSettings";
 import SchoolSettings from "./SchoolSettings";
 import AccountSettings from "./AccountSettings";
 import { canAccessPage } from "./pageAccess.js";
@@ -217,13 +216,9 @@ function App() {
         pageTitle = "Import Center — SF10 Import";
         pageContent = <SF10Importer user={user} />;
         break;
-      case "brandingSettings":
-        pageTitle = "School Branding & Theme";
-        pageContent = <BrandingSettings user={user} goBack={() => setCurrentPage("dashboard")} />;
-        break;
       case "schoolSettings":
         pageTitle = "School Settings";
-        pageContent = <SchoolSettings goBack={() => setCurrentPage("dashboard")} />;
+        pageContent = <SchoolSettings user={user} goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "accountSettings":
         pageTitle = "Account Settings";
