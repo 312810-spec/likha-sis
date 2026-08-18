@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import vitePwa from 'vite-plugin-pwa'
+import { VitePWA as vitePwa } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -35,7 +35,7 @@ export default defineConfig({
       runtimeCaching: [
         {
           urlPattern: /^https:\/\/fonts\./,
-          handler: 'stretch',
+          handler: 'CacheFirst',
           options: {
             cacheName: 'google-fonts',
             expiration: {
@@ -49,7 +49,7 @@ export default defineConfig({
         },
         {
           urlPattern: /\.(?:png|jpg|jpeg|svg|webp)$/,
-          handler: 'stretch',
+          handler: 'StaleWhileRevalidate',
           options: {
             cacheName: 'images',
             expiration: {

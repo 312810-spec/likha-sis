@@ -128,6 +128,22 @@ const HEADER_PATTERNS = [
   [/^house/, "houseStreetSitio"],
   // "Contact Number of Parent or Guardian"
   [/^contactn(o|umber)/, "contactNumber"],
+  // "MOTHER TONGUE (Grade 1 to 3 Only)" — the parenthetical is stripped first.
+  [/^mothertongue/, "motherTongue"],
+  // "IP\n(Ethnic Group)" on the official LIS SF1 export.
+  [/^ip/, "ipEthnicGroup"],
+  // Address split columns used by the official SF1 sub-header.
+  [/^barangay|^brgy/, "barangay"],
+  [/^municipality|^city|^municipalitycity/, "municipalityCity"],
+  [/^province/, "province"],
+  // Parents / guardian split columns.
+  [/^fathers?name|^nameoffather/, "fathersName"],
+  [/^mothers?maiden/, "mothersName"],
+  [/^mothers?name|^nameofmother/, "mothersName"],
+  [/^guardian/, "guardian"],
+  [/^relationship|^guardianrelationship/, "guardianRelationship"],
+  [/^learningmodality|^modality/, "learningModality"],
+  [/^remark/, "remarks"],
 ];
 
 /**

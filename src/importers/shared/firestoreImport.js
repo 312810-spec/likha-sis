@@ -57,6 +57,8 @@ export function toFirestoreLearner(learner, { importId, sourceFileFingerprint, u
     sex: learner.sex,
     birthDate: learner.birthDate,
     age: learner.age || calculateAge(learner.birthDate),
+    motherTongue: learner.motherTongue || "",
+    ipEthnicGroup: learner.ipEthnicGroup || "",
     religion: learner.religion || "",
     address: learner.address || "",
     // The official SF1 supplies these as separate sub-header columns, so they
