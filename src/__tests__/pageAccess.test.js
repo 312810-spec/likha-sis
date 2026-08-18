@@ -73,6 +73,14 @@ describe("pageAccess", () => {
       expect(canAccessPage("nutritionConsolidator", ["principal"])).toBe(true);
       expect(canAccessPage("nutritionConsolidator", ["subjectTeacher"])).toBe(false);
       expect(canAccessPage("nutritionConsolidator", ["stakeholder"])).toBe(false);
+
+      // anecdotalRecords: ["adviser", "guidance", "principal", "masterTeacher"]
+      expect(canAccessPage("anecdotalRecords", ["adviser"])).toBe(true);
+      expect(canAccessPage("anecdotalRecords", ["guidance"])).toBe(true);
+      expect(canAccessPage("anecdotalRecords", ["principal"])).toBe(true);
+      expect(canAccessPage("anecdotalRecords", ["masterTeacher"])).toBe(true);
+      expect(canAccessPage("anecdotalRecords", ["subjectTeacher"])).toBe(false);
+      expect(canAccessPage("anecdotalRecords", ["stakeholder"])).toBe(false);
     });
 
     it("blocks viewLearners specifically for stakeholder role", () => {

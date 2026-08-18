@@ -24,6 +24,7 @@ export const PAGE_ACCESS = {
   userManagement: ["ictCoordinator", "principal"],
   schoolSettings: ["ictCoordinator"],
   accountSettings: "all",
+  anecdotalRecords: ["adviser", "guidance", "principal", "masterTeacher"],
 };
 
 export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder"];
