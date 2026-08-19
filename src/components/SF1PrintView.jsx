@@ -150,6 +150,25 @@ export default function SF1PrintView({
           </tbody>
         </table>
 
+        {/* ---------- DO 017 SHS sheet-level parameters ---------- */}
+        {(school.track || school.cluster) && (
+          <div className="sf1-shs">
+            <div className="sf1-shs-title">Senior High School Parameters</div>
+            <div className="sf1-shs-row">
+              {school.track && (
+                <span className="sf1-shs-item">
+                  <span className="sf1-shs-label">Track:</span> {school.track}
+                </span>
+              )}
+              {school.cluster && (
+                <span className="sf1-shs-item">
+                  <span className="sf1-shs-label">Elective Cluster:</span> {school.cluster}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ---------- Learner register ---------- */}
         <table className="sf1-table">
           <colgroup>
@@ -389,6 +408,28 @@ const PRINT_CSS = `
 }
 .sf1-meta-inline-label { padding: 0 4px 0 18px; font-weight: normal; }
 .sf1-meta-inline-value { font-weight: bold; }
+
+/* ---- DO 017 SHS sheet-level parameters ---- */
+.sf1-shs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  color: #000;
+  background: #fff;
+  border: 1px solid #000;
+  margin-bottom: 3px;
+  padding: 2px 6px;
+  font-size: 6.5pt;
+}
+.sf1-shs-title { font-weight: bold; }
+.sf1-shs-row { display: flex; flex-wrap: wrap; gap: 14px; }
+.sf1-shs-item { white-space: nowrap; }
+.sf1-shs-label {
+  font-weight: bold;
+  border-bottom: 1px solid #000;
+  display: inline-block;
+}
 
 /* ---- learner register ---- */
 .sf1-table {

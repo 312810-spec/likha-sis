@@ -82,6 +82,27 @@ describe("SF1PrintView — metadata header block", () => {
     expect(text).toContain("Grade 10");
     expect(text).toContain("Compassion");
   });
+
+  it("renders the DO 017 SHS track and elective cluster when provided", () => {
+    const { container, getByText } = renderSheet({
+      school: {
+        ...SCHOOL,
+        gradeLevel: "Grade 11",
+        track: "Tech-Voc (Tech-Pro)",
+        cluster: "ICT",
+      },
+    });
+    expect(getByText("Senior High School Parameters")).toBeTruthy();
+    expect(container.textContent).toContain("Track: Tech-Voc (Tech-Pro)");
+    expect(container.textContent).toContain("Elective Cluster: ICT");
+    // The official 7-label header stays intact even with SHS parameters on.
+    expect(container.querySelectorAll(".sf1-meta-label").length).toBe(7);
+  });
+
+  it("omits the SHS parameter bar when no track/cluster is selected", () => {
+    const { container } = renderSheet();
+    expect(container.querySelector(".sf1-shs")).toBeNull();
+  });
 });
 
 describe("SF1PrintView — two-row table header", () => {

@@ -8,6 +8,7 @@
 
 import { useState, useEffect } from "react";
 import { Fragment } from "react";
+import { Printer, Eye, EyeOff, Save } from "lucide-react";
 import {
   collection,
   addDoc,
@@ -243,6 +244,24 @@ function SF1({ user, goBack }) {
   const nonBlankLearners = learners.filter((l) => !isBlankLearner(l));
   const hasAnyName = nonBlankLearners.some((l) => (l.lastName || "").trim() !== "");
 
+  // Live gender tally for the toolbar metrics badge (matches the print view's
+  // male-then-female split, then every remaining learner lands under Total).
+  const maleCount = nonBlankLearners.filter((l) => sexLetter(l.sex) === "M").length;
+  const femaleCount = nonBlankLearners.filter((l) => sexLetter(l.sex) === "F").length;
+  const totalCount = nonBlankLearners.length;
+
+  // Human-readable labels for the DO 017 SHS sheet header (track/cluster are
+  // stored as codes/ids in the wizard, printed as their display names).
+  const trackLabel =
+    track === "techPro"
+      ? "Tech-Voc (Tech-Pro)"
+      : track === "academic"
+      ? "Academic"
+      : track || "";
+  const selectedCluster = electiveClusters.find((c) => c.id === cluster);
+  const clusterLabel = selectedCluster?.name || cluster || "";
+
+
   // Updates one field in one row, without touching the others.
   function updateLearner(index, field, value) {
     const updated = [...learners];
@@ -337,6 +356,15 @@ function SF1({ user, goBack }) {
     }
   }
 
+  // Opens the print dialog. The register is mounted first (it may be hidden in
+  // live view), then the browser snapshots the page so only .sf1-print-view
+  // reaches the printer.
+  function handlePrint() {
+    setShowPrintArea(true);
+    // Let React commit the print view to the DOM before `window.print()` runs.
+    setTimeout(() => window.print(), 0);
+  }
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto animate-slide-up">
       {/* Print CSS — every piece of LIKHA-SIS screen chrome is hidden so only the
@@ -368,6 +396,46 @@ function SF1({ user, goBack }) {
           }
         }
       `}</style>
+
+      {/* Action Toolbar — every control is `.no-print` so it never reaches the
+          printed register. */}
+      <div className="no-print bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-3 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={handlePrint}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary/90 text-white text-sm font-semibold transition-colors"
+        >
+          <Printer size={16} />
+          Print SF1 Register
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowPrintArea((v) => !v)}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
+          {showPrintArea ? <EyeOff size={16} /> : <Eye size={16} />}
+          {showPrintArea ? "Hide Live Preview" : "Toggle Live Preview"}
+        </button>
+        <button
+          type="button"
+          onClick={handleSaveAll}
+          disabled={isSaving}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <Save size={16} />
+          {isSaving ? "Saving..." : "Save Roster"}
+        </button>
+        <div
+          className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+          role="status"
+        >
+          <span className="text-blue-600 dark:text-blue-400">Male: {maleCount}</span>
+          <span aria-hidden="true">|</span>
+          <span className="text-pink-600 dark:text-pink-400">Female: {femaleCount}</span>
+          <span aria-hidden="true">|</span>
+          <span>Total: {totalCount}</span>
+        </div>
+      </div>
 
       {/* Filter / Parameters Bar */}
       <div className="no-print bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -781,13 +849,17 @@ function SF1({ user, goBack }) {
             schoolId: config.schoolId || "",
             schoolName: config.schoolName || "",
             region: config.region || "",
-            division: config.divisionOffice || "",
+            division: config.divisionOffice || config.divisionName || "",
+            district: config.district || "",
             schoolYear,
             gradeLevel,
             section,
+            // DO 017 SHS sheet-level parameters, printed only when selected.
+            track: trackLabel,
+            cluster: clusterLabel,
           }}
-          preparedBy={config.adviserName || ""}
-          certifiedBy={config.schoolHeadName || ""}
+          preparedBy={config.adviserName || user?.displayName || user?.email || "[Class Adviser Name]"}
+          certifiedBy={config.principalName || config.schoolHeadName || "[School Head Name]"}
         />
       )}
     </div>
