@@ -355,7 +355,7 @@ export default function AnecdotalRecords({ user, goBack }) {
               <NotebookPen size={18} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+              <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
                 Anecdotal Records
               </h1>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">

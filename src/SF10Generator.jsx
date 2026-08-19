@@ -287,7 +287,7 @@ export default function SF10Generator({ goBack }) {
             <ArrowLeft size={18} />
           </button>
         )}
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">SF10 Generator</h1>
+        <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100">SF10 Generator</h1>
       </div>
 
       <div className="no-print inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">

@@ -150,7 +150,7 @@ export default function AcademicHub({ goBack }) {
 
       <div className="flex items-center gap-2 mb-1">
         <LayoutDashboard size={22} className="text-primary" />
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Academic Hub</h1>
+        <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-white">Academic Hub</h1>
       </div>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         General Average and year-long attendance rate, side by side, for a section — read-only rollup over

@@ -408,7 +408,7 @@ export default function UserManagement({ user }) {
       {/* Header Banner */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
+          <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
             <Shield className="text-primary" size={24} /> User Management
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">

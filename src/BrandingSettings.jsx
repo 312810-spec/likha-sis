@@ -187,7 +187,7 @@ export default function BrandingSettings({ goBack, embedded = false }) {
                   <ArrowLeft size={18} />
                 </button>
               )}
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <Palette className="text-primary" size={24} />
                 School Branding & Dynamic Theme
               </h1>
