@@ -120,7 +120,7 @@ describe("pageAccess", () => {
     it("exports expected PAGE_ACCESS object and array constants", () => {
       expect(PAGE_ACCESS.dashboard).toBe("all");
       expect(PAGE_ACCESS.sf1).toEqual(["adviser", "ictCoordinator", "principal"]);
-      expect(VIEW_LEARNERS_BLOCKED_ROLES).toEqual(["stakeholder"]);
+      expect(VIEW_LEARNERS_BLOCKED_ROLES).toEqual(["stakeholder", "parent"]);
       expect(VIEW_LEARNERS_EDIT_ROLES).toEqual(["adviser"]);
     });
   });

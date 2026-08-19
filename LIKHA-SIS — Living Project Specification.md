@@ -6,7 +6,7 @@
 **Location:** Philippines  
 **Current School Year:** 2026–2027  
 **Document Status:** Living Specification  
-**Last Updated:** August 11, 2026
+**Last Updated:** August 19, 2026
 
 ---
 
@@ -1293,18 +1293,43 @@ Every implementation should be understandable and maintainable by the developer.
 | Saved Learners | ✅ Complete |
 | Grade/Section Filtering | ✅ Complete |
 | Delete Learner | ✅ Complete |
+| Edit Learner | ✅ Complete |
 | Firestore Authentication Rules | ✅ Complete |
 | Git Checkpoints | ✅ Complete |
-| Edit Learner | ⏳ Planned |
-| Enrollment Report | 🔜 Next |
-| Anecdotal Records | 🔜 Planned |
-| SF2 | 🔜 Planned |
-| Academic/Grade Data | 🔜 Planned |
-| Attendance | 🔜 Planned |
-| Nutrition/LPN | 🔜 Planned |
+| SF2 Daily Attendance Grid | ✅ Complete |
+| SF4 Monthly Learner Movement Report | ✅ Complete |
+| SF10 Generator (Permanent Record) | ✅ Complete |
+| SF1 Bulk Importer | ✅ Complete |
+| SF10 Bulk Importer | ✅ Complete |
+| Import Center | ✅ Complete |
+| SMEA — Enrollment Report (3-term) | ✅ Complete |
+| Anecdotal Records | ✅ Complete |
+| LARDO Tracking | ✅ Complete |
+| Nutrition Status (BMI-for-Age, HFA) | ✅ Complete |
+| Nutrition Status Consolidator (SF8-style) | ✅ Complete |
+| Class Record (ECR) | ✅ Complete |
+| Consolidated Grades | ✅ Complete |
+| Report Card (SF9) | ✅ Complete |
+| Transfers Log | ✅ Complete |
+| Certificate Generator | ✅ Complete |
+| ID Generator | ✅ Complete |
+| User Management (RBAC) | ✅ Complete |
+| Role-Based Page Access (pageAccess.js) | ✅ Complete |
+| School Settings (setup wizard, branding) | ✅ Complete |
+| Account Settings | ✅ Complete |
+| Dark Mode | ✅ Complete |
+| Branding / Theme Engine | ✅ Complete |
+| PWA Support (manifest, service worker) | ✅ Complete |
+| Offline / Sync Status Banner | ✅ Complete |
+| Parent Portal (read-only, linked learners) | ✅ Complete |
+| Parent Login (separate flow) | ✅ Complete |
+| Academic Calendar (3-term, configurable) | ✅ Complete |
+| Settings Lock (school year lock) | ✅ Complete |
+| Transmutation Table | ✅ Complete |
+| SHS Subject Weights | ✅ Complete |
+| Key Stages Config | ✅ Complete |
 | Additional SMEA Indicators | 🔜 Planned |
-| PWA Packaging | 🔜 Later |
-| Parent Portal | 🔜 Phase 7 |
+| Attendance (dedicated domain) | 🔜 Planned |
 
 ---
 
@@ -1379,6 +1404,46 @@ The AI assistant should first understand:
 12. Every stable feature must be tested and committed to Git.
 
 Before making architectural changes, inspect the current codebase and compare proposed changes against this specification.
+
+---
+
+# 50. Phase 6 — System Audit & Documentation Sync (August 19, 2026)
+
+## Regression Test Results
+
+Performed a full regression pass using Vitest across all implemented modules.
+
+```
+Test Files: 38 passed (38)
+Tests:      382 passed (382)
+Duration:   ~5s
+```
+
+All 382 unit and integration tests passed with zero failures.
+
+## Code Hygiene Fixes Applied
+
+| File | Issue | Fix |
+|---|---|---|
+| `src/App.jsx` | Duplicate `PARENT_ONLY_ROLES` import from `pageAccess.js` | Consolidated into single named import |
+| `src/pages/ParentPortal.jsx` | `linkDoc` state assigned but never consumed in JSX | Removed dead state variable |
+| `src/components/SyncStatusBanner.jsx` | Synchronous `setState` inside `useEffect` (lint violation) | Replaced with `useRef` + async `setTimeout` pattern |
+
+## Implementation Phase Summary
+
+| Phase | Description | Status |
+|---|---|---|
+| Phase 1 | Authentication + Dashboard | ✅ Complete |
+| Phase 2 | SF1 Learner Management | ✅ Complete |
+| Phase 3 | Academic Data (ECR, Grades, SF4, SF9, SF10) | ✅ Complete |
+| Phase 4 | Nutrition, LARDO, Transfers, Certificates, IDs | ✅ Complete |
+| Phase 5 | SMEA Enrollment, Anecdotal Records, SF2 | ✅ Complete |
+| Phase 5.5 | Import Center (SF1/SF10), User Management, RBAC | ✅ Complete |
+| Phase 5.6 | School Settings, Branding, Dark Mode, Setup Wizard | ✅ Complete |
+| Phase 5.7 | PWA Support, Offline Banner, Sync Status | ✅ Complete |
+| Phase 5.8 | Parent Portal + Parent Login | ✅ Complete |
+| Phase 6 | Full System Audit, Regression Pass, Documentation Sync | ✅ Complete |
+| Phase 7 | Attendance (dedicated domain), Additional SMEA Indicators | 🔜 Next |
 
 ---
 

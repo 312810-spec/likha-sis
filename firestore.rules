@@ -41,6 +41,12 @@ service cloud.firestore {
     // Update/delete: adviser only (matches ViewLearners edit permission).
     match /learners/{learnerId} {
       allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "ictCoordinator", "smeaCoordinator", "guidance"]);
+      // Parent read: only allowed when the caller has a parentLinks document
+      // AND that document explicitly lists this learnerId. This enforces
+      // the verified parent-learner relationship at the database rule level.
+      allow read: if isSignedIn()
+        && exists(/databases/$(database)/documents/parentLinks/$(request.auth.uid))
+        && get(/databases/$(database)/documents/parentLinks/$(request.auth.uid)).data.learnerIds.hasAny([learnerId]);
       allow create: if hasAnyRole(["adviser", "ictCoordinator", "principal"]);
       allow update, delete: if hasAnyRole(["adviser"]);
     }
@@ -106,6 +112,18 @@ service cloud.firestore {
     // mirrors DISCIPLINE_STAFF_ROLES in pageAccess.js.
     match /disciplinaryRecords/{recordId} {
       allow read, write: if hasAnyRole(["smeaCoordinator", "principal", "guidance"]);
+    }
+
+    // ---- parentLinks (Parent Portal — verified parent-learner relationships) ----
+    // Each document is keyed by the parent's Firebase Auth UID.
+    // Structure: { parentUid, learnerIds: [...], linkedBy, linkedAt, parentEmail, parentName }
+    // - Parent can read ONLY their own link document (UID-scoped).
+    // - ICT Coordinator and Principal can create, update, and delete link documents
+    //   (provisioning and revoking access).
+    // - NO other role has any access to this collection.
+    match /parentLinks/{parentUid} {
+      allow read: if isSignedIn() && request.auth.uid == parentUid;
+      allow read, write: if hasAnyRole(["ictCoordinator", "principal"]);
     }
 
     // ---- anecdotal_records (SMEA Anecdotal Records) ----
