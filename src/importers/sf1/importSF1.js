@@ -24,6 +24,7 @@ function emptySchool() {
   return {
     schoolId: "",
     schoolName: "",
+    region: "",
     division: "",
     district: "",
     schoolYear: "",

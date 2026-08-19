@@ -61,15 +61,15 @@ export function toFirestoreLearner(learner, { importId, sourceFileFingerprint, u
     ipEthnicGroup: learner.ipEthnicGroup || "",
     religion: learner.religion || "",
     address: learner.address || "",
-    // The official SF1 supplies these as separate sub-header columns, so they
-    // are carried through rather than left for the Edit modal to fill in.
+    // SF1 records the address in four parts; keep them so the register can be
+    // reprinted exactly and the Edit modal has something to edit.
     houseStreetSitio: learner.houseStreetSitio || "",
     barangay: learner.barangay || "",
     municipalityCity: learner.municipalityCity || "",
     province: learner.province || "",
     fathersName: learner.fathersName || "",
-    mothersMaidenName: learner.mothersName || "",
-    guardianName: learner.guardian || "",
+    mothersMaidenName: learner.mothersMaidenName || learner.mothersName || "",
+    guardianName: learner.guardianName || learner.guardian || "",
     guardianRelationship: learner.guardianRelationship || "",
     contactNumber: learner.contactNumber || "",
     learningModality: learner.learningModality || "",
@@ -78,6 +78,7 @@ export function toFirestoreLearner(learner, { importId, sourceFileFingerprint, u
     // enrollment context (from the workbook)
     schoolId: learner.schoolId || "",
     schoolName: learner.schoolName || "",
+    region: learner.region || "",
     division: learner.division || "",
     district: learner.district || "",
     schoolYear: learner.schoolYear || "",

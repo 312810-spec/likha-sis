@@ -36,11 +36,17 @@ const COLUMNS = [
   {
     key: "name",
     label: "Name",
+    // The full SF1 form (LAST, FIRST MIDDLE) so a mis-split combined name cell
+    // is obvious before anything is written to Firestore.
     render: (r) =>
-      [r.learner?.lastName, r.learner?.firstName].filter(Boolean).join(", ") || "—",
+      r.learner?.displayName ||
+      [r.learner?.lastName, r.learner?.firstName].filter(Boolean).join(", ") ||
+      "—",
   },
   { key: "sex", label: "Sex", render: (r) => r.learner?.sex || "—" },
   { key: "birthDate", label: "Birth Date", render: (r) => r.learner?.birthDate || "—" },
+  { key: "age", label: "Age", render: (r) => r.learner?.age || "—" },
+  { key: "address", label: "Address", render: (r) => r.learner?.address || "—" },
   { key: "gradeLevel", label: "Grade", render: (r) => r.learner?.gradeLevel || "—" },
   { key: "section", label: "Section", render: (r) => r.learner?.section || "—" },
 ];
