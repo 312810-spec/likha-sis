@@ -151,9 +151,13 @@ export async function executeImport(db, opts = {}) {
     };
   }
 
-  const toWrite = records.filter((r) => r.lrn && !(r.duplicate && r.duplicate.inFirestore));
+  // Records are shaped { learner: { lrn, ... }, issues, severity, ... }.
+  // The LRN lives on r.learner.lrn, NOT at r.lrn directly.
+  const toWrite = records.filter(
+    (r) => r.learner?.lrn && !(r.duplicate && r.duplicate.inFirestore)
+  );
   const skippedCount = records.filter(
-    (r) => !r.lrn || (r.duplicate && r.duplicate.inFirestore)
+    (r) => !r.learner?.lrn || (r.duplicate && r.duplicate.inFirestore)
   ).length;
 
   const docs = toWrite.map((r) => {
