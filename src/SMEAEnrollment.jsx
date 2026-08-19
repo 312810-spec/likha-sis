@@ -12,29 +12,41 @@ import { useState, useEffect, useMemo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import useAcademicCalendar from "./hooks/useAcademicCalendar";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import { computeSMEAEnrollment } from "./utils/smeaEnrollment.js";
-import { BarChart3, Users, AlertTriangle, Calendar, AlertCircle, Info, CheckCircle2 } from "lucide-react";
+import computeSMEAIndicators from "./utils/smeaIndicators.js";
+import { BarChart3, Users, AlertTriangle, Calendar, AlertCircle, Info, CheckCircle2, Activity } from "lucide-react";
 
 function SMEAEnrollment() {
   const { calendar, schoolYears } = useAcademicCalendar();
+  const { config } = useSchoolConfig();
   const [selectedSY, setSelectedSY] = useState("2026-2027");
   const [learners, setLearners] = useState([]);
+  const [attendanceDocs, setAttendanceDocs] = useState([]);
+  const [nutritionRecords, setNutritionRecords] = useState([]);
+  const [lardoRecords, setLardoRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch ALL learners from Firestore once on mount.
+  // Fetch learners plus the domains that feed the indicator rollup
+  // (attendance, nutrition, LARDO) once on mount.
   useEffect(() => {
     let cancelled = false;
-    async function fetchLearners() {
+    async function fetchAll() {
       setLoading(true);
       setError("");
       try {
-        const snapshot = await getDocs(collection(db, "learners"));
-        const fetched = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-        if (!cancelled) setLearners(fetched);
+        const [learnersSnap, attendanceSnap, nutritionSnap, lardoSnap] = await Promise.all([
+          getDocs(collection(db, "learners")),
+          getDocs(collection(db, "attendance")),
+          getDocs(collection(db, "nutritionRecords")),
+          getDocs(collection(db, "lardoRecords")),
+        ]);
+        if (cancelled) return;
+        setLearners(learnersSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+        setAttendanceDocs(attendanceSnap.docs.map((docSnap) => docSnap.data()));
+        setNutritionRecords(nutritionSnap.docs.map((docSnap) => docSnap.data()));
+        setLardoRecords(lardoSnap.docs.map((docSnap) => docSnap.data()));
       } catch (err) {
         console.error("Failed to fetch learners for enrollment report:", err);
         if (!cancelled) setError("Unable to load enrollment data. Please try again.");
@@ -42,7 +54,7 @@ function SMEAEnrollment() {
         if (!cancelled) setLoading(false);
       }
     }
-    fetchLearners();
+    fetchAll();
     return () => {
       cancelled = true;
     };
@@ -55,6 +67,18 @@ function SMEAEnrollment() {
   const report = useMemo(
     () => computeSMEAEnrollment(learners, selectedSY, calendar, new Date()),
     [learners, selectedSY, calendar]
+  );
+
+  const indicators = useMemo(
+    () =>
+      computeSMEAIndicators({
+        attendanceDocs,
+        nutritionRecords,
+        lardoRecords,
+        selectedSY,
+        gradeLevelsOffered: config?.gradeLevelsOffered || [],
+      }),
+    [attendanceDocs, nutritionRecords, lardoRecords, selectedSY, config]
   );
 
   const activeTerm = report.activeTerm;
@@ -192,6 +216,54 @@ function SMEAEnrollment() {
           </ul>
           <p className="text-xs text-amber-700/80 dark:text-amber-400/80">
             Learners with critical record errors or transferred-out status are segregated from active enrollment totals to preserve SMEA reporting accuracy.
+          </p>
+        </div>
+      )}
+
+      {/* Other SMEA Indicators — attendance, nutrition, LARDO monitoring per grade */}
+      {indicators.rows.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5">
+          <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3">
+            <Activity size={18} className="text-primary" />
+            Other SMEA Indicators
+          </h4>
+          <div className="overflow-x-auto -mx-5 px-5">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-800/60 border-y border-gray-200 dark:border-gray-700">
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Grade</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Attendance Rate</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nutrition (Normal)</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nutrition (Wasted+)</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">LARDO Monitoring</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {indicators.rows.map((row) => {
+                  const wastedPct =
+                    (row.nutrition.severelyWastedPct ?? 0) + (row.nutrition.wastedPct ?? 0);
+                  return (
+                    <tr key={row.grade} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                      <td className="px-3 py-2.5 text-gray-900 dark:text-gray-100 font-medium">{row.grade}</td>
+                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">
+                        {row.attendanceRate === null ? "—" : `${row.attendanceRate.toFixed(1)}%`}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">
+                        {row.nutrition.weighedCount === 0 ? "—" : `${(row.nutrition.normalPct ?? 0).toFixed(1)}%`}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">
+                        {row.nutrition.weighedCount === 0 ? "—" : `${wastedPct.toFixed(1)}%`}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{row.lardoMonitoringCount}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+            Attendance, nutrition, and LARDO monitoring indicators aggregated from existing SF2, Nutrition Status,
+            and LARDO Tracking records for SY {schoolYearLabel}. Academic performance indicators are not yet included.
           </p>
         </div>
       )}
