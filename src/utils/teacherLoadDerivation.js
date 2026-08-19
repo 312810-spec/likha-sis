@@ -38,7 +38,12 @@ function sumAncillaryLoad(ancillaryLoad) {
 
     const minutesPerWeek = meetingsPerWeek * minutesPerMeeting;
     ancillaryMinutes += minutesPerWeek;
-    breakdown.push({ label: entry.label, minutesPerWeek });
+    // A hand-seeded doc may omit the label; a blank row beside a minutes figure
+    // on a submitted document reads as a mistake, so name it generically.
+    breakdown.push({
+      label: entry.label || "Ancillary designation",
+      minutesPerWeek,
+    });
   });
 
   return { ancillaryMinutes, breakdown };

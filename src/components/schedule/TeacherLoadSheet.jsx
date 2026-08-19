@@ -73,8 +73,8 @@ export default function TeacherLoadSheet({
               {load.totals.countedLabel}
             </td>
           </tr>
-          {(load.totals.breakdown || []).map((entry) => (
-            <tr key={entry.label}>
+          {(load.totals.breakdown || []).map((entry, index) => (
+            <tr key={`${entry.label}-${index}`}>
               <td className="border border-black px-2 py-1" colSpan={DAYS.length}>
                 {entry.label}
               </td>
