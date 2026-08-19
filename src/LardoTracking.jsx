@@ -746,7 +746,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
         <div>
           {goBack && (
             <button
@@ -762,7 +762,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
               <ShieldAlert size={22} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">LARDO Tracking</h1>
+              <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">LARDO Tracking</h1>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Learners At Risk of Dropping Out — Monitoring &amp; Intervention System
               </p>
@@ -818,7 +818,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
       )}
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
           <Filter size={14} /> Filter Records
         </div>
@@ -874,7 +874,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
 
       {/* Main List: Dropout Risk Monitoring */}
       {activeTab === "dropoutRisk" && (
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
           <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
             Flagged Learners ({filteredRecords.length})
@@ -1089,7 +1089,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
 
       {/* Main List: Behavioral Incidents (DO 006) */}
       {activeTab === "discipline" && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
             <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
               Behavioral Incidents ({filteredDisciplineRecords.length})
@@ -1309,7 +1309,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-xl w-full p-6 space-y-5 my-8 border border-gray-200 dark:border-gray-700 animate-slide-up">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <AlertTriangle className="text-accent" size={20} /> Flag a Learner (LARDO)
               </h2>
               <button
@@ -1460,7 +1460,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-xl w-full p-6 space-y-5 my-8 border border-gray-200 dark:border-gray-700 animate-slide-up">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <Gavel className="text-accent" size={20} /> Report Incident (DO 006)
               </h2>
               <button
