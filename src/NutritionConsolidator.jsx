@@ -3,8 +3,8 @@
 // aggregates every section's nutritionRecords into the printable summary
 // grid used in TingubNHS-BASELINE-NS-CONSO-2026-2027.xlsx.
 
-import { Fragment, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { Fragment, useState, useEffect } from "react";
+import { collection, getDocs, query, where, limit } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import { consolidateBySection } from "./utils/nutritionConsolidation.js";
@@ -37,6 +37,25 @@ export default function NutritionConsolidator({ goBack }) {
 
   const [schoolYear, setSchoolYear] = useState("2026-2027");
   const [period, setPeriod] = useState("Baseline");
+  const [clinicTeacherName, setClinicTeacherName] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const q = query(collection(db, "users"), where("role", "==", "clinicTeacher"), limit(1));
+        const snap = await getDocs(q);
+        if (active && !snap.empty) {
+          setClinicTeacherName(snap.docs[0].data().displayName || "");
+        }
+      } catch (err) {
+        console.error("Failed to fetch clinic teacher:", err);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -295,7 +314,7 @@ export default function NutritionConsolidator({ goBack }) {
                   <td style={{ width: "50%", textAlign: "center", verticalAlign: "top" }}>
                     <div style={{ fontWeight: "bold", textAlign: "left" }}>Prepared by:</div>
                     <div style={{ borderTop: "1px solid #000", marginTop: "40px", paddingTop: "4px" }}>
-                      {config?.clinicTeacherName || "—"}
+                      {clinicTeacherName || "—"}
                     </div>
                     <div>School Clinic Teacher</div>
                   </td>

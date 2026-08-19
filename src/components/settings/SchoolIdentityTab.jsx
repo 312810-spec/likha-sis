@@ -1,13 +1,13 @@
 // src/components/settings/SchoolIdentityTab.jsx
-// School identity fields (name, address, DepEd hierarchy, principal, clinic
-// teacher). These feed the headers of SF1/SF2/SF4, certificates, IDs and SF10.
+// School identity fields (name, address, DepEd hierarchy, principal). These
+// feed the headers of SF1/SF2/SF4, certificates, IDs and SF10.
 //
 // Split into a loader and a form so the form's state can be seeded straight
 // from useState initializers -- the form only mounts once the config has
 // loaded, which keeps setState out of effects.
 
 import { useState } from "react";
-import { Save } from "lucide-react";
+import { Save, LocateFixed } from "lucide-react";
 import useSchoolConfigDoc from "./useSchoolConfigDoc.js";
 import StatusMessages from "./StatusMessages.jsx";
 import { inputClass, labelClass, cardClass, primaryButtonClass } from "./settingsStyles.js";
@@ -17,7 +17,6 @@ import {
   KNOWN_SCHOOLS,
   getDivisionsForRegion,
 } from "../../utils/depedHierarchy.js";
-import { toCoordinate } from "../../utils/coordinates.js";
 
 const DEFAULT_SCHOOL_FIELDS = {
   schoolId: "",
@@ -25,37 +24,31 @@ const DEFAULT_SCHOOL_FIELDS = {
   schoolAddress: "",
   region: "",
   divisionOffice: "",
-  // The full division line printed on certificates -- separate from
-  // divisionOffice above, which drives the DepEd hierarchy autofill instead.
-  divisionName: "",
   district: "",
   municipalityCityProvince: "",
   principalName: "",
   principalPosition: "",
-  clinicTeacherName: "",
   divisionSuperintendent: "",
   // Coordinates drive the Dashboard weather card and the "earthquake near
   // your school" radius. Weather simply doesn't render when both are absent.
+  // Set only via the device's own location -- never typed in.
   latitude: "",
   longitude: "",
 };
 
-const FIELD_LABELS = [
+const TEXT_FIELD_LABELS = [
   ["schoolId", "School ID (6 Digits)"],
   ["schoolName", "School Name"],
   ["schoolAddress", "School Address"],
   ["region", "Region"],
-  ["divisionOffice", 'SDO - "Division Office"'],
-  ["divisionName", "Division Name (full, printed on certificates)"],
   ["district", "District"],
   ["municipalityCityProvince", "Municipality / City / Province"],
   ["principalName", "Principal / School Head Name"],
   ["principalPosition", "Principal Position / Designation"],
-  ["clinicTeacherName", "School Clinic Teacher Name"],
   ["divisionSuperintendent", "Schools Division Superintendent"],
-  ["latitude", "Latitude (for local weather)"],
-  ["longitude", "Longitude (for local weather)"],
 ];
+
+const SAVED_FIELDS = ["divisionOffice", "latitude", "longitude", ...TEXT_FIELD_LABELS.map(([f]) => f)];
 
 export default function SchoolIdentityTab() {
   const { data, loading, loadError, save } = useSchoolConfigDoc();
@@ -76,12 +69,37 @@ function SchoolIdentityForm({ initial, save }) {
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [isLocating, setIsLocating] = useState(false);
 
   function updateField(field, value) {
     setSchoolData((prev) => autofillSchoolData(prev, field, value));
   }
 
   const availableDivisions = getDivisionsForRegion(schoolData.region);
+
+  function handleUseCurrentLocation() {
+    if (!navigator.geolocation) {
+      setErrorMessage("This browser doesn't support device location.");
+      return;
+    }
+    setErrorMessage("");
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setSchoolData((prev) => ({
+          ...prev,
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }));
+        setIsLocating(false);
+      },
+      (err) => {
+        setErrorMessage(`Couldn't get device location: ${err.message}`);
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
   async function handleSave(e) {
     e.preventDefault();
@@ -104,9 +122,9 @@ function SchoolIdentityForm({ initial, save }) {
       const patch = {
         divisionSuperintendentPosition: "Schools Division Superintendent",
       };
-      for (const [field] of FIELD_LABELS) patch[field] = schoolData[field] || "";
-      patch.latitude = toCoordinate(schoolData.latitude);
-      patch.longitude = toCoordinate(schoolData.longitude);
+      for (const field of SAVED_FIELDS) patch[field] = schoolData[field] || "";
+      patch.latitude = schoolData.latitude === "" ? null : schoolData.latitude;
+      patch.longitude = schoolData.longitude === "" ? null : schoolData.longitude;
       await save(patch);
       setSuccessMessage("School identity saved.");
     } catch (err) {
@@ -135,14 +153,6 @@ function SchoolIdentityForm({ initial, save }) {
         ))}
       </datalist>
 
-      <datalist id="deped-divisions">
-        {availableDivisions.map((d) => (
-          <option key={d.name} value={d.name}>
-            {d.cityProvince}
-          </option>
-        ))}
-      </datalist>
-
       <div className={cardClass}>
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -154,15 +164,9 @@ function SchoolIdentityForm({ initial, save }) {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {FIELD_LABELS.map(([field, label]) => {
+          {TEXT_FIELD_LABELS.map(([field, label]) => {
             const listId =
-              field === "schoolName"
-                ? "deped-school-presets"
-                : field === "region"
-                ? "deped-regions"
-                : field === "divisionOffice"
-                ? "deped-divisions"
-                : undefined;
+              field === "schoolName" ? "deped-school-presets" : field === "region" ? "deped-regions" : undefined;
 
             return (
               <label className={labelClass} key={field}>
@@ -176,6 +180,44 @@ function SchoolIdentityForm({ initial, save }) {
               </label>
             );
           })}
+
+          <label className={labelClass}>
+            {'SDO - "Division Office"'}
+            <select
+              className={inputClass}
+              value={schoolData.divisionOffice || ""}
+              onChange={(e) => updateField("divisionOffice", e.target.value)}
+            >
+              <option value="">Select a division…</option>
+              {availableDivisions.map((d) => (
+                <option key={d.name} value={d.name}>
+                  {`${d.name} (${d.cityProvince})`}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className={labelClass}>School Coordinates</div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {schoolData.latitude && schoolData.longitude
+                  ? `${Number(schoolData.latitude).toFixed(5)}, ${Number(schoolData.longitude).toFixed(5)}`
+                  : "Not set — drives the local weather card and earthquake radius."}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleUseCurrentLocation}
+              disabled={isLocating}
+              className={primaryButtonClass}
+            >
+              <LocateFixed size={16} />
+              {isLocating ? "Locating…" : "Use Current Location"}
+            </button>
+          </div>
         </div>
       </div>
 

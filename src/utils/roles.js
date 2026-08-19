@@ -12,6 +12,7 @@ export const ROLE_OPTIONS = [
   { id: "ictCoordinator", label: "ICT Coordinator" },
   { id: "smeaCoordinator", label: "SMEA Coordinator" },
   { id: "guidance", label: "Guidance Counselor" },
+  { id: "clinicTeacher", label: "Clinic Teacher" },
 ];
 
 export const ROLE_LABELS = ROLE_OPTIONS.reduce((acc, r) => {

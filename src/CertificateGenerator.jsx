@@ -263,7 +263,7 @@ function CertificateGenerator({ user, goBack }) {
           <div style={{ fontSize: "20px", fontWeight: "bold" }}>{school.schoolName}</div>
           <div style={{ fontSize: "14px", marginTop: "4px" }}>{school.schoolAddress}</div>
           <div style={{ fontSize: "12px", marginTop: "2px", fontStyle: "italic" }}>
-            {formatDivisionHeader(school.divisionOffice || school.divisionName)}
+            {formatDivisionHeader(school.divisionOffice)}
           </div>
         </div>
 
