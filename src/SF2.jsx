@@ -20,7 +20,7 @@ import useSchoolConfig from "./hooks/useSchoolConfig";
 import { Info } from "lucide-react";
 
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
-import { getWeekdays, makeAttendanceDocId } from "./utils/attendanceDates";
+import { getWeekdays, makeAttendanceDocId, schoolYearFromMonth } from "./utils/attendanceDates";
 import buildAttendanceYearOverview from "./utils/attendanceYearOverview";
 
 // Dropout reason codes (a1–f) per the DepEd NLS legend. Used both for the
@@ -82,14 +82,6 @@ function formatMonthLabel(monthValue) {
   ];
   const monthName = monthNames[Number(month) - 1];
   return monthName && year ? `${monthName} ${year}` : monthValue;
-}
-
-// Derives the DepEd school year (June–May) that contains the given "YYYY-MM" month.
-function schoolYearFromMonth(monthValue) {
-  if (!monthValue) return "";
-  const year = Number(monthValue.slice(0, 4));
-  const month = Number(monthValue.slice(5, 7));
-  return month >= 6 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
 }
 
 // ---- Component -------------------------------------------------------------
