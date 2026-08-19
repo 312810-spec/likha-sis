@@ -558,8 +558,8 @@ function SF4({ user, goBack }) {
               <span>School ID: <strong>{config?.schoolId || "—"}</strong></span>
               <span>School: <strong>{config?.schoolName || "—"}</strong></span>
               {config?.district && <span>District: <strong>{config.district}</strong></span>}
-              {(config?.divisionOffice || config?.divisionName) && (
-                <span>Division: <strong>{config.divisionOffice || config.divisionName}</strong></span>
+              {config?.divisionOffice && (
+                <span>Division: <strong>{config.divisionOffice}</strong></span>
               )}
               {config?.region && <span>Region: <strong>{config.region}</strong></span>}
               <span>Grade: <strong>{gradeLevel}</strong></span>

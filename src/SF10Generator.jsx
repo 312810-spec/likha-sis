@@ -79,7 +79,7 @@ function SF10Document({ learner, history, shsConfig, school }) {
         </div>
         {school?.region && (
           <div style={{ fontSize: "9.5px", color: "#4b5563", marginTop: "1px" }}>
-            {[school.region, school.divisionOffice || school.divisionName, school.district].filter(Boolean).join(" · ")}
+            {[school.region, school.divisionOffice, school.district].filter(Boolean).join(" · ")}
           </div>
         )}
         <div style={{ fontWeight: "bold", fontSize: "14px", marginTop: "3px" }}>SCHOOL FORM 10 (SF10)</div>

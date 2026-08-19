@@ -317,7 +317,7 @@ export default function NutritionStatus({ user, goBack }) {
   // School info fallbacks: use whichever config fields exist, dash otherwise.
   const sf8SchoolName = config?.schoolName || "—";
   const sf8District = config?.district || "—";
-  const sf8Division = config?.division || config?.divisionName || config?.divisionOffice || "—";
+  const sf8Division = config?.division || config?.divisionOffice || "—";
   const sf8Region = config?.region || "—";
   const sf8SchoolId = config?.schoolId || "—";
 
