@@ -25,10 +25,17 @@ export const PAGE_ACCESS = {
   schoolSettings: ["ictCoordinator"],
   accountSettings: "all",
   anecdotalRecords: ["adviser", "guidance", "principal", "masterTeacher"],
+  // Parent portal: accessible only to the parent role.
+  // Parents are provisioned by ICT Coordinator and have no access to staff tools.
+  parentPortal: ["parent"],
 };
 
-export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder"];
+export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder", "parent"];
 export const VIEW_LEARNERS_EDIT_ROLES = ["adviser"];
+
+// Roles that are restricted to the Parent Portal only — they must never
+// gain access to any staff page even if PAGE_ACCESS is accidentally set to "all".
+export const PARENT_ONLY_ROLES = ["parent"];
 
 export function canAccessPage(page, userRoles = []) {
   if (!Array.isArray(userRoles) || userRoles.length === 0) return false;

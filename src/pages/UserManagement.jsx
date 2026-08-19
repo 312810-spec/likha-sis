@@ -1,5 +1,5 @@
 import { useState, useEffect, Fragment } from "react";
-import { collection, getDocs, doc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, documentId } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 import {
   UserPlus,
@@ -14,6 +14,9 @@ import {
   Ban,
   Power,
   X,
+  Heart,
+  Link2,
+  Link2Off,
 } from "lucide-react";
 import { db, auth } from "../firebase";
 import { createTeacherAccount } from "../firebaseAdmin";
@@ -59,6 +62,18 @@ export default function UserManagement({ user }) {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [rowActionUserId, setRowActionUserId] = useState(null);
 
+  // ---- Parent Account Provisioning State ----
+  const [parentName, setParentName] = useState("");
+  const [parentEmail, setParentEmail] = useState("");
+  const [parentPassword, setParentPassword] = useState("");
+  const [parentLearnerDocId, setParentLearnerDocId] = useState("");
+  const [parentLinks, setParentLinks] = useState([]);
+  const [loadingParentLinks, setLoadingParentLinks] = useState(true);
+  const [parentSubmitting, setParentSubmitting] = useState(false);
+  const [parentSuccess, setParentSuccess] = useState("");
+  const [parentError, setParentError] = useState("");
+  const [revokingParentId, setRevokingParentId] = useState(null);
+
   // Fetch users function for manual refresh (e.g. after user creation)
   async function refreshUsers() {
     try {
@@ -72,6 +87,19 @@ export default function UserManagement({ user }) {
       console.error("Failed to fetch users:", err);
     } finally {
       setLoadingUsers(false);
+    }
+  }
+
+  // Fetch parent links for the Parent Accounts panel
+  async function refreshParentLinks() {
+    setLoadingParentLinks(true);
+    try {
+      const snap = await getDocs(collection(db, "parentLinks"));
+      setParentLinks(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error("Failed to fetch parentLinks:", err);
+    } finally {
+      setLoadingParentLinks(false);
     }
   }
 
@@ -96,6 +124,8 @@ export default function UserManagement({ user }) {
         }
       }
     })();
+    // Also load parent links
+    refreshParentLinks();
     return () => {
       active = false;
     };
@@ -928,6 +958,203 @@ export default function UserManagement({ user }) {
                     </Fragment>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      {/* ---- Parent Accounts Provisioning Panel ---- */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3 mb-5">
+          <Heart className="text-rose-500" size={18} /> Parent Accounts
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+          Create parent/guardian accounts and link them to a learner. Parents can only view
+          information for their linked child — no staff tools are accessible from the parent portal.
+        </p>
+
+        {parentSuccess && (
+          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-xl p-3 flex items-center gap-2 mb-4 text-sm animate-fade-in">
+            <CheckCircle2 size={16} className="flex-shrink-0" /> {parentSuccess}
+          </div>
+        )}
+        {parentError && (
+          <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-xl p-3 flex items-center gap-2 mb-4 text-sm animate-fade-in">
+            <AlertCircle size={16} className="flex-shrink-0" /> {parentError}
+          </div>
+        )}
+
+        {/* Create Parent Account Form */}
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setParentSuccess("");
+            setParentError("");
+            const trimName = parentName.trim();
+            const trimEmail = parentEmail.trim();
+            const trimLearnerId = parentLearnerDocId.trim();
+            if (!trimName) { setParentError("Parent/Guardian name is required."); return; }
+            if (!trimEmail) { setParentError("Email address is required."); return; }
+            if (!parentPassword || parentPassword.length < 6) { setParentError("Temporary password must be at least 6 characters."); return; }
+            if (!trimLearnerId) { setParentError("Learner Document ID is required. Obtain it from View Learners."); return; }
+            setParentSubmitting(true);
+            try {
+              const { createTeacherAccount } = await import("../firebaseAdmin");
+              const uid = await createTeacherAccount(trimEmail, parentPassword);
+              // Write to users/{uid} with role 'parent'
+              await setDoc(doc(db, "users", uid), {
+                fullName: trimName,
+                email: trimEmail,
+                roles: ["parent"],
+                createdAt: serverTimestamp(),
+                createdByEmail: user?.email || "",
+              });
+              // Write to parentLinks/{uid}
+              await setDoc(doc(db, "parentLinks", uid), {
+                parentUid: uid,
+                parentName: trimName,
+                parentEmail: trimEmail,
+                learnerIds: [trimLearnerId],
+                linkedBy: user?.email || "",
+                linkedAt: serverTimestamp(),
+              });
+              setParentSuccess(`Parent account created for ${trimEmail} and linked to learner.`);
+              setParentName("");
+              setParentEmail("");
+              setParentPassword("");
+              setParentLearnerDocId("");
+              await refreshParentLinks();
+            } catch (err) {
+              if (err.code === "auth/email-already-in-use") {
+                setParentError("An account with this email already exists.");
+              } else {
+                setParentError(err.message || "Failed to create parent account.");
+              }
+            } finally {
+              setParentSubmitting(false);
+            }
+          }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
+        >
+          <div>
+            <label htmlFor="parentNameInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Parent / Guardian Name <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="parentNameInput"
+              type="text"
+              value={parentName}
+              onChange={(e) => setParentName(e.target.value)}
+              placeholder="e.g. Juan Dela Cruz"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            />
+          </div>
+          <div>
+            <label htmlFor="parentEmailInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Email Address <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="parentEmailInput"
+              type="email"
+              value={parentEmail}
+              onChange={(e) => setParentEmail(e.target.value)}
+              placeholder="e.g. jdelacruz@example.com"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            />
+          </div>
+          <div>
+            <label htmlFor="parentPasswordInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Temporary Password <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="parentPasswordInput"
+              type="password"
+              value={parentPassword}
+              onChange={(e) => setParentPassword(e.target.value)}
+              placeholder="Min. 6 characters"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            />
+          </div>
+          <div>
+            <label htmlFor="parentLearnerIdInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Learner Document ID <span className="text-rose-500">*</span>
+            </label>
+            <input
+              id="parentLearnerIdInput"
+              type="text"
+              value={parentLearnerDocId}
+              onChange={(e) => setParentLearnerDocId(e.target.value)}
+              placeholder="Firestore doc ID from View Learners"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-600 mt-1">
+              Find this in the learner's row in View Learners → copy the document ID.
+            </p>
+          </div>
+          <div className="md:col-span-2 flex justify-end">
+            <button
+              type="submit"
+              disabled={parentSubmitting}
+              className="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.99]"
+            >
+              <Link2 size={15} />
+              {parentSubmitting ? "Creating..." : "Create & Link Parent Account"}
+            </button>
+          </div>
+        </form>
+
+        {/* Existing Parent Links List */}
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+          <Users size={15} /> Linked Parent Accounts ({parentLinks.length})
+        </h3>
+        {loadingParentLinks ? (
+          <p className="text-sm text-gray-400 dark:text-gray-600">Loading...</p>
+        ) : parentLinks.length === 0 ? (
+          <p className="text-sm text-gray-400 dark:text-gray-600">No parent accounts have been created yet.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Parent Name</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Linked Learner(s)</th>
+                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {parentLinks.map((link) => (
+                  <tr key={link.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{link.parentName || "—"}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{link.parentEmail || link.id}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs font-mono">
+                      {(link.learnerIds || []).join(", ") || "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        disabled={revokingParentId === link.id}
+                        onClick={async () => {
+                          if (!window.confirm(`Revoke portal access for ${link.parentEmail || link.id}? They will no longer be able to view any learner records.`)) return;
+                          setRevokingParentId(link.id);
+                          try {
+                            await deleteDoc(doc(db, "parentLinks", link.id));
+                            setParentSuccess(`Access revoked for ${link.parentEmail || link.id}.`);
+                            await refreshParentLinks();
+                          } catch (err) {
+                            setParentError(err.message || "Failed to revoke access.");
+                          } finally {
+                            setRevokingParentId(null);
+                          }
+                        }}
+                        className="flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 hover:text-rose-800 dark:hover:text-rose-300 font-semibold transition-colors disabled:opacity-50"
+                        title="Revoke parent portal access"
+                      >
+                        <Link2Off size={13} />
+                        {revokingParentId === link.id ? "Revoking..." : "Revoke"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

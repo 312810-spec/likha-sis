@@ -33,8 +33,11 @@ import NutritionConsolidator from "./NutritionConsolidator";
 import TransfersLog from "./TransfersLog";
 import SchoolSettings from "./SchoolSettings";
 import AccountSettings from "./AccountSettings";
-import { canAccessPage } from "./pageAccess.js";
+import { canAccessPage, PARENT_ONLY_ROLES } from "./pageAccess.js";
 import { useUserProfile } from "./hooks/useUserProfile.js";
+import SyncStatusBanner from "./components/SyncStatusBanner";
+import ParentPortal from "./pages/ParentPortal";
+import ParentLogin from "./pages/ParentLogin";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -45,6 +48,7 @@ function App() {
 
   const { profile, loading: profileLoading } = useUserProfile(user);
   const [showDeactivatedNotice, setShowDeactivatedNotice] = useState(false);
+  const [showParentLogin, setShowParentLogin] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -97,8 +101,34 @@ function App() {
     return <SetupWizard />;
   }
 
+  // If the user is a parent, show the parent portal (no staff shell).
+  const isParent =
+    user &&
+    profile &&
+    Array.isArray(profile.roles) &&
+    profile.roles.some((r) => PARENT_ONLY_ROLES.includes(r));
+
   if (!user) {
-    return <Login deactivated={showDeactivatedNotice} />;
+    // Show parent login if the user toggled to it, otherwise staff login.
+    if (showParentLogin) {
+      return <ParentLogin onSwitchToTeacher={() => setShowParentLogin(false)} />;
+    }
+    return (
+      <Login
+        deactivated={showDeactivatedNotice}
+        onSwitchToParent={() => setShowParentLogin(true)}
+      />
+    );
+  }
+
+  // Parent users get a completely separate read-only portal with no staff navigation.
+  if (isParent) {
+    return (
+      <>
+        <SyncStatusBanner />
+        <ParentPortal user={user} />
+      </>
+    );
   }
 
   // Determine page title and content
@@ -261,6 +291,7 @@ function App() {
       pageTitle={pageTitle}
       userRoles={userRoles}
     >
+      <SyncStatusBanner />
       {pageContent}
     </DashboardShell>
   );
