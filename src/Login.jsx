@@ -58,7 +58,7 @@ function Login({ deactivated = false, onSwitchToParent }) {
             alt="Tingub National High School"
             className="w-16 h-16 mb-3 rounded-full ring-4 ring-primary/10 dark:ring-primary-light/20"
           />
-          <h1 className="text-xl font-bold text-primary tracking-tight dark:text-primary-light">LIKHA-SIS</h1>
+          <h1 className="font-display text-xl font-semibold text-primary tracking-tight dark:text-primary-light">LIKHA-SIS</h1>
           <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">Tingub National High School</p>
         </div>
 

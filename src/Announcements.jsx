@@ -214,7 +214,7 @@ export default function Announcements({ user, userRoles, goBack }) {
             </button>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Megaphone className="text-primary" size={24} />
               Announcements
             </h1>

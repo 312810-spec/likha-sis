@@ -277,7 +277,7 @@ export default function TransfersLog({ user, goBack }) {
               <ArrowLeftRight size={22} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Transfers Tracking</h1>
+              <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">Transfers Tracking</h1>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 Record and manage learner transfers in and out of the school
               </p>

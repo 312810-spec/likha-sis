@@ -451,7 +451,7 @@ export default function NutritionStatus({ user, goBack }) {
             </button>
           )}
           <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <HeartPulse className="w-6 h-6 text-rose-500" />
               Nutrition Status Tracking
             </h1>

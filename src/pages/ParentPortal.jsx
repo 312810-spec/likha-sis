@@ -199,7 +199,7 @@ export default function ParentPortal({ user }) {
       <main style={{ maxWidth: "800px", margin: "32px auto", padding: "0 16px" }}>
         {/* Welcome */}
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100">
             Welcome, {user?.email || "Parent"}
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">

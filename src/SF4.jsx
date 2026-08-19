@@ -402,7 +402,7 @@ function SF4({ user, goBack }) {
               ← Back to Dashboard
             </button>
           )}
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+          <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
             School Form 4 — Monthly Learner Movement and Attendance Report
           </h1>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
