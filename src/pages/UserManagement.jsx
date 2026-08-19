@@ -1,5 +1,5 @@
 import { useState, useEffect, Fragment } from "react";
-import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp, query, where, documentId } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 import {
   UserPlus,
@@ -91,8 +91,11 @@ export default function UserManagement({ user }) {
   }
 
   // Fetch parent links for the Parent Accounts panel
-  async function refreshParentLinks() {
-    setLoadingParentLinks(true);
+  // Split in two so the mount effect can load without setting state
+  // synchronously inside the effect body (which triggers cascading renders).
+  // loadingParentLinks already starts true, so the initial load does not need
+  // to raise the flag -- only a user-triggered refresh does.
+  async function fetchParentLinks() {
     try {
       const snap = await getDocs(collection(db, "parentLinks"));
       setParentLinks(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -101,6 +104,11 @@ export default function UserManagement({ user }) {
     } finally {
       setLoadingParentLinks(false);
     }
+  }
+
+  async function refreshParentLinks() {
+    setLoadingParentLinks(true);
+    await fetchParentLinks();
   }
 
   // Initial load on mount
@@ -124,8 +132,13 @@ export default function UserManagement({ user }) {
         }
       }
     })();
-    // Also load parent links
-    refreshParentLinks();
+    // Also load parent links, in its own async IIFE so it runs in parallel with
+    // the users fetch above and no setState happens synchronously in the effect
+    // body. fetchParentLinks (not refreshParentLinks) because
+    // loadingParentLinks already starts true on mount.
+    (async () => {
+      if (active) await fetchParentLinks();
+    })();
     return () => {
       active = false;
     };

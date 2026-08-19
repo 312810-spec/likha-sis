@@ -23,6 +23,7 @@ export const PAGE_ACCESS = {
   sf1Import: ["ictCoordinator", "principal"],
   sf10Import: ["ictCoordinator", "principal"],
   sf10Generate: ["adviser", "principal", "ictCoordinator"],
+  classProgram: ["ictCoordinator", "principal", "adviser", "masterTeacher"],
   userManagement: ["ictCoordinator", "principal"],
   schoolSettings: ["ictCoordinator"],
   accountSettings: "all",
@@ -34,6 +35,10 @@ export const PAGE_ACCESS = {
 
 export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder", "parent"];
 export const VIEW_LEARNERS_EDIT_ROLES = ["adviser"];
+
+// Schedules carry no learner PII, so reading is broad -- advisers and master
+// teachers print their own sheets. Writing matches the firestore.rules block.
+export const SCHEDULE_EDIT_ROLES = ["ictCoordinator", "principal"];
 
 // Roles that are restricted to the Parent Portal only — they must never
 // gain access to any staff page even if PAGE_ACCESS is accidentally set to "all".
