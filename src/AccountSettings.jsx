@@ -33,6 +33,9 @@ export default function AccountSettings({ user, goBack }) {
   const [profile, setProfile] = useState(null);
   const [fullName, setFullName] = useState("");
   const [editableRoles, setEditableRoles] = useState([]);
+  const [employeeNumber, setEmployeeNumber] = useState("");
+  const [position, setPosition] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
@@ -58,6 +61,9 @@ export default function AccountSettings({ user, goBack }) {
           setProfile(data);
           setFullName(data.fullName || "");
           setEditableRoles(Array.isArray(data.roles) ? [...data.roles] : []);
+          setEmployeeNumber(data.employeeNumber || "");
+          setPosition(data.position || "");
+          setMobileNumber(data.mobileNumber || "");
         }
       } catch (err) {
         console.error("Failed to load account profile:", err);
@@ -96,6 +102,9 @@ export default function AccountSettings({ user, goBack }) {
         return;
       }
       updates.roles = editableRoles;
+      updates.employeeNumber = employeeNumber.trim();
+      updates.position = position.trim();
+      updates.mobileNumber = mobileNumber.trim();
     }
 
     setIsSavingProfile(true);
@@ -254,6 +263,38 @@ export default function AccountSettings({ user, goBack }) {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {isIctCoordinator && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <label className={labelClass}>
+                Employee / DepEd ID Number
+                <input
+                  className={inputClass}
+                  value={employeeNumber}
+                  onChange={(e) => setEmployeeNumber(e.target.value)}
+                  placeholder="e.g. 6113070"
+                />
+              </label>
+              <label className={labelClass}>
+                Position / Designation
+                <input
+                  className={inputClass}
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value)}
+                  placeholder="e.g. Teacher I"
+                />
+              </label>
+              <label className={labelClass}>
+                Mobile Number
+                <input
+                  className={inputClass}
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value)}
+                  placeholder="e.g. 09171234567"
+                />
+              </label>
             </div>
           )}
 
