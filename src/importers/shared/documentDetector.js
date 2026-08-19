@@ -21,9 +21,6 @@ const LEARNER_HEADER_KEYS = new Set([
 const SCHOOL_KEYWORDS = /school|division|district/i;
 const LEARNER_TABLE_KEYWORDS = /lrn|learner|referencenumber/i;
 const SF10_KEYWORDS = /learnerschoolform2|sf10|permanentacademic|academicrecord|schoolform10/i;
-const GRADE_SECTION_KEYWORDS = /grade|section/i;
-const SCHOOL_YEAR_KEYWORDS = /schoolyear|schoollyear/i;
-const SCHOOL_NAME_KEYWORDS = /schoolname|nameofschool/i;
 const SUMMARY_KEYWORDS = /total|combined|malef|femalem|\bsummary\b/i;
 
 /** Normalize a cell to an all-caps, punctuation-free fingerprint for matching. */
@@ -84,10 +81,50 @@ export function detectDocumentType(sheet) {
   return "unknown";
 }
 
+// Exact label keys (as produced by normalizeHeaderKey) that name a context
+// field. Matching exactly rather than by substring matters: a loose /grade/
+// test also matches the VALUE cell "Grade 10", which would then be read as a
+// label and overwrite the real grade with whatever followed it.
+const CONTEXT_LABELS = {
+  schoolid: "schoolId",
+  schoolidno: "schoolId",
+  school: "schoolName",
+  schoolname: "schoolName",
+  nameofschool: "schoolName",
+  division: "division",
+  schoolsdivision: "division",
+  divisionofcityschools: "division",
+  district: "district",
+  schooldistrict: "district",
+  schoolyear: "schoolYear",
+  sy: "schoolYear",
+  grade: "grade",
+  gradelevel: "grade",
+  classifiedasgrade: "grade",
+  gradeandsection: "grade",
+  section: "section",
+  sectionname: "section",
+};
+
+/** The context field a label cell names, or null when it is not a label. */
+function contextField(cellValue) {
+  const key = normalizeHeaderKey(cellValue);
+  if (!key) return null;
+  return CONTEXT_LABELS[key] || null;
+}
+
 /**
- * Extract key-value metadata (school info) from the header block of a sheet.
+ * Extract key-value metadata (school info) from a block of rows.
  * Scans the first `limit` rows for label/value pairs such as
  *   "School ID: 123456"  or  [ "School ID", "123456" ]
+ *
+ * A value may sit more than one cell to the right of its label, because merged
+ * cells read back as nulls, so the scan walks forward to the next non-empty
+ * cell — stopping if that cell turns out to be the next label.
+ *
+ * Only non-empty values are assigned, so a later label with a blank value can
+ * never wipe out a value already read.
+ *
  * @param {Array<Array>} rows
  * @param {number} limit
  * @returns {{ schoolId, schoolName, division, district, schoolYear, grade, section }}
@@ -103,53 +140,44 @@ export function extractHeaderContext(rows, limit = 20) {
     section: "",
   };
 
+  const assign = (field, value) => {
+    const v = String(value ?? "").trim();
+    if (field && v && !ctx[field]) ctx[field] = v;
+  };
+
   for (let r = 0; r < Math.min(limit, rows.length); r++) {
     const row = rows[r];
     if (!Array.isArray(row)) continue;
     const text = row.map(cellText);
-    const joined = text.join(" ");
 
-    // First handle two-cell "label | value" layouts. A cell that already contains
-    // its own "Label: value" would otherwise be mistaken for a bare label and
-    // overwrite the parsed value with the (empty) following cell, so the
-    // same-cell parsing below runs last and wins.
+    // Two-cell "label | value" layouts.
+    //
+    // The gap between a label and its value is set by the template's column
+    // widths, not by any convention: the real SF1 puts "School ID" in column 0
+    // and its value in column 5, and the real SF10 puts the LRN label in column
+    // 1 and its value in column 11. A fixed look-ahead window therefore drops
+    // most of the school context, so the scan runs to the end of the row and
+    // relies on "stop at the next label" to stay inside the current pair.
     for (let i = 0; i < text.length - 1; i++) {
-      const label = normalizeHeaderKey(text[i]);
-      if (label === "SCHOOLID") ctx.schoolId = text[i + 1];
-      else if (SCHOOL_NAME_KEYWORDS.test(label)) ctx.schoolName = text[i + 1];
-      else if (label === "DIVISION") ctx.division = text[i + 1];
-      else if (label === "DISTRICT") ctx.district = text[i + 1];
-      else if (SCHOOL_YEAR_KEYWORDS.test(label)) ctx.schoolYear = text[i + 1];
-      else if (GRADE_SECTION_KEYWORDS.test(label)) {
-        if (/GRADE/i.test(label)) ctx.grade = text[i + 1];
-        if (/SECTION/i.test(label)) ctx.section = text[i + 1];
+      const field = contextField(text[i]);
+      if (!field) continue;
+      for (let j = i + 1; j < text.length; j++) {
+        if (text[j] === "") continue; // merged-cell filler
+        if (contextField(text[j])) break; // the next label — this one had no value
+        assign(field, text[j]);
+        break;
       }
     }
 
-    // Handle a single cell that itself contains "Label: value".
+    // A single cell that itself contains "Label: value".
     for (const cell of row) {
       const t = cellText(cell);
       const m = t.match(/^([A-Za-z ]+?)\s*[:|-]\s*(.+)$/);
-      if (m) {
-        const label = normText(m[1]);
-        const value = m[2].trim();
-        assignContext(ctx, label, value);
-      }
+      if (m) assign(contextField(m[1]), m[2].trim());
     }
-    void joined;
   }
 
   return ctx;
-}
-
-function assignContext(ctx, label, value) {
-  if (label === "SCHOOLID") ctx.schoolId = value;
-  else if (SCHOOL_NAME_KEYWORDS.test(label)) ctx.schoolName = value;
-  else if (label === "DIVISION") ctx.division = value;
-  else if (label === "DISTRICT") ctx.district = value;
-  else if (SCHOOL_YEAR_KEYWORDS.test(label)) ctx.schoolYear = value;
-  else if (/GRADE/i.test(label)) ctx.grade = value;
-  else if (/SECTION/i.test(label)) ctx.section = value;
 }
 
 export { normalizeHeaderKey, SCHOOL_KEYWORDS, SUMMARY_KEYWORDS };

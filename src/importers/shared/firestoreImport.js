@@ -57,17 +57,20 @@ export function toFirestoreLearner(learner, { importId, sourceFileFingerprint, u
     sex: learner.sex,
     birthDate: learner.birthDate,
     age: learner.age || calculateAge(learner.birthDate),
+    motherTongue: learner.motherTongue || "",
+    ipEthnicGroup: learner.ipEthnicGroup || "",
     religion: learner.religion || "",
     address: learner.address || "",
-    // legacy address fields (importer keeps them empty; populated via Edit modal)
-    houseStreetSitio: "",
-    barangay: "",
-    municipalityCity: "",
-    province: "",
+    // The official SF1 supplies these as separate sub-header columns, so they
+    // are carried through rather than left for the Edit modal to fill in.
+    houseStreetSitio: learner.houseStreetSitio || "",
+    barangay: learner.barangay || "",
+    municipalityCity: learner.municipalityCity || "",
+    province: learner.province || "",
     fathersName: learner.fathersName || "",
     mothersMaidenName: learner.mothersName || "",
     guardianName: learner.guardian || "",
-    guardianRelationship: "",
+    guardianRelationship: learner.guardianRelationship || "",
     contactNumber: learner.contactNumber || "",
     learningModality: learner.learningModality || "",
     remarks: learner.remarks || "",
@@ -148,9 +151,13 @@ export async function executeImport(db, opts = {}) {
     };
   }
 
-  const toWrite = records.filter((r) => r.lrn && !(r.duplicate && r.duplicate.inFirestore));
+  // Records are shaped { learner: { lrn, ... }, issues, severity, ... }.
+  // The LRN lives on r.learner.lrn, NOT at r.lrn directly.
+  const toWrite = records.filter(
+    (r) => r.learner?.lrn && !(r.duplicate && r.duplicate.inFirestore)
+  );
   const skippedCount = records.filter(
-    (r) => !r.lrn || (r.duplicate && r.duplicate.inFirestore)
+    (r) => !r.learner?.lrn || (r.duplicate && r.duplicate.inFirestore)
   ).length;
 
   const docs = toWrite.map((r) => {

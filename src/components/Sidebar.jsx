@@ -42,6 +42,7 @@ const icons = {
   'View Learners': Users,
   'LARDO Tracking': AlertTriangle,
   'Nutrition Status': HeartPulse,
+  'Nutrition Consolidator': ClipboardList,
   Transfers: ArrowLeftRight,
   'Transfers Log': ArrowLeftRight,
   Certificates: GraduationCap,
@@ -72,7 +73,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     { label: 'Dashboard', page: 'dashboard' },
     // NOTE: Access control for User Management will be restricted to ictCoordinator/principal roles in Phase B.
     { label: 'User Management', page: 'userManagement' },
-    { label: 'Branding', page: 'brandingSettings' },
+    // Branding is a tab inside School Settings now, not a separate page.
     { label: 'School Settings', page: 'schoolSettings' },
     { label: 'Import Center', page: 'importCenter' },
     {
@@ -91,6 +92,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     { label: 'View Learners', page: 'viewLearners' },
     { label: 'LARDO Tracking', page: 'lardoTracking' },
     { label: 'Nutrition Status', page: 'nutritionStatus' },
+    { label: 'Nutrition Consolidator', page: 'nutritionConsolidator' },
     { label: 'Transfers', page: 'transfersLog' },
     { label: 'Certificates', page: 'certificates' },
     { label: 'ID Generator', page: 'idGenerator' },
@@ -98,6 +100,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
       label: 'SMEA',
       children: [
         { label: 'Enrollment', page: 'smeaEnrollment' },
+        { label: 'Anecdotal Records', page: 'anecdotalRecords' },
       ],
     },
     {
@@ -124,10 +127,6 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     .filter(Boolean);
 
   const future = [
-    {
-      label: 'SMEA',
-      children: [{ label: 'Anecdotal Records' }],
-    },
     {
       label: 'Academic',
       children: [{ label: 'Grades' }, { label: 'Attendance' }],
@@ -171,7 +170,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
 
   return (
     <aside
-      className={`${collapsed ? 'w-20' : 'w-64'} ${openMobile ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static top-0 left-0 h-screen bg-primary text-white flex flex-col transition-all duration-200 z-40 dark:bg-primary-dark dark:text-gray-100 shadow-xl md:shadow-none`}
+      className={`${collapsed ? 'w-20' : 'w-64'} ${openMobile ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:sticky top-0 left-0 h-screen flex-shrink-0 bg-primary text-white flex flex-col transition-all duration-200 z-40 dark:bg-primary-dark dark:text-gray-100 shadow-xl md:shadow-none`}
       aria-label="Primary"
     >
       <div className="flex items-center justify-between gap-2 px-4 py-4 border-b border-white/10 dark:border-white/10">
