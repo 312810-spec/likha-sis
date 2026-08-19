@@ -2,7 +2,7 @@
 // Class Record page for LIKHA-SIS.
 // Subject teachers enter scores and view live computed grades (PS, WS, Initial Grade, Term Grade, Description).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   collection,
   getDocs,
@@ -14,6 +14,7 @@ import {
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
+import useMyAdvisorySection from "./hooks/useMyAdvisorySection";
 import { SUBJECT_WEIGHTS, getSubjectWeights } from "./utils/subjectWeights";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { transmuteGrade, getGradeDescription } from "./utils/transmutationTable";
@@ -37,6 +38,22 @@ export default function ClassRecord({ user, goBack }) {
   const [term, setTerm] = useState("Term 1");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
   const { sections: availableSections, loading } = useAvailableSections(gradeLevel, schoolYear);
+  const { advisorySection } = useMyAdvisorySection(user?.uid, schoolYear);
+  const [advisoryApplied, setAdvisoryApplied] = useState(false);
+
+  // A teacher assigned as a section's adviser (School Settings > Sections &
+  // Shifts, then Class Program Generator) shouldn't have to re-pick their own
+  // grade level and section every visit -- pre-fill it once, but only before
+  // they've touched the dropdowns themselves. This mirrors an external async
+  // source (Firestore) into local editable state exactly once, guarded by
+  // advisoryApplied, so it can't cascade.
+  useEffect(() => {
+    if (advisoryApplied || !advisorySection || section) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGradeLevel(advisorySection.gradeLevel);
+    setSection(advisorySection.name);
+    setAdvisoryApplied(true);
+  }, [advisorySection, advisoryApplied, section]);
 
   // Grid / Data state
   const [isLoaded, setIsLoaded] = useState(false);
@@ -509,6 +526,13 @@ export default function ClassRecord({ user, goBack }) {
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-3">
             Select Class &amp; Subject Parameters
           </h2>
+
+          {advisorySection && (
+            <p className="text-xs text-primary dark:text-primary-light bg-primary/10 dark:bg-primary/20 rounded-lg px-3 py-2 -mt-2">
+              Your advisory: {advisorySection.gradeLevel} — {advisorySection.name} (pre-filled below, still
+              changeable)
+            </p>
+          )}
 
           <form onSubmit={handleLoadClassRecord} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

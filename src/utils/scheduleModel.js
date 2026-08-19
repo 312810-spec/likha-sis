@@ -5,6 +5,21 @@
 
 export const DAYS = ["mon", "tue", "wed", "thu", "fri"];
 
+// A sensible starting point for a newly-added shift -- 8 periods of 40
+// minutes from 7:30 AM with a 20-minute recess after period 4. The
+// coordinator edits every field; this just avoids handing them a blank,
+// invalid shift that fails validateShift() before they've touched anything.
+export function makeDefaultShift(label = "New Shift") {
+  return {
+    id: `shift_${Date.now()}`,
+    label,
+    startTime: "7:30",
+    periodsPerDay: 8,
+    periodDuration: 40,
+    fixedBlocks: [{ afterPeriod: 4, duration: 20, label: "Recess" }],
+  };
+}
+
 // The school day runs 6:00 AM to 6:00 PM, so a bare "1:20" is unambiguous:
 // it can only mean afternoon. Hours 6-11 are morning, 12 is noon, 1-5 are PM.
 export function parseTime(hhmm) {
