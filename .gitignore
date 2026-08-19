@@ -32,7 +32,27 @@ graphify-out/
 # verbatim into the build output and served publicly, so they must never be
 # committed. src/importers/realSamples.test.js skips when they are absent.
 public/SF1_*.xls
+public/SF1_*.xlsx
 public/*_SF10.xlsx
+public/*_SF10.xls
+# School administrative documents and workbooks (may contain staff/learner PII)
+public/*.xlsx
+public/*.xls
+public/*.docx
+public/*.doc
+# Large uploaded school images (not app assets — handled via Firestore Storage)
+public/Tingub*
+public/*National*
+public/*loading-minutes*
+public/School Form*
+
+# Environment variable files — never commit actual secrets.
+# Only .env.example (with placeholder values) should be tracked.
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
 
 # Editor directories and files
 .vscode/*
