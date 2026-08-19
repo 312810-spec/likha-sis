@@ -3,15 +3,37 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: 26 47 160;
-  --color-primary-light: 46 69 199;
-  --color-primary-dark: 16 29 107;
-  --color-accent: 242 169 59;
-  --color-accent-light: 245 193 104;
-  --color-accent-dark: 212 140 31;
-  --color-leaf: 30 92 41;
-  --color-leaf-light: 46 125 58;
-  --color-leaf-dark: 18 61 26;
+  /* Brand tokens — default palette; useBrandTheme() overrides these live per school. */
+  --color-primary: 31 111 92;
+  --color-primary-light: 79 168 143;
+  --color-primary-dark: 22 79 66;
+  --color-accent: 201 130 46;
+  --color-accent-light: 224 165 92;
+  --color-accent-dark: 185 121 28;
+  --color-leaf: 47 138 78;
+  --color-leaf-light: 92 184 124;
+  --color-leaf-dark: 28 44 31;
+
+  /* Neutral surface tokens — warm paper, not glass. */
+  --color-paper: 246 244 238;
+  --color-paper-raised: 255 254 251;
+  --color-ink: 36 41 31;
+  --color-ink-soft: 86 92 77;
+}
+
+.dark {
+  --color-paper: 24 28 22;
+  --color-paper-raised: 32 37 29;
+  --color-ink: 238 238 226;
+  --color-ink-soft: 183 188 172;
+}
+
+body {
+  font-family: "Public Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-tabular {
+  font-variant-numeric: tabular-nums;
 }
 
 .sidebar-scroll {
