@@ -53,11 +53,18 @@ function Login({ deactivated = false, onSwitchToParent }) {
 
       <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl shadow-black/20 p-8 dark:bg-gray-900 dark:shadow-black/50 animate-slide-up">
         <div className="flex flex-col items-center mb-6">
-          <img
-            src="/Tingub%20National%20High%20School%28clear%29.png"
-            alt="Tingub National High School"
-            className="w-16 h-16 mb-3 rounded-full ring-4 ring-primary/10 dark:ring-primary-light/20"
-          />
+          <div className="relative mb-3">
+            <img
+              src="/Tingub%20National%20High%20School%28clear%29.png"
+              alt="Tingub National High School"
+              className="w-16 h-16 rounded-full ring-4 ring-primary/10 dark:ring-primary-light/20"
+            />
+            <img
+              src="/LIKHA-SIS.png"
+              alt="LIKHA-SIS"
+              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white ring-2 ring-white dark:ring-gray-900 shadow-sm object-cover"
+            />
+          </div>
           <h1 className="font-display text-xl font-semibold text-primary tracking-tight dark:text-primary-light">LIKHA-SIS</h1>
           <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">Tingub National High School</p>
         </div>

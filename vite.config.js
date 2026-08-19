@@ -6,7 +6,7 @@ import { VitePWA as vitePwa } from 'vite-plugin-pwa'
 export default defineConfig({
   plugins: [react(), vitePwa({
     registerType: 'auto-update',
-    includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.png'],
+    includeAssets: ['favicon.png', 'robots.txt', 'apple-touch-icon.png'],
     manifest: {
       name: 'LIKHA-SIS',
       short_name: 'LIKHA-SIS',
@@ -27,6 +27,12 @@ export default defineConfig({
           src: 'icons/pwa/icon-512x512.png',
           sizes: '512x512',
           type: 'image/png'
+        },
+        {
+          src: 'icons/pwa/icon-512x512-maskable.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'maskable'
         }
       ]
     },
