@@ -16,6 +16,7 @@ import SF2 from "./SF2";
 import SF4 from "./SF4";
 import ClassRecord from "./ClassRecord";
 import ConsolidatedGrades from "./ConsolidatedGrades";
+import AcademicHub from "./AcademicHub";
 import ReportCard from "./ReportCard";
 import ViewLearners from "./ViewLearners";
 import LardoTracking from "./LardoTracking";
@@ -191,6 +192,10 @@ function App() {
       case "consolidatedGrades":
         pageTitle = "Consolidated Grades";
         pageContent = <ConsolidatedGrades user={user} goBack={() => setCurrentPage("dashboard")} />;
+        break;
+      case "academicHub":
+        pageTitle = "Academic Hub";
+        pageContent = <AcademicHub goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "reportCard":
         pageTitle = "Report Card (SF9)";

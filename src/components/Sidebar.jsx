@@ -8,7 +8,6 @@ import {
   IdCard,
   BarChart3,
   NotebookPen,
-  Pencil,
   CalendarDays,
   UploadCloud,
   UserCog,
@@ -40,6 +39,7 @@ const icons = {
   'School Form 4': FileText,
   'Class Record': ClipboardList,
   'Consolidated Grades': Award,
+  'Academic Hub': LayoutDashboard,
   'Report Card (SF9)': FileText,
   'SF10 Generator': FileText,
   'View Learners': Users,
@@ -53,9 +53,6 @@ const icons = {
   SMEA: BarChart3,
   Enrollment: BarChart3,
   'Anecdotal Records': NotebookPen,
-  Academic: NotebookPen,
-  Grades: Pencil,
-  Attendance: CalendarDays,
   'Import Center': UploadCloud,
   'SF1 Bulk Import': UploadCloud,
   'SF10 Import': UploadCloud,
@@ -94,6 +91,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     },
     { label: 'Class Record', page: 'classRecord' },
     { label: 'Consolidated Grades', page: 'consolidatedGrades' },
+    { label: 'Academic Hub', page: 'academicHub' },
     { label: 'Report Card (SF9)', page: 'reportCard' },
     { label: 'SF10 Generator', page: 'sf10Generate' },
     { label: 'Class Program & Load', page: 'classProgram' },
@@ -133,13 +131,6 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
       return canAccessPage(item.page, userRoles) ? item : null;
     })
     .filter(Boolean);
-
-  const future = [
-    {
-      label: 'Academic',
-      children: [{ label: 'Grades' }, { label: 'Attendance' }],
-    },
-  ];
 
   function handleNavClick(page) {
     onNavigate(page);
@@ -243,36 +234,6 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
             )
           )}
         </ul>
-
-        <div className="mt-6">
-          {!collapsed && (
-            <h3 className="px-3 pb-1 text-[11px] uppercase tracking-wider text-white/50 font-semibold dark:text-gray-500">Future</h3>
-          )}
-          <ul className="space-y-1">
-            {future.map((sec) => (
-              <li key={sec.label}>
-                {!collapsed && (
-                  <h3 className="px-3 pt-2 pb-1 text-xs text-white/50 dark:text-gray-500">{sec.label}</h3>
-                )}
-                <ul className="space-y-1">
-                  {sec.children.map((c) => (
-                    <li key={c.label}>
-                      <button
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/40 cursor-not-allowed dark:text-gray-500 ${collapsed ? 'justify-center' : ''}`}
-                        disabled
-                        type="button"
-                        title={collapsed ? `${c.label} (Coming Soon)` : undefined}
-                      >
-                        <NavIcon label={c.label} />
-                        {!collapsed && <span className="truncate">{c.label} <span className="text-[10px] opacity-70">(Soon)</span></span>}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </div>
       </nav>
 
       {openMobile && (
