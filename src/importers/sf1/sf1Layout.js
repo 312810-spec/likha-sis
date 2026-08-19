@@ -141,3 +141,24 @@ export const REMARKS_INDICATORS_RIGHT = [
   { indicator: "Special Needs Education", code: "SNED", info: "Specify" },
   { indicator: "Accelerated", code: "ACL", info: "Specify Level & Effectivity Date" },
 ];
+
+/**
+ * Per-column widths of the underlying LIS sheet, columns 0-45, as percentages of
+ * the printable width. The register table merges these into 19 logical columns
+ * (SF1_COLUMN_PERCENTS); the title block and the footer instead lay themselves
+ * out on this raw 46-column grid, because their merges (School ID at c0-4, the
+ * REGISTERED tally at c21-27, the signature block at c30-46 …) do not line up
+ * with the register's column boundaries. Both grids total 100%, so the three
+ * tables stay in register with one another on the printed page.
+ */
+export const SF1_GRID_PERCENTS = [
+  6.2981, 1.0577, 1.0577, 2.3077, 6.1058, 3.1731, 1.5865, 3.6538, 2.1154,
+  1.0577, 1.5865, 1.5865, 2.1154, 3.6538, 3.6538, 2.1154, 2.6442, 4.5192,
+  0.1923, 0.5288, 0.5288, 4.7115, 0.5288, 1.4904, 0.0962, 1.5865, 2.1154,
+  1.0577, 0.9615, 0.0962, 4.3269, 1.9712, 0.0962, 0.9615, 1.5865, 1.6827,
+  4.0865, 0.5288, 0.5288, 0.9615, 4.6154, 1.9712, 1.875, 4.9519, 1.1538,
+  4.5192,
+];
+
+/** Row heights (px) of the title band, LIS rows 1-6 (0-based rows 0-5). */
+export const SF1_TITLE_ROW_HEIGHTS = [30, 20, 20, 20, 25, 40];

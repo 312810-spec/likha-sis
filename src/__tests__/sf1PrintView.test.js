@@ -10,7 +10,11 @@ import { describe, it, expect, afterEach } from "vitest";
 import React from "react";
 import { render, screen, cleanup } from "@testing-library/react";
 import SF1PrintView from "../components/SF1PrintView.jsx";
-import { SF1_COLUMNS, SF1_COLUMN_PERCENTS } from "../importers/sf1/sf1Layout.js";
+import {
+  SF1_COLUMNS,
+  SF1_COLUMN_PERCENTS,
+  SF1_GRID_PERCENTS,
+} from "../importers/sf1/sf1Layout.js";
 
 afterEach(cleanup);
 
@@ -232,5 +236,64 @@ describe("SF1 print view — print safety (CLAUDE.md §2)", () => {
     // reach the printed sheet.
     expect(css).not.toMatch(/\.dark\b|dark:|var\(--|currentColor/);
     expect(container.querySelector(".sf1-sheet").className).not.toMatch(/dark:/);
+  });
+});
+
+// The title band (LIS rows 1-6) and the footer band (LIS rows 30-41) are laid
+// out on the sheet's raw 46-column grid rather than the register's merged 19,
+// because their merges do not line up with the register's column boundaries.
+describe("SF1 print view - title and footer bands match the LIS grid", () => {
+  it("exposes a 46-column grid totalling the register's own width", () => {
+    expect(SF1_GRID_PERCENTS).toHaveLength(46);
+    const total = SF1_GRID_PERCENTS.reduce((sum, p) => sum + p, 0);
+    expect(total).toBeGreaterThan(99.5);
+    expect(total).toBeLessThan(100.5);
+  });
+
+  it("lays the title band on that grid, every row totalling 46 columns", () => {
+    const head = renderSheet().querySelector(".sf1-head");
+    expect(head).toBeTruthy();
+    expect(head.querySelectorAll("col")).toHaveLength(46);
+    for (const row of head.querySelectorAll("tr")) {
+      const width = [...row.children].reduce(
+        (sum, cell) => sum + (Number(cell.getAttribute("colspan")) || 1),
+        0
+      );
+      expect(width).toBe(46);
+    }
+  });
+
+  it("lays the footer band on the same grid", () => {
+    const foot = renderSheet().querySelector(".sf1-foot");
+    expect(foot).toBeTruthy();
+    expect(foot.querySelectorAll("col")).toHaveLength(46);
+  });
+
+  it("prints the region bare, with no invented Region caption", () => {
+    renderSheet();
+    expect(screen.getByText("Region VII")).toBeTruthy();
+    expect(screen.queryByText("Region")).toBeNull();
+  });
+
+  it("carries the REMARKS legend note in the second header row", () => {
+    renderSheet();
+    expect(
+      screen.getByText("(Please refer to the legend on last page)")
+    ).toBeTruthy();
+  });
+
+  it("reproduces the export's footer labels, semicolon quirk included", () => {
+    renderSheet();
+    // LIS really does print "Prepared by;" with a semicolon, not a colon.
+    expect(screen.getByText("Prepared by;")).toBeTruthy();
+    expect(screen.getByText("Certified Correct:")).toBeTruthy();
+    expect(screen.getByText("Generated thru LIS")).toBeTruthy();
+  });
+
+  it("prints the LIS generated-on line when a date is supplied", () => {
+    renderSheet({ generatedOn: "Saturday, August 15, 2026" });
+    expect(
+      screen.getByText("Generated on: Saturday, August 15, 2026")
+    ).toBeTruthy();
   });
 });
