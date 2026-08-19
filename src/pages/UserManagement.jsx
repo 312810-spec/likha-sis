@@ -17,6 +17,8 @@ import {
   Heart,
   Link2,
   Link2Off,
+  Eye,
+  IdCard,
 } from "lucide-react";
 import { db, auth } from "../firebase";
 import { createTeacherAccount } from "../firebaseAdmin";
@@ -61,6 +63,7 @@ export default function UserManagement({ user }) {
   const [editAssignSection, setEditAssignSection] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [rowActionUserId, setRowActionUserId] = useState(null);
+  const [viewingUser, setViewingUser] = useState(null);
 
   // ---- Parent Account Provisioning State ----
   const [parentName, setParentName] = useState("");
@@ -737,8 +740,17 @@ export default function UserManagement({ user }) {
                           </span>
                         </td>
                         <td className="py-3 px-4">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setViewingUser(u)}
+                              className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors dark:text-gray-400 dark:hover:text-primary-light"
+                              title="View account details"
+                            >
+                              <Eye size={15} />
+                            </button>
                           {canManage ? (
-                            <div className="flex items-center gap-1.5">
+                            <>
                               <button
                                 type="button"
                                 onClick={() => (isEditingThisRow ? handleCancelEdit() : handleStartEdit(u))}
@@ -769,10 +781,11 @@ export default function UserManagement({ user }) {
                               >
                                 {active ? <Ban size={15} /> : <Power size={15} />}
                               </button>
-                            </div>
+                            </>
                           ) : (
                             <span className="text-xs text-gray-400 dark:text-gray-500 italic">This is you</span>
                           )}
+                          </div>
                         </td>
                       </tr>
 
@@ -1160,6 +1173,77 @@ export default function UserManagement({ user }) {
           </div>
         )}
       </div>
+
+      {/* Account Details Modal */}
+      {viewingUser && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setViewingUser(null)}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3 mb-4">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <IdCard className="text-primary" size={18} /> Account Details
+              </h3>
+              <button
+                type="button"
+                onClick={() => setViewingUser(null)}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-md"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <dl className="space-y-3 text-sm">
+              {[
+                ["Full Name", viewingUser.fullName],
+                ["Email", viewingUser.email],
+                [
+                  "Roles",
+                  Array.isArray(viewingUser.roles)
+                    ? viewingUser.roles.map((r) => ROLE_LABELS[r] || r).join(", ")
+                    : "",
+                ],
+                ["Employee / DepEd ID Number", viewingUser.employeeNumber],
+                ["Position / Designation", viewingUser.position],
+                ["Mobile Number", viewingUser.mobileNumber],
+                ["Status", isAccountActive(viewingUser) ? "Active" : "Deactivated"],
+              ].map(([label, value]) => (
+                <div key={label} className="grid grid-cols-3 gap-2">
+                  <dt className="col-span-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    {label}
+                  </dt>
+                  <dd className="col-span-2 text-gray-800 dark:text-gray-200 break-words">
+                    {value || <span className="text-gray-400 dark:text-gray-500 italic">Not set</span>}
+                  </dd>
+                </div>
+              ))}
+
+              {Array.isArray(viewingUser.assignments) && viewingUser.assignments.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  <dt className="col-span-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Assignments
+                  </dt>
+                  <dd className="col-span-2 space-y-1">
+                    {viewingUser.assignments.map((a, i) => (
+                      <div key={i} className="text-gray-800 dark:text-gray-200">
+                        <span className="font-semibold">{ROLE_LABELS[a.role] || a.role}:</span>{" "}
+                        {a.subject ? `${a.subject} (` : ""}
+                        Grade {a.gradeLevel} - {a.section}
+                        {a.subject ? ")" : ""}
+                      </div>
+                    ))}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
