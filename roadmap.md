@@ -34,30 +34,34 @@ For reference, so the pending list below isn't mistaken for the whole picture. A
 
 ## Pending
 
-### Tier 1 — Stubbed in the UI, not yet built
+Ranked highest priority first. Ranking weighs cost-to-fix against active harm — a one-line change that unblocks the automation outranks a feature that is blocked on an external artifact anyway.
 
-- [ ] **Academic hub (Grades / Attendance)** — the only remaining entry under the sidebar's "Future" section (`src/components/Sidebar.jsx`, `const future`). Both children render disabled with a "(Soon)" badge. Scope still needs clarifying: whether this is a new rollup view over existing `classRecords`/`attendance` data, or a genuinely new surface. Decide that before building, since a rollup needs no new Firestore collection and a new surface does.
+### P1 — Fix the broken compliance signal
 
-### Tier 2 — Referenced DepEd mandates with no scoping yet
+- [ ] **ESLint traverses `.claude/worktrees/`.** The flat config's `ignores` doesn't exclude the nested worktree checkouts, so every active worktree's copy of the source is linted as part of master, currently surfacing 34 errors that belong to other branches. `src/` itself is clean. **This is not cosmetic:** `.claude/CRON.md` runs `npm install && npm run lint && npm run test` chained with `&&`, so the non-zero lint exit short-circuits the weekly sweep and the tests and audit skills never run. The count grows with each new worktree. One-line fix, restores the whole automation layer.
 
-Named in the spec's reference list but not covered by any current skill, page, or `CLAUDE.md` domain mandate. Before touching these, get the official DepEd template per the project's authenticity rule — don't invent fields.
+- [ ] **Archive or refresh `LIKHA-SIS — Living Project Specification.md`.** Dated Aug 11, describes a pre-role-system, SF1-only app, and instructs future sessions to paste it in as current status. It now contradicts the shipped feature set above, so it actively misinforms any session that trusts it. Archiving is a file move; refreshing is larger. Cheap either way, and the harm is ongoing.
 
-- [ ] **DO 016, s. 2026 (Lesson Planning)** — no feature, no reference template on file yet. Note that the "Lesson Planning" string already in `src/utils/teacherLoadDerivation.js` is an ancillary-duty label for load computation, unrelated to this mandate.
-- [ ] **DO 014, s. 2026 (Flexible Learning Programs)** — no feature, no reference template on file yet.
+### P2 — The one real feature decision
 
-### Tier 3 — Documentation housekeeping
+- [ ] **Academic hub (Grades / Attendance).** The only remaining entry under the sidebar's "Future" section (`src/components/Sidebar.jsx`, `const future`); both children render disabled with a "(Soon)" badge, so users see dead navigation. **Blocked on a scope call, not on effort:** a rollup view over existing `classRecords`/`attendance` data needs no new Firestore collection and is modest work; a genuinely new surface needs a collection, rules, and its own data model. Make that call before any code, since the two paths share almost nothing.
 
-- [ ] `LIKHA-SIS — Living Project Specification.md` is stale (dated Aug 11, describes a pre-role-system, SF1-only app). Either archive it or refresh it — right now it contradicts the actual shipped feature set above and could mislead a future session that pastes it in per its own instructions.
-- [ ] `README.md` is still the default Vite template — never customized to describe LIKHA-SIS, its stack, or setup steps.
+### P3 — Low urgency, low cost
 
-### Tier 4 — Tooling
+- [ ] **`README.md` is still the default Vite template** — never customized to describe LIKHA-SIS, its stack, or setup steps. Nothing depends on it; it just looks unfinished to anyone opening the repo.
 
-- [ ] **ESLint traverses `.claude/worktrees/`.** The flat config's `ignores` doesn't exclude the nested worktree checkouts, so every active worktree's copy of the source gets linted as part of master. This currently surfaces 34 errors that belong to other branches, and the count grows with each new worktree. `src/` itself is clean.
+### P4 — Blocked on external artifacts
+
+Named in the spec's reference list but not covered by any current skill, page, or `CLAUDE.md` domain mandate. Per the project's authenticity rule these cannot start until the official DepEd template is on file — don't invent fields. They rank last because the blocker is outside the codebase.
+
+- [ ] **DO 016, s. 2026 (Lesson Planning)** — no feature, no reference template yet. Note that the "Lesson Planning" string in `src/utils/teacherLoadDerivation.js` is an ancillary-duty label for load computation, unrelated to this mandate.
+- [ ] **DO 014, s. 2026 (Flexible Learning Programs)** — no feature, no reference template yet.
 
 ---
 
 ## Notes for future updates
 
 - Update this file's checkboxes and "Last updated" date as items ship — treat it as a living tracker, not a one-time snapshot. Verify claims against the source before editing; this file went badly stale once already.
+- Re-rank when priorities shift. The ranking above is a judgment call, not a fixed order — P1 is what it is because those items are cheap and actively harmful right now.
 - New Firestore collections still go through `firestore-schema-sync` regardless of what's listed here.
 - Grading/LARDO/print changes still get audited by their respective skills before being considered done, per `CLAUDE.md` §7A.
