@@ -260,7 +260,7 @@ export default function ConsolidatedGrades({ goBack, user }) {
             </button>
           )}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <Award className="text-primary" size={26} />
               Consolidated Grades
             </h1>
@@ -438,10 +438,10 @@ export default function ConsolidatedGrades({ goBack, user }) {
           </div>
 
           {/* Consolidated Table Container */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-card border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
               <div>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {gradeLevel} - {section}
                 </h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400">School Year: {schoolYear}</p>

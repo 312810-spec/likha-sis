@@ -44,13 +44,13 @@ function formatActivityDate(value) {
 
 function StatTile({ icon: Icon, tint, label, children }) {
   return (
-    <div className="flex-1 min-w-[180px] bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-200 flex items-center gap-3 dark:bg-gray-900 dark:border-gray-700">
+    <div className="flex-1 min-w-[180px] bg-white border border-gray-200 rounded-xl p-4 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-3 dark:bg-gray-900 dark:border-gray-700">
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${tint}`}>
         <Icon size={20} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-400">{label}</div>
-        <div className="text-base font-semibold mt-0.5 text-gray-900 dark:text-gray-100 truncate">{children}</div>
+        <div className="font-tabular text-base font-semibold mt-0.5 text-gray-900 dark:text-gray-100 truncate">{children}</div>
       </div>
     </div>
   );
@@ -80,7 +80,7 @@ function EmptyState({ icon: Icon = Inbox, text }) {
 
 function SectionCard({ title, children, className = '' }) {
   return (
-    <div className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm dark:bg-gray-900 dark:border-gray-700 ${className}`}>
+    <div className={`bg-white border border-gray-200 rounded-xl p-4 shadow-card dark:bg-gray-900 dark:border-gray-700 ${className}`}>
       {title && <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h4>}
       {children}
     </div>
@@ -138,7 +138,7 @@ function LardoRiskSummary({ goToLardo }) {
       ) : (
         <>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className={`text-3xl font-bold ${records.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>
+            <span className={`font-tabular text-3xl font-bold ${records.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>
               {records.length}
             </span>
             <span className="text-xs text-gray-500 dark:text-gray-300">
