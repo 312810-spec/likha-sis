@@ -7,7 +7,7 @@
 // loaded, which keeps setState out of effects.
 
 import { useState } from "react";
-import { Save, Sparkles } from "lucide-react";
+import { Save } from "lucide-react";
 import useSchoolConfigDoc from "./useSchoolConfigDoc.js";
 import StatusMessages from "./StatusMessages.jsx";
 import { inputClass, labelClass, cardClass, primaryButtonClass } from "./settingsStyles.js";
@@ -68,19 +68,6 @@ function SchoolIdentityForm({ initial, save }) {
 
   function updateField(field, value) {
     setSchoolData((prev) => autofillSchoolData(prev, field, value));
-  }
-
-  function handlePresetSelect(school) {
-    setSchoolData((prev) => ({
-      ...prev,
-      schoolId: school.schoolId || prev.schoolId,
-      schoolName: school.schoolName || prev.schoolName,
-      region: school.region || prev.region,
-      divisionOffice: school.divisionOffice || prev.divisionOffice,
-      district: school.district || prev.district,
-      municipalityCityProvince: school.municipalityCityProvince || prev.municipalityCityProvince,
-      schoolAddress: school.schoolAddress || prev.schoolAddress,
-    }));
   }
 
   const availableDivisions = getDivisionsForRegion(schoolData.region);

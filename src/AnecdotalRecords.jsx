@@ -24,37 +24,20 @@ import {
   X,
   NotebookPen,
   Calendar,
-  User,
-  ShieldAlert,
   Clock,
   ArrowLeft,
   CheckCircle2,
-  AlertCircle,
   MessageSquare,
   ChevronDown,
   ChevronUp,
   FileText,
 } from "lucide-react";
+import {
+  ANECDOTAL_INCIDENT_TYPES,
+  ANECDOTAL_STATUS_OPTIONS,
+} from "./anecdotalConstants.js";
 
-export const ANECDOTAL_INCIDENT_TYPES = [
-  "Behavioral / Conduct",
-  "Academic Observation",
-  "Guidance & Counseling",
-  "Attendance & Punctuality",
-  "Peer / Social Interaction",
-  "Health & Well-being",
-  "Commendation / Positive Note",
-  "Other",
-];
-
-export const ANECDOTAL_STATUS_OPTIONS = [
-  "Open / Under Observation",
-  "In Progress / Counseling",
-  "Resolved",
-  "Referred to Guidance",
-];
-
-export default function AnecdotalRecords({ user, userRoles = [], goBack }) {
+export default function AnecdotalRecords({ user, goBack }) {
   const { config } = useSchoolConfig();
   const gradeOptions = [
     "All",
@@ -72,7 +55,7 @@ export default function AnecdotalRecords({ user, userRoles = [], goBack }) {
   // Filter state
   const [gradeLevelFilter, setGradeLevelFilter] = useState("All");
   const [sectionFilter, setSectionFilter] = useState("");
-  const [schoolYearFilter, setSchoolYearFilter] = useState("2026-2027");
+  const [schoolYearFilter] = useState("2026-2027");
   const [typeFilter, setTypeFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");

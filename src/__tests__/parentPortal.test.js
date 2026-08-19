@@ -4,7 +4,7 @@
 //  2. useOnlineStatus hook — online/offline state management
 //  3. Parent role routing guard (PARENT_ONLY_ROLES logic)
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { canAccessPage, PARENT_ONLY_ROLES, PAGE_ACCESS, VIEW_LEARNERS_BLOCKED_ROLES } from "../pageAccess.js";
 
 // ─────────────────────────────────────────────────────────────────────────────

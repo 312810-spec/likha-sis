@@ -159,7 +159,7 @@ function editableFields(l, isSHS, track, cluster, gradeLevel, section, schoolYea
   };
 }
 
-function SF1({ user, goBack }) {
+function SF1({ user }) {
   const { config } = useSchoolConfig();
   const { calendar } = useAcademicCalendar();
   const gradeOptions =
@@ -262,7 +262,6 @@ function SF1({ user, goBack }) {
 
   // Non-blank rows drive the print register and the Print button visibility.
   const nonBlankLearners = learners.filter((l) => !isBlankLearner(l));
-  const hasAnyName = nonBlankLearners.some((l) => (l.lastName || "").trim() !== "");
 
   // Live gender tally for the toolbar metrics badge (matches the print view's
   // male-then-female split, then every remaining learner lands under Total).
@@ -287,10 +286,6 @@ function SF1({ user, goBack }) {
     const updated = [...learners];
     updated[index] = { ...updated[index], [field]: value };
     setLearners(updated);
-  }
-
-  function addRow() {
-    setLearners([...learners, createBlankLearner()]);
   }
 
   function removeRow(index) {

@@ -2,7 +2,6 @@
 import {
   formatDivisionHeader,
   findSchoolPreset,
-  findDivisionInfo,
   autofillSchoolData,
   DEPED_REGIONS,
 } from "../depedHierarchy.js";

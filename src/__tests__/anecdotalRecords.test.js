@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import {
   ANECDOTAL_INCIDENT_TYPES,
   ANECDOTAL_STATUS_OPTIONS,
-} from "../AnecdotalRecords.jsx";
+} from "../anecdotalConstants.js";
 import { canAccessPage } from "../pageAccess.js";
 
 describe("Anecdotal Records Constants & Access Controls", () => {
