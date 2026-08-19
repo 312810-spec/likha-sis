@@ -4,16 +4,15 @@
 // exported to Excel.
 //
 // Fidelity comes from src/importers/sf1/sf1Layout.js: the <colgroup> widths are
-// the real merged-column widths taken from a LIS export, so every column lines
-// up with the official sheet instead of being eyeballed.
+// the real 47-column merged widths taken from the official LIS SF1 template
+// (SF1_2026_Grade 10 (Year IV) - COMPASSION.xls).
 //
-// PRINT SAFETY (CLAUDE.md §2): this sheet is always pure black on pure white.
-// It never reads a dark-mode or brand-theme colour, so screen theming can never
-// leak into a printed learner record.
+// PRINT SAFETY: this sheet is always pure black on pure white (#000 / #fff).
+// It never reads a dark-mode or brand-theme colour.
 
 import { Fragment } from "react";
 import {
-  SF1_COLUMN_PERCENTS,
+  SF1_47_COL_PERCENTS,
   REMARKS_INDICATORS,
   REMARKS_INDICATORS_RIGHT,
 } from "../importers/sf1/sf1Layout.js";
@@ -43,30 +42,31 @@ function formatBirthDate(value) {
   return s;
 }
 
-/** One learner row, in the official column order. */
+/** One learner row mapped exactly across the 47 columns. */
 function LearnerRow({ learner }) {
   const l = learner;
   return (
     <tr className="sf1-row">
-      <td className="sf1-c-lrn">{l.lrn}</td>
-      <td className="sf1-c-name">{learnerName(l)}</td>
-      <td>{sexLetter(l.sex)}</td>
-      <td>{formatBirthDate(l.birthDate)}</td>
-      <td>{l.age}</td>
-      <td className="sf1-c-wrap">{l.motherTongue}</td>
-      <td className="sf1-c-wrap">{l.ipEthnicGroup}</td>
-      <td className="sf1-c-wrap">{l.religion}</td>
-      <td className="sf1-c-wrap">{l.houseStreetSitio}</td>
-      <td className="sf1-c-wrap">{l.barangay}</td>
-      <td className="sf1-c-wrap">{l.municipalityCity}</td>
-      <td className="sf1-c-wrap">{l.province}</td>
-      <td className="sf1-c-wrap sf1-c-left">{l.fathersName}</td>
-      <td className="sf1-c-wrap sf1-c-left">{l.mothersMaidenName}</td>
-      <td className="sf1-c-wrap sf1-c-left">{l.guardianName}</td>
-      <td className="sf1-c-wrap">{l.guardianRelationship}</td>
-      <td className="sf1-c-wrap">{l.contactNumber}</td>
-      <td className="sf1-c-wrap">{l.learningModality}</td>
-      <td className="sf1-c-wrap">{l.remarks}</td>
+      <td colSpan={2} className="sf1-c-lrn">{l.lrn}</td>
+      <td colSpan={4} className="sf1-c-name">{learnerName(l)}</td>
+      <td colSpan={1}>{sexLetter(l.sex)}</td>
+      <td colSpan={2}>{formatBirthDate(l.birthDate)}</td>
+      <td colSpan={2}>{l.age}</td>
+      <td colSpan={2} className="sf1-c-wrap">{l.motherTongue}</td>
+      <td colSpan={1} className="sf1-c-wrap">{l.ipEthnicGroup}</td>
+      <td colSpan={1} className="sf1-c-wrap">{l.religion}</td>
+      <td colSpan={2} className="sf1-c-wrap">{l.houseStreetSitio}</td>
+      <td colSpan={3} className="sf1-c-wrap">{l.barangay}</td>
+      <td colSpan={2} className="sf1-c-wrap">{l.municipalityCity}</td>
+      <td colSpan={5} className="sf1-c-wrap">{l.province}</td>
+      <td colSpan={4} className="sf1-c-wrap sf1-c-left">{l.fathersName}</td>
+      <td colSpan={5} className="sf1-c-wrap sf1-c-left">{l.mothersMaidenName}</td>
+      <td colSpan={4} className="sf1-c-wrap sf1-c-left">{l.guardianName}</td>
+      <td colSpan={1} className="sf1-c-wrap">{l.guardianRelationship}</td>
+      <td colSpan={2} className="sf1-c-wrap">{l.contactNumber}</td>
+      <td colSpan={1} className="sf1-c-wrap">{l.learningModality}</td>
+      <td colSpan={2} className="sf1-c-wrap">{l.remarks}</td>
+      <td colSpan={1} className="sf1-spacer" />
     </tr>
   );
 }
@@ -75,9 +75,9 @@ function LearnerRow({ learner }) {
 function TallyRow({ count, label }) {
   return (
     <tr className="sf1-row sf1-tally">
-      <td className="sf1-c-lrn">{count}</td>
-      <td className="sf1-c-name">{`<=== ${label}`}</td>
-      <td colSpan={17} />
+      <td colSpan={2} className="sf1-c-lrn">{count}</td>
+      <td colSpan={4} className="sf1-c-name">{`<=== ${label}`}</td>
+      <td colSpan={41} />
     </tr>
   );
 }
@@ -120,13 +120,13 @@ export default function SF1PrintView({
       <style>{PRINT_CSS}</style>
 
       <div className="sf1-sheet">
-        {/* ---------- Title block ---------- */}
+        {/* ---------- Title block (Rows 1 & 2 Parity) ---------- */}
         <div className="sf1-title">School Form 1 (SF 1) School Register</div>
         <div className="sf1-subtitle">
           (This replaces Form 1, Master List &amp; STS Form 2-Family Background and Profile)
         </div>
 
-        {/* ---------- Class metadata ---------- */}
+        {/* ---------- Class metadata (Rows 3 & 4 Parity) ---------- */}
         <table className="sf1-meta">
           <tbody>
             <tr>
@@ -169,61 +169,59 @@ export default function SF1PrintView({
           </div>
         )}
 
-        {/* ---------- Learner register ---------- */}
+        {/* ---------- Learner register (47-Column Table) ---------- */}
         <table className="sf1-table">
           <colgroup>
-            {SF1_COLUMN_PERCENTS.map((c) => (
-              <col key={c.field} style={{ width: `${c.percent}%` }} />
+            {SF1_47_COL_PERCENTS.map((pct, idx) => (
+              <col key={`col-${idx}`} style={{ width: `${pct}%` }} />
             ))}
           </colgroup>
 
-          {/* Two-row header, merged exactly like the official sheet. */}
+          {/* Two-row header (Rows 5 & 6 Parity) */}
           <thead>
             <tr>
-              <th rowSpan={2}>LRN</th>
-              <th rowSpan={2}>
+              <th rowSpan={2} colSpan={2}>LRN</th>
+              <th rowSpan={2} colSpan={4}>
                 NAME
                 <br />
                 (Last Name, First Name, Middle Name)
               </th>
-              <th rowSpan={2}>Sex (M/F)</th>
-              <th rowSpan={2}>
+              <th rowSpan={2} colSpan={1}>Sex (M/F)</th>
+              <th rowSpan={2} colSpan={2}>
                 BIRTH DATE
                 <br />
                 (mm/dd/yyyy)
               </th>
-              <th rowSpan={2}>AGE as of 1st Friday June</th>
-              <th rowSpan={2}>MOTHER TONGUE (Grade 1 to 3 Only)</th>
-              <th rowSpan={2}>
+              <th rowSpan={2} colSpan={2}>AGE as of 1st Friday June</th>
+              <th rowSpan={2} colSpan={2}>MOTHER TONGUE (Grade 1 to 3 Only)</th>
+              <th rowSpan={2} colSpan={1}>
                 IP
                 <br />
                 (Ethnic Group)
               </th>
-              <th rowSpan={2}>RELIGION</th>
-              <th colSpan={4}>ADDRESS</th>
-              <th colSpan={2}>PARENTS</th>
-              <th colSpan={2}>
+              <th rowSpan={2} colSpan={1}>RELIGION</th>
+              <th colSpan={12}>ADDRESS</th>
+              <th colSpan={9}>PARENTS</th>
+              <th colSpan={5}>
                 GUARDIAN
                 <br />
                 (if Not Parent)
               </th>
-              <th rowSpan={2}>Contact Number of Parent or Guardian</th>
-              <th rowSpan={2}>Learning Modality</th>
-              <th rowSpan={2}>
-                REMARKS
-                <br />
-                (Please refer to the legend on last page)
-              </th>
+              <th rowSpan={2} colSpan={2}>Contact Number of Parent or Guardian</th>
+              <th rowSpan={2} colSpan={1}>Learning Modality</th>
+              <th colSpan={2}>REMARKS</th>
+              <th rowSpan={2} colSpan={1} className="sf1-spacer" />
             </tr>
             <tr>
-              <th>House #/ Street/ Sitio/ Purok</th>
-              <th>Barangay</th>
-              <th>Municipality/ City</th>
-              <th>Province</th>
-              <th>Father&apos;s Name (Last Name, First Name, Middle Name)</th>
-              <th>Mother&apos;s Maiden Name (Last Name, First Name, Middle Name)</th>
-              <th>Name</th>
-              <th>Relationship</th>
+              <th colSpan={2}>House #/ Street/ Sitio/ Purok</th>
+              <th colSpan={3}>Barangay</th>
+              <th colSpan={2}>Municipality/ City</th>
+              <th colSpan={5}>Province</th>
+              <th colSpan={4}>Father&apos;s Name (Last Name, First Name, Middle Name)</th>
+              <th colSpan={5}>Mother&apos;s Maiden Name (Last Name, First Name, Middle Name)</th>
+              <th colSpan={4}>Name</th>
+              <th colSpan={1}>Relationship</th>
+              <th colSpan={2}>(Please refer to the legend on last page)</th>
             </tr>
           </thead>
 
@@ -251,104 +249,104 @@ export default function SF1PrintView({
           </tbody>
         </table>
 
-        {/* ---------- Legend + tally + signatures ---------- */}
+        {/* ---------- Footer: Legend + Registered Matrix + Signatures (Rows 39 to 50 Parity) ---------- */}
         <div className="sf1-footer">
-          <div className="sf1-legend-title">
-            List and Code of Indicators under REMARKS column
+          <div className="sf1-footer-flex">
+            {/* Left Box: List and Code of Indicators under REMARKS column */}
+            <div className="sf1-footer-left">
+              <div className="sf1-legend-title">
+                List and Code of Indicators under REMARKS column
+              </div>
+
+              <table className="sf1-legend">
+                <thead>
+                  <tr>
+                    <th style={{ width: "8%" }}>Code</th>
+                    <th style={{ width: "42%" }}>Required Information</th>
+                    <th style={{ width: "10%" }}>Indicator</th>
+                    <th style={{ width: "40%" }}>Required Information</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {REMARKS_INDICATORS.map((left, i) => {
+                    const right = REMARKS_INDICATORS_RIGHT[i];
+                    return (
+                      <tr key={left.code}>
+                        <td className="sf1-code">{left.code}</td>
+                        <td className="sf1-c-left">{left.info}</td>
+                        <td className="sf1-code">{right ? right.code : ""}</td>
+                        <td className="sf1-c-left">{right ? right.info : ""}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Right Box: Enrollment Summary Matrix & Signatures */}
+            <div className="sf1-footer-right">
+              <table className="sf1-registered-table sf1-summary-table">
+                <tbody>
+                  <tr>
+                    <td className="sf1-c-left sf1-strong">REGISTERED</td>
+                    <td className="sf1-strong">BoSY</td>
+                    <td className="sf1-strong">EoSY</td>
+                  </tr>
+                  <tr>
+                    <td className="sf1-c-left">MALE</td>
+                    <td>{males.length}</td>
+                    <td />
+                  </tr>
+                  <tr>
+                    <td className="sf1-c-left">FEMALE</td>
+                    <td>{females.length}</td>
+                    <td />
+                  </tr>
+                  <tr>
+                    <td className="sf1-c-left">TOTAL</td>
+                    <td>{total}</td>
+                    <td />
+                  </tr>
+                </tbody>
+              </table>
+
+              <table className="sf1-signatures">
+                <tbody>
+                  <tr>
+                    <td className="sf1-sign-label">Prepared by:</td>
+                    <td className="sf1-sign-label">Certified Correct:</td>
+                  </tr>
+                  <tr>
+                    <td className="sf1-sign-name">{preparedBy}</td>
+                    <td className="sf1-sign-name">{certifiedBy}</td>
+                  </tr>
+                  <tr>
+                    <td className="sf1-sign-caption">
+                      (Signature of Adviser over Printed Name)
+                    </td>
+                    <td className="sf1-sign-caption">
+                      (Signature of School Head over Printed Name)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="sf1-sign-dates">
+                      <span>BoSY Date: {bosyDate || "____________"}</span>
+                      <span>EoSY Date: {eosyDate || "____________"}</span>
+                    </td>
+                    <td className="sf1-sign-dates">
+                      <span>BoSY Date: {bosyDate || "____________"}</span>
+                      <span>EoSY Date: {eosyDate || "____________"}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <table className="sf1-legend">
-            <thead>
-              <tr>
-                <th style={{ width: "11%" }}>Indicator</th>
-                <th style={{ width: "5%" }}>Code</th>
-                <th style={{ width: "24%" }}>Required Information</th>
-                <th style={{ width: "11%" }}>Indicator</th>
-                <th style={{ width: "5%" }}>Code</th>
-                <th style={{ width: "24%" }}>Required Information</th>
-                <th className="sf1-legend-tally" colSpan={2}>&nbsp;</th>
-              </tr>
-            </thead>
-            <tbody>
-              {REMARKS_INDICATORS.map((left, i) => {
-                const right = REMARKS_INDICATORS_RIGHT[i];
-                return (
-                  <tr key={left.code}>
-                    <td className="sf1-c-left">{left.indicator}</td>
-                    <td>{left.code}</td>
-                    <td className="sf1-c-left">{left.info}</td>
-                    <td className="sf1-c-left">{right ? right.indicator : ""}</td>
-                    <td>{right ? right.code : ""}</td>
-                    <td className="sf1-c-left">{right ? right.info : ""}</td>
-                    {i === 0 && (
-                      <td className="sf1-registered" colSpan={2} rowSpan={4}>
-                        <table className="sf1-registered-table">
-                          <tbody>
-                            <tr>
-                              <td className="sf1-c-left">REGISTERED</td>
-                              <td>BoSY</td>
-                              <td>EoSY</td>
-                            </tr>
-                            <tr>
-                              <td className="sf1-c-left">MALE</td>
-                              <td>{males.length}</td>
-                              <td />
-                            </tr>
-                            <tr>
-                              <td className="sf1-c-left">FEMALE</td>
-                              <td>{females.length}</td>
-                              <td />
-                            </tr>
-                            <tr>
-                              <td className="sf1-c-left">TOTAL</td>
-                              <td>{total}</td>
-                              <td />
-                            </tr>
-                          </tbody>
-                        </table>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          <table className="sf1-signatures">
-            <tbody>
-              <tr>
-                <td className="sf1-sign-label">Prepared by:</td>
-                <td className="sf1-sign-label">Certified Correct:</td>
-              </tr>
-              <tr>
-                <td className="sf1-sign-name">{preparedBy}</td>
-                <td className="sf1-sign-name">{certifiedBy}</td>
-              </tr>
-              <tr>
-                <td className="sf1-sign-caption">
-                  (Signature of Adviser over Printed Name)
-                </td>
-                <td className="sf1-sign-caption">
-                  (Signature of School Head over Printed Name)
-                </td>
-              </tr>
-              <tr>
-                <td className="sf1-sign-dates">
-                  <span>BoSY Date: {bosyDate}</span>
-                  <span>EoSY Date: {eosyDate}</span>
-                </td>
-                <td className="sf1-sign-dates">
-                  <span>BoSY Date: {bosyDate}</span>
-                  <span>EoSY Date: {eosyDate}</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-
-          {/* ---- bottom footer metadata, exactly as LIS stamps it ---- */}
+          {/* ---- bottom footer metadata ---- */}
           <div className="sf1-footer-meta">
-            <span>Generated thru LIS</span>
             <span>Generated on: {generatedOn}</span>
+            <span>Generated thru LIS</span>
           </div>
         </div>
       </div>
@@ -357,8 +355,7 @@ export default function SF1PrintView({
 }
 
 // ---------------------------------------------------------------------------
-// Styles. Every colour is stated literally (#000 / #fff) rather than inherited,
-// so no dark-mode or brand theme can bleed into the printed form.
+// Styles. Strict pure black on white (#000 / #fff) to prevent theme leakage.
 // ---------------------------------------------------------------------------
 const PRINT_CSS = `
 .sf1-print-view {
@@ -367,7 +364,8 @@ const PRINT_CSS = `
   overflow-x: auto;
 }
 .sf1-sheet {
-  width: 13.5in;
+  width: 100%;
+  max-width: 13.5in;
   margin: 0 auto;
   padding: 0;
   background: #fff;
@@ -376,22 +374,24 @@ const PRINT_CSS = `
   box-sizing: border-box;
 }
 .sf1-title {
-  font-size: 11pt;
+  font-size: 14pt;
   font-weight: bold;
   color: #000;
   text-align: center;
-  margin-bottom: 1px;
+  margin-bottom: 2px;
+  line-height: 1.2;
 }
 .sf1-subtitle {
-  font-size: 6.5pt;
+  font-size: 9pt;
   font-style: italic;
   color: #000;
   text-align: center;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
+  line-height: 1.2;
 }
 
-/* ---- class metadata ---- */
-.sf1-meta { width: 100%; border-collapse: collapse; margin-bottom: 3px; }
+/* ---- class metadata (Rows 3 & 4) ---- */
+.sf1-meta { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
 .sf1-meta td {
   font-size: 7.5pt;
   color: #000;
@@ -406,10 +406,8 @@ const PRINT_CSS = `
   font-weight: bold;
   padding-left: 4px !important;
 }
-.sf1-meta-inline-label { padding: 0 4px 0 18px; font-weight: normal; }
-.sf1-meta-inline-value { font-weight: bold; }
 
-/* ---- DO 017 SHS sheet-level parameters ---- */
+/* ---- DO 017 SHS parameters ---- */
 .sf1-shs {
   display: flex;
   flex-wrap: wrap;
@@ -418,7 +416,7 @@ const PRINT_CSS = `
   color: #000;
   background: #fff;
   border: 1px solid #000;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   padding: 2px 6px;
   font-size: 6.5pt;
 }
@@ -431,21 +429,22 @@ const PRINT_CSS = `
   display: inline-block;
 }
 
-/* ---- learner register ---- */
+/* ---- learner register (47-column table) ---- */
 .sf1-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
   page-break-inside: auto;
+  border-bottom: 3px double #000;
 }
 .sf1-table th,
 .sf1-table td {
   border: 1px solid #000;
   color: #000;
   background: #fff;
-  font-size: 5.5pt;
-  line-height: 1.1;
-  padding: 1px;
+  font-size: 7pt;
+  line-height: 1.15;
+  padding: 1px 2px;
   text-align: center;
   vertical-align: middle;
   word-wrap: break-word;
@@ -453,84 +452,132 @@ const PRINT_CSS = `
 }
 .sf1-table th {
   font-weight: bold;
-  font-size: 5pt;
+  font-size: 7.5pt;
   vertical-align: middle;
 }
-.sf1-row { height: 0.34in; page-break-inside: avoid; }
-.sf1-c-lrn { font-size: 5.5pt; letter-spacing: -0.2px; }
+.sf1-row { height: 0.32in; page-break-inside: avoid; }
+.sf1-c-lrn { font-size: 7pt; letter-spacing: -0.2px; }
 .sf1-c-name { text-align: left !important; font-weight: normal; }
 .sf1-c-left { text-align: left !important; }
 .sf1-c-wrap { hyphens: auto; }
 .sf1-tally td { font-weight: bold; }
+.sf1-spacer { padding: 0 !important; width: 2px !important; }
 
-/* ---- footer: legend, tally box, signatures ---- */
-.sf1-footer { margin-top: 4px; page-break-inside: avoid; }
-.sf1-legend-title { font-size: 6pt; font-weight: bold; color: #000; margin-bottom: 1px; }
-.sf1-legend { width: 100%; border-collapse: collapse; table-layout: fixed; }
+/* ---- footer: legend, summary box, signatures ---- */
+.sf1-footer {
+  margin-top: 4px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.sf1-footer-flex {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.sf1-footer-left {
+  flex: 6;
+}
+.sf1-footer-right {
+  flex: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sf1-legend-title {
+  font-size: 7.5pt;
+  font-weight: bold;
+  color: #000;
+  margin-bottom: 2px;
+}
+.sf1-legend {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
 .sf1-legend th,
 .sf1-legend td {
   border: 1px solid #000;
   color: #000;
   background: #fff;
-  font-size: 5pt;
+  font-size: 6pt;
   line-height: 1.15;
-  padding: 1px 2px;
-  text-align: center;
+  padding: 2px;
+  text-align: left;
   vertical-align: top;
   word-wrap: break-word;
 }
-.sf1-legend th { font-weight: bold; }
-.sf1-registered { padding: 0 !important; vertical-align: top; }
-.sf1-registered-table { width: 100%; border-collapse: collapse; }
+.sf1-legend th {
+  font-weight: bold;
+  font-size: 6.5pt;
+  text-align: center;
+}
+.sf1-code {
+  font-weight: bold;
+  text-align: center !important;
+}
+
+.sf1-registered-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.sf1-registered-table th,
 .sf1-registered-table td {
   border: 1px solid #000;
   color: #000;
   background: #fff;
-  font-size: 5.5pt;
-  padding: 1px 3px;
+  font-size: 7pt;
+  padding: 2px 4px;
   text-align: center;
 }
+.sf1-registered-table th {
+  font-weight: bold;
+  font-size: 7.5pt;
+}
 
-.sf1-signatures { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.sf1-signatures {
+  width: 100%;
+  border-collapse: collapse;
+}
 .sf1-signatures td {
   width: 50%;
   color: #000;
   background: #fff;
   font-size: 7pt;
-  padding: 0 8px;
+  padding: 0 4px;
   text-align: center;
   vertical-align: bottom;
 }
-.sf1-sign-label { text-align: left !important; font-size: 6.5pt; }
+.sf1-sign-label { text-align: left !important; font-size: 7pt; font-weight: bold; }
 .sf1-sign-name {
   font-weight: bold;
   text-transform: uppercase;
-  padding-top: 14px !important;
+  padding-top: 16px !important;
   border-bottom: 1px solid #000;
+  font-size: 7.5pt;
 }
-.sf1-sign-caption { font-size: 5.5pt; font-style: italic; padding-top: 1px !important; }
+.sf1-sign-caption { font-size: 6pt; font-style: italic; padding-top: 1px !important; }
 .sf1-sign-dates {
   display: flex;
   justify-content: space-between;
   font-size: 6pt;
-  padding-top: 8px !important;
+  padding-top: 6px !important;
 }
 
-/* ---- bottom stamp ---- */
+/* ---- bottom metadata stamp ---- */
 .sf1-footer-meta {
   display: flex;
   justify-content: space-between;
   color: #000;
   background: #fff;
   font-size: 6pt;
-  padding-top: 3px;
+  padding-top: 4px;
 }
 
-/* ---- print ---- */
+/* ---- print styles ---- */
 @media print {
   @page {
     size: legal landscape;
-    margin: 8mm;
+    margin: 6mm;
   }
 
   body {
@@ -548,19 +595,22 @@ const PRINT_CSS = `
     overflow: visible !important;
   }
 
-  /* The sheet fills the printable area of a legal-landscape page. */
   .sf1-sheet {
     width: 100% !important;
+    max-width: none !important;
     background: #fff !important;
     color: #000 !important;
   }
 
-  /* Repeat the two-row header on every page of a long register. */
+  .sf1-table {
+    border-bottom: 3px double #000 !important;
+  }
+
   .sf1-table thead { display: table-header-group; }
   .sf1-table tfoot { display: table-footer-group; }
-  .sf1-table tr { page-break-inside: avoid; page-break-after: auto; }
+  .sf1-table tr { page-break-inside: avoid; break-inside: avoid; page-break-after: auto; }
+  .sf1-footer { page-break-inside: avoid; break-inside: avoid; }
 
-  /* Nothing in the sheet may inherit a screen theme colour. */
   .sf1-print-view * {
     background: #fff !important;
     color: #000 !important;
@@ -570,3 +620,4 @@ const PRINT_CSS = `
   }
 }
 `;
+

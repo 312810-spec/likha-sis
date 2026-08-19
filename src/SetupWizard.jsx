@@ -14,6 +14,12 @@ import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
 import { hashSettingsKey, validateSettingsKey, SETTINGS_KEY_MIN_LENGTH } from "./utils/settingsLock.js";
 import {
+  autofillSchoolData,
+  DEPED_REGIONS,
+  KNOWN_SCHOOLS,
+  getDivisionsForRegion,
+} from "./utils/depedHierarchy.js";
+import {
   Upload,
   Sparkles,
   Image as ImageIcon,
@@ -404,55 +410,88 @@ function SetupWizard({ onComplete }) {
               if (validateStep1()) setStep(2);
             }}
           >
+            <datalist id="wizard-school-presets">
+              {KNOWN_SCHOOLS.map((s) => (
+                <option key={s.schoolId} value={s.schoolName}>
+                  {`${s.schoolName} (${s.district}, ${s.divisionOffice})`}
+                </option>
+              ))}
+            </datalist>
+
+            <datalist id="wizard-regions">
+              {DEPED_REGIONS.map((r) => (
+                <option key={r} value={r} />
+              ))}
+            </datalist>
+
+            <datalist id="wizard-divisions">
+              {getDivisionsForRegion(schoolData.region).map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.cityProvince}
+                </option>
+              ))}
+            </datalist>
+
             <div className="grid grid-cols-1 gap-3">
+              <label className="text-sm">School ID (6 Digits)</label>
+              <input
+                className="border p-2 rounded"
+                value={schoolData.schoolId || ""}
+                placeholder="e.g. 302975"
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "schoolId", e.target.value))}
+              />
+
               <label className="text-sm">School Name</label>
               <input
                 className="border p-2 rounded"
-                value={schoolData.schoolName}
-                onChange={(e) => setSchoolData({ ...schoolData, schoolName: e.target.value })}
+                list="wizard-school-presets"
+                value={schoolData.schoolName || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "schoolName", e.target.value))}
               />
               {errors.schoolName && <p className="text-red-600 text-sm">{errors.schoolName}</p>}
 
               <label className="text-sm">School Address</label>
               <input
                 className="border p-2 rounded"
-                value={schoolData.schoolAddress}
-                onChange={(e) => setSchoolData({ ...schoolData, schoolAddress: e.target.value })}
+                value={schoolData.schoolAddress || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "schoolAddress", e.target.value))}
               />
 
               <label className="text-sm">Region</label>
               <input
                 className="border p-2 rounded"
-                value={schoolData.region}
-                onChange={(e) => setSchoolData({ ...schoolData, region: e.target.value })}
+                list="wizard-regions"
+                value={schoolData.region || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "region", e.target.value))}
               />
 
-              <label className="text-sm">Division Office</label>
+              <label className="text-sm">SDO - Division Office</label>
               <input
                 className="border p-2 rounded"
-                value={schoolData.divisionOffice}
-                onChange={(e) => setSchoolData({ ...schoolData, divisionOffice: e.target.value })}
+                list="wizard-divisions"
+                value={schoolData.divisionOffice || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "divisionOffice", e.target.value))}
               />
 
               <label className="text-sm">District</label>
               <input
                 className="border p-2 rounded"
-                value={schoolData.district}
-                onChange={(e) => setSchoolData({ ...schoolData, district: e.target.value })}
+                value={schoolData.district || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "district", e.target.value))}
               />
 
               <label className="text-sm">Municipality / City / Province</label>
               <input
                 className="border p-2 rounded"
-                value={schoolData.municipalityCityProvince}
-                onChange={(e) => setSchoolData({ ...schoolData, municipalityCityProvince: e.target.value })}
+                value={schoolData.municipalityCityProvince || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "municipalityCityProvince", e.target.value))}
               />
 
               <label className="text-sm">Principal Name</label>
               <input
                 className="border p-2 rounded"
-                value={schoolData.principalName}
-                onChange={(e) => setSchoolData({ ...schoolData, principalName: e.target.value })}
+                value={schoolData.principalName || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "principalName", e.target.value))}
               />
               {errors.principalName && <p className="text-red-600 text-sm">{errors.principalName}</p>}
 

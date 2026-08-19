@@ -554,9 +554,18 @@ function SF4({ user, goBack }) {
             <p className="text-sm font-bold text-center uppercase tracking-wide text-gray-900 dark:text-gray-100">
               School Form 4 — Monthly Learner Movement and Attendance Report
             </p>
-            <p className="text-xs text-center text-gray-600 dark:text-gray-400 mt-1">
-              School: <strong>{config?.schoolName || ""}</strong> · Grade: {gradeLevel} · SY: {schoolYear} · Month: {monthValue}
-            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-center text-gray-600 dark:text-gray-400 mt-1.5">
+              <span>School ID: <strong>{config?.schoolId || "—"}</strong></span>
+              <span>School: <strong>{config?.schoolName || "—"}</strong></span>
+              {config?.district && <span>District: <strong>{config.district}</strong></span>}
+              {(config?.divisionOffice || config?.divisionName) && (
+                <span>Division: <strong>{config.divisionOffice || config.divisionName}</strong></span>
+              )}
+              {config?.region && <span>Region: <strong>{config.region}</strong></span>}
+              <span>Grade: <strong>{gradeLevel}</strong></span>
+              <span>SY: <strong>{schoolYear}</strong></span>
+              <span>Month: <strong>{monthValue}</strong></span>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="sf4-table w-full text-xs">
@@ -707,6 +716,22 @@ function SF4({ user, goBack }) {
                 </tr>
               </tbody>
             </table>
+
+            {/* Certification Footer */}
+            <div className="mt-6 flex flex-wrap items-center justify-between text-xs max-w-2xl mx-auto pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="text-center w-5/12">
+                <div className="border-b border-black dark:border-gray-400 min-h-[20px]" />
+                <div className="mt-1 text-[11px] text-gray-700 dark:text-gray-300 font-medium">Prepared by: Class Advisers</div>
+              </div>
+              <div className="text-center w-5/12">
+                <div className="border-b border-black dark:border-gray-400 min-h-[20px] font-bold text-gray-900 dark:text-gray-100">
+                  {config?.principalName || ""}
+                </div>
+                <div className="mt-1 text-[11px] text-gray-700 dark:text-gray-300 font-medium">
+                  {config?.principalPosition || "School Principal"} / Certified Correct
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import { Info } from "lucide-react";
 
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
@@ -93,6 +94,8 @@ function schoolYearFromMonth(monthValue) {
 // ---- Component -------------------------------------------------------------
 
 function SF2({ user, goBack }) {
+  const { config } = useSchoolConfig();
+  const currentSchool = { ...schoolConfig, ...config };
   // learners: full roster fetched from Firestore, each with its document id.
   const [learners, setLearners] = useState([]);
   // loading: true while the roster is being fetched on mount.
@@ -828,7 +831,7 @@ function SF2({ user, goBack }) {
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">School Head Name</label>
             <input
               type="text"
-              value={schoolConfig.principalName}
+              value={currentSchool.principalName}
               readOnly
               className="w-full text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 px-3 py-2 cursor-not-allowed"
             />
@@ -1134,10 +1137,10 @@ function SF2({ user, goBack }) {
                 School Form 2 (SF2) Daily Attendance Report of Learners
               </div>
               <div>
-                School ID: <strong>{schoolConfig.schoolId || ""}</strong>
+                School ID: <strong>{currentSchool.schoolId || ""}</strong>
               </div>
               <div>
-                School Name: <strong>{schoolConfig.schoolName}</strong>
+                School Name: <strong>{currentSchool.schoolName}</strong>
               </div>
               <div>
                 School Year: <strong>{schoolYearFromMonth(monthValue)}</strong>
