@@ -85,6 +85,23 @@ describe("useAvailableSections", () => {
     expect(mocks.getDocs).not.toHaveBeenCalled();
   });
 
+  it("refetches when refreshKey changes, e.g. after an SF1 import in another tab", async () => {
+    mocks.getDocs.mockResolvedValueOnce(makeSnapshot(["Section 1"]));
+
+    const { result, rerender } = renderHook(
+      ({ refreshKey }) => useAvailableSections("Grade 4", "2026-2027", refreshKey),
+      { initialProps: { refreshKey: 0 } }
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.sections).toEqual(["Section 1"]);
+    expect(mocks.getDocs).toHaveBeenCalledTimes(1);
+
+    mocks.getDocs.mockResolvedValueOnce(makeSnapshot(["Section 1", "Section 2"]));
+    rerender({ refreshKey: 1 });
+    await waitFor(() => expect(mocks.getDocs).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.sections).toEqual(["Section 1", "Section 2"]));
+  });
+
   it("ignores empty and blank section values", async () => {
     mocks.getDocs.mockResolvedValueOnce(
       makeSnapshot(["", "   ", "Section 1", "  Section 1  ", "Section 2"], {

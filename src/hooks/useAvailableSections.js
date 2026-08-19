@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 
-export default function useAvailableSections(gradeLevel, schoolYear) {
+export default function useAvailableSections(gradeLevel, schoolYear, refreshKey) {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +59,7 @@ export default function useAvailableSections(gradeLevel, schoolYear) {
     return () => {
       cancelled = true;
     };
-  }, [gradeLevel, schoolYear]);
+  }, [gradeLevel, schoolYear, refreshKey]);
 
   return { sections, loading };
 }

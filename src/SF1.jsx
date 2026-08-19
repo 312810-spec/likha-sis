@@ -21,6 +21,7 @@ import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
 import SF1PrintView from "./components/SF1PrintView";
+import useAcademicCalendar from "./hooks/useAcademicCalendar";
 
 // Calculates age from a birth date string (YYYY-MM-DD), as of today.
 // The official DepEd age is "as of 1st Friday of June"; the importer pre-computes
@@ -160,6 +161,7 @@ function editableFields(l, isSHS, track, cluster, gradeLevel, section, schoolYea
 
 function SF1({ user, goBack }) {
   const { config } = useSchoolConfig();
+  const { calendar } = useAcademicCalendar();
   const gradeOptions =
     config?.gradeLevelsOffered ||
     ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
@@ -172,7 +174,12 @@ function SF1({ user, goBack }) {
   const [track, setTrack] = useState("");
   const [cluster, setCluster] = useState("");
   const electiveClusters = config?.shs?.electiveClusters || [];
-  const { sections: availableSections } = useAvailableSections(gradeLevel, schoolYear);
+  const [sectionsRefreshKey, setSectionsRefreshKey] = useState(0);
+  const { sections: availableSections } = useAvailableSections(
+    gradeLevel,
+    schoolYear,
+    sectionsRefreshKey
+  );
   const [newSection, setNewSection] = useState("");
   const [showNewSection, setShowNewSection] = useState(false);
 
@@ -239,6 +246,19 @@ function SF1({ user, goBack }) {
       cancelled = true;
     };
   }, [gradeLevel, section, schoolYear, showNewSection, reloadKey]);
+
+  // An SF1 bulk import (possibly in another tab) can create a new section or
+  // add learners to the currently open class. `SF1Importer` signals this via
+  // localStorage so an already-open SF1 page refreshes without a manual reload.
+  useEffect(() => {
+    function handleRosterChanged(event) {
+      if (event.key !== "sf1:rosterChanged") return;
+      setReloadKey((k) => k + 1);
+      setSectionsRefreshKey((k) => k + 1);
+    }
+    window.addEventListener("storage", handleRosterChanged);
+    return () => window.removeEventListener("storage", handleRosterChanged);
+  }, []);
 
   // Non-blank rows drive the print register and the Print button visibility.
   const nonBlankLearners = learners.filter((l) => !isBlankLearner(l));
@@ -845,6 +865,8 @@ function SF1({ user, goBack }) {
       {showPrintArea && (
         <SF1PrintView
           learners={learners.filter((l) => !isBlankLearner(l))}
+          bosyDate={calendar?.[schoolYear]?.terms?.[0]?.startDate || ""}
+          eosyDate={calendar?.[schoolYear]?.terms?.slice(-1)[0]?.endDate || ""}
           school={{
             schoolId: config.schoolId || "",
             schoolName: config.schoolName || "",

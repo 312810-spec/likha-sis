@@ -134,6 +134,13 @@ export default function SF1Importer({ user }) {
       });
       setResult(res);
       setStep(4);
+      // Notify any already-open SF1 page (this tab or another) so its class
+      // roster and section list pick up the newly imported learners.
+      try {
+        localStorage.setItem("sf1:rosterChanged", String(Date.now()));
+      } catch {
+        // localStorage unavailable (e.g. private browsing) — non-fatal.
+      }
     } catch (err) {
       console.error("Import failed:", err);
       setError(
