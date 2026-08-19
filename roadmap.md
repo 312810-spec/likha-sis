@@ -38,9 +38,9 @@ Ranked highest priority first. Ranking weighs cost-to-fix against active harm �
 
 ### P1 — Fix the broken compliance signal
 
-- [ ] **ESLint traverses `.claude/worktrees/`.** The flat config's `ignores` doesn't exclude the nested worktree checkouts, so every active worktree's copy of the source is linted as part of master, currently surfacing 34 errors that belong to other branches. `src/` itself is clean. **This is not cosmetic:** `.claude/CRON.md` runs `npm install && npm run lint && npm run test` chained with `&&`, so the non-zero lint exit short-circuits the weekly sweep and the tests and audit skills never run. The count grows with each new worktree. One-line fix, restores the whole automation layer.
+- [x] ~~**ESLint traverses `.claude/worktrees/`.**~~ Fixed in `a2a17e6` — added `.claude/worktrees` to `globalIgnores` in `eslint.config.js`. `npm run lint` exits 0 and the `.claude/CRON.md` chain now reaches the test suite (603 passed / 18 skipped), so the weekly audit sweep runs again.
 
-- [ ] **Archive or refresh `LIKHA-SIS — Living Project Specification.md`.** Dated Aug 11, describes a pre-role-system, SF1-only app, and instructs future sessions to paste it in as current status. It now contradicts the shipped feature set above, so it actively misinforms any session that trusts it. Archiving is a file move; refreshing is larger. Cheap either way, and the harm is ongoing.
+- [ ] **Fill the four gaps in `LIKHA-SIS — Living Project Specification.md`.** *Corrected:* an earlier version of this roadmap called the spec an Aug-11, SF1-only, pre-role-system document and proposed archiving it. That was wrong — it is 1,443 lines across 92 sections, was reconciled as recently as `f3799b4`, and already covers SF10, LARDO, Nutrition, School Settings, Firebase Auth and the Parent Portal. It should be refreshed, not archived. Actual missing coverage, verified by search: **Anecdotal Records**, **Class Program / Teacher's Load**, **offline-first Firestore persistence**, and the **role-system vocabulary** (`ictCoordinator` and the other role names appear nowhere in it). Its line 1383 still tells sessions to paste the whole file in as current status, which is what makes those gaps worth closing.
 
 ### P2 — The one real feature decision
 
