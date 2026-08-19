@@ -9,7 +9,7 @@ import { db } from "./firebase";
 import { resizeImageToCanvas } from "./utils/resizeImage.js";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import { validateLearnerField, validateLearnerForm, computeLearnerChanges } from "./utils/learnerValidation.js";
-import { X, AlertCircle, User, Upload, CheckCircle2 } from "lucide-react";
+import { X, AlertCircle, User, Upload } from "lucide-react";
 
 const MAX_PHOTO_SOURCE_BYTES = 15 * 1024 * 1024; // sanity cap on the original file before resizing
 
