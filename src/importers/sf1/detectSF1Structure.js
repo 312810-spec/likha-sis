@@ -72,8 +72,11 @@ function isSubHeaderRow(row) {
 }
 
 /**
- * True when the header row carries ONE combined name column, which is the
- * signature of the LIS positional layout.
+ * True when the header row carries ONE combined name column. This alone is
+ * NOT enough to identify the real LIS export -- a generic labeled sheet can
+ * also fold Last/First/Middle into one "Name" heading while still expecting
+ * ordinary column-by-column parsing (see the positional/nameAtLisOffset
+ * checks in detectSF1Structure below).
  */
 export function hasCombinedNameColumn(headerRow) {
   if (!Array.isArray(headerRow)) return false;
