@@ -52,7 +52,7 @@ function ParentLogin({ onSwitchToTeacher }) {
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #0f2744 0%, #1e3d6e 50%, #0f2744 100%)",
+        background: "linear-gradient(135deg, rgb(var(--color-primary-dark)) 0%, rgb(var(--color-primary)) 50%, rgb(var(--color-primary-dark)) 100%)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -70,7 +70,7 @@ function ParentLogin({ onSwitchToTeacher }) {
           width: "300px",
           height: "300px",
           borderRadius: "50%",
-          background: "rgba(242, 169, 59, 0.12)",
+          background: "rgb(var(--color-accent) / 0.16)",
           filter: "blur(60px)",
           pointerEvents: "none",
         }}
@@ -107,7 +107,7 @@ function ParentLogin({ onSwitchToTeacher }) {
               width: "56px",
               height: "56px",
               borderRadius: "50%",
-              background: "linear-gradient(135deg, #1A2F5F, #2d4a8a)",
+              background: "linear-gradient(135deg, rgb(var(--color-primary)), rgb(var(--color-primary-light)))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -115,13 +115,13 @@ function ParentLogin({ onSwitchToTeacher }) {
               boxShadow: "0 4px 16px rgba(26,47,95,0.35)",
             }}
           >
-            <GraduationCap size={26} color="#F2A93B" />
+            <GraduationCap size={26} color="rgb(var(--color-accent-light))" />
           </div>
           <h1
             style={{
               fontSize: "20px",
               fontWeight: 700,
-              color: "#1A2F5F",
+              color: "rgb(var(--color-primary))",
               letterSpacing: "-0.01em",
               margin: "0 0 4px",
             }}
@@ -197,7 +197,7 @@ function ParentLogin({ onSwitchToTeacher }) {
                   boxSizing: "border-box",
                   transition: "border-color 0.15s",
                 }}
-                onFocus={(e) => (e.target.style.borderColor = "#1A2F5F")}
+                onFocus={(e) => (e.target.style.borderColor = "rgb(var(--color-primary))")}
                 onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
               />
             </div>
@@ -250,7 +250,7 @@ function ParentLogin({ onSwitchToTeacher }) {
                   boxSizing: "border-box",
                   transition: "border-color 0.15s",
                 }}
-                onFocus={(e) => (e.target.style.borderColor = "#1A2F5F")}
+                onFocus={(e) => (e.target.style.borderColor = "rgb(var(--color-primary))")}
                 onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
               />
             </div>
@@ -284,7 +284,7 @@ function ParentLogin({ onSwitchToTeacher }) {
               justifyContent: "center",
               gap: "8px",
               padding: "11px",
-              background: isLoading ? "#93aad4" : "linear-gradient(135deg, #1A2F5F, #2d4a8a)",
+              background: isLoading ? "rgb(var(--color-primary-light))" : "linear-gradient(135deg, rgb(var(--color-primary)), rgb(var(--color-primary-light)))",
               color: "#ffffff",
               border: "none",
               borderRadius: "10px",
@@ -310,7 +310,7 @@ function ParentLogin({ onSwitchToTeacher }) {
               style={{
                 background: "none",
                 border: "none",
-                color: "#1A2F5F",
+                color: "rgb(var(--color-primary))",
                 fontWeight: 600,
                 cursor: "pointer",
                 fontSize: "12px",

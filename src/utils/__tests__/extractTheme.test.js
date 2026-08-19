@@ -35,7 +35,7 @@ describe("extractThemeFromImage", () => {
     const theme = await extractThemeFromImage(fakeImg);
 
     expect(theme.primary).toBe("#B43232");
-    expect(theme.accent).toBe("#32B432");
+    expect(theme.accent).toBe("#258425");
     expect(theme.leaf).toBe(DEFAULT_THEME_HEX.leaf);
   });
 
@@ -50,7 +50,7 @@ describe("extractThemeFromImage", () => {
     const theme = await extractThemeFromImage(fakeImg);
 
     expect(theme.primary).toBe("#643296");
-    expect(theme.accent).toBe("#C86432");
+    expect(theme.accent).toBe("#A8542A");
     expect(theme.leaf).toBe("#28783C");
   });
 });
