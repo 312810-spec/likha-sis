@@ -10,6 +10,14 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-17-class-program-teacher-load-design.md`
 
+> **Status: complete.** All 10 tasks shipped and merged to master via PR #4.
+> Landed: `scheduleModel.js`, `scheduleConflicts.js`, `teacherLoadDerivation.js`,
+> `schedulePalette.js`, `scheduleSeeding.js`, the `SubjectPalette`/`ScheduleGrid`/
+> `ClassProgramSheet`/`TeacherLoadSheet` components, the `ClassProgramGenerator`
+> page, the `schedules` block in `firestore.rules`, and the `classProgram` route
+> plus sidebar entry. Print safety audited PASS against `print-safety-audit`,
+> which now covers this page.
+
 ## Global Constraints
 
 - **Routing:** single-page `currentPage` string state in `App.jsx`. Do NOT use React Router.
@@ -45,7 +53,7 @@
   - `Shift = { id, label, startTime, periodDuration, periodsPerDay, fixedBlocks[] }`
   - `FixedBlock = { afterPeriod, label, labelByDay?, duration }`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/utils/__tests__/scheduleModel.test.js`:
 
@@ -223,12 +231,12 @@ describe("mergeRowSets", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/utils/__tests__/scheduleModel.test.js`
 Expected: FAIL — `Failed to resolve import "../scheduleModel"`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/utils/scheduleModel.js`:
 
@@ -332,12 +340,12 @@ export function mergeRowSets(rowSets) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/utils/__tests__/scheduleModel.test.js`
 Expected: PASS — all tests green
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/utils/scheduleModel.js src/utils/__tests__/scheduleModel.test.js
@@ -368,7 +376,7 @@ Note: the spec lists "section double-booked" as a rule, but the `cells` shape ho
 exactly one `Cell` per `(periodId, day)`, so that state is unrepresentable and needs
 no runtime check. This is called out here so a reviewer does not read it as a gap.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/utils/__tests__/scheduleConflicts.test.js`:
 
@@ -512,12 +520,12 @@ describe("findConflicts", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/utils/__tests__/scheduleConflicts.test.js`
 Expected: FAIL — `Failed to resolve import "../scheduleConflicts"`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/utils/scheduleConflicts.js`:
 
@@ -636,12 +644,12 @@ export function findConflicts({ sections = [], teachersById = {} }) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/utils/__tests__/scheduleConflicts.test.js`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/utils/scheduleConflicts.js src/utils/__tests__/scheduleConflicts.test.js
@@ -677,7 +685,7 @@ sheet in the reference document: the rotation index is
 `(gapRowOrdinal + dayIndex) % 3`, where `gapRowOrdinal` counts gap rows top to
 bottom. This reproduces her sheet exactly and the test below asserts it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/utils/__tests__/teacherLoadDerivation.test.js`:
 
@@ -930,12 +938,12 @@ describe("deriveTeacherLoad", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/utils/__tests__/teacherLoadDerivation.test.js`
 Expected: FAIL — `Failed to resolve import "../teacherLoadDerivation"`
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/utils/teacherLoadDerivation.js`:
 
@@ -1085,17 +1093,17 @@ export function deriveTeacherLoad({ teacher, sections = [], shiftsById = {} }) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/utils/__tests__/teacherLoadDerivation.test.js`
 Expected: PASS
 
-- [ ] **Step 5: Run the whole suite and lint**
+- [x] **Step 5: Run the whole suite and lint**
 
 Run: `npm run test && npm run lint`
 Expected: all suites pass, no lint errors
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/utils/teacherLoadDerivation.js src/utils/__tests__/teacherLoadDerivation.test.js
@@ -1115,7 +1123,7 @@ git commit -m "feat(schedule): derive teacher load grids from section timetables
 - Consumes: `canAccessPage` from `src/pageAccess.js`.
 - Produces: page key `"classProgram"`; `SCHEDULE_EDIT_ROLES` exported from `src/pageAccess.js`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/utils/__tests__/scheduleAccess.test.js`:
 
@@ -1143,12 +1151,12 @@ describe("classProgram page access", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/utils/__tests__/scheduleAccess.test.js`
 Expected: FAIL — `canAccessPage("classProgram", ["ictCoordinator"])` returns `false`, and `SCHEDULE_EDIT_ROLES` is `undefined`
 
-- [ ] **Step 3: Add the page access key**
+- [x] **Step 3: Add the page access key**
 
 In `src/pageAccess.js`, add this line immediately after the `sf10Generate` entry:
 
@@ -1164,12 +1172,12 @@ And add this export immediately after `VIEW_LEARNERS_EDIT_ROLES`:
 export const SCHEDULE_EDIT_ROLES = ["ictCoordinator", "principal"];
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/utils/__tests__/scheduleAccess.test.js`
 Expected: PASS
 
-- [ ] **Step 5: Add the Firestore rules block**
+- [x] **Step 5: Add the Firestore rules block**
 
 In `firestore.rules`, insert immediately before the `match /users/{userId} {` block:
 
@@ -1193,12 +1201,12 @@ In `firestore.rules`, insert immediately before the `match /users/{userId} {` bl
     }
 ```
 
-- [ ] **Step 6: Deploy the rules**
+- [x] **Step 6: Deploy the rules**
 
 Run: `firebase deploy --only firestore:rules`
 Expected: `Deploy complete!`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add firestore.rules src/pageAccess.js src/utils/__tests__/scheduleAccess.test.js
@@ -1224,7 +1232,7 @@ git commit -m "feat(schedule): add schedules collection rules and page access"
     `{ subjects, teachers, armed, onArm, editable }`
     where `armed` is `{ subject, teacherId } | null`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/utils/__tests__/schedulePalette.test.js`:
 
@@ -1339,12 +1347,12 @@ describe("teachersForSubject", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/utils/__tests__/schedulePalette.test.js`
 Expected: FAIL — `Failed to resolve import "../schedulePalette"`
 
-- [ ] **Step 3: Write the roster helper**
+- [x] **Step 3: Write the roster helper**
 
 Create `src/utils/schedulePalette.js`:
 
@@ -1398,12 +1406,12 @@ export function teachersForSubject(teachers, subject) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/utils/__tests__/schedulePalette.test.js`
 Expected: PASS
 
-- [ ] **Step 5: Write the palette component**
+- [x] **Step 5: Write the palette component**
 
 Create `src/components/schedule/SubjectPalette.jsx`:
 
@@ -1480,12 +1488,12 @@ export default function SubjectPalette({
 }
 ```
 
-- [ ] **Step 6: Verify it builds and lints**
+- [x] **Step 6: Verify it builds and lints**
 
 Run: `npm run lint && npm run build`
 Expected: no errors
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/utils/schedulePalette.js src/utils/__tests__/schedulePalette.test.js src/components/schedule/SubjectPalette.jsx
@@ -1509,7 +1517,7 @@ git commit -m "feat(schedule): add teacher roster and filtered subject palette"
   - `ScheduleGrid` React component, props:
     `{ rows, cells, conflicts, armed, onPaint, editable }`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/utils/__tests__/scheduleSeeding.test.js`:
 
@@ -1600,12 +1608,12 @@ describe("seedSectionCells", () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/utils/__tests__/scheduleSeeding.test.js`
 Expected: FAIL — `Failed to resolve import "../scheduleSeeding"`
 
-- [ ] **Step 3: Write the seeding helper**
+- [x] **Step 3: Write the seeding helper**
 
 Create `src/utils/scheduleSeeding.js`:
 
@@ -1650,12 +1658,12 @@ export function seedSectionCells({ section, rows }) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/utils/__tests__/scheduleSeeding.test.js`
 Expected: PASS
 
-- [ ] **Step 5: Write the grid component**
+- [x] **Step 5: Write the grid component**
 
 Create `src/components/schedule/ScheduleGrid.jsx`:
 
@@ -1795,12 +1803,12 @@ export default function ScheduleGrid({
 }
 ```
 
-- [ ] **Step 6: Verify it builds and lints**
+- [x] **Step 6: Verify it builds and lints**
 
 Run: `npm run lint && npm run build`
 Expected: no errors
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/utils/scheduleSeeding.js src/utils/__tests__/scheduleSeeding.test.js src/components/schedule/ScheduleGrid.jsx
@@ -1823,7 +1831,7 @@ git commit -m "feat(schedule): add seeding helper and paintable schedule grid"
 This task has no unit test — it is presentational. Verification is the print
 preview check in Step 2, which is what the print-safety mandate actually requires.
 
-- [ ] **Step 1: Write the component**
+- [x] **Step 1: Write the component**
 
 Create `src/components/schedule/ClassProgramSheet.jsx`:
 
@@ -1947,12 +1955,12 @@ export default function ClassProgramSheet({
 }
 ```
 
-- [ ] **Step 2: Verify build and lint**
+- [x] **Step 2: Verify build and lint**
 
 Run: `npm run lint && npm run build`
 Expected: no errors
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/components/schedule/ClassProgramSheet.jsx
@@ -1971,7 +1979,7 @@ git commit -m "feat(schedule): add printable class program sheet"
 - Produces: `TeacherLoadSheet` component, props
   `{ teacher, load, schoolYear, advisoryLabel, signatories }`.
 
-- [ ] **Step 1: Write the component**
+- [x] **Step 1: Write the component**
 
 Create `src/components/schedule/TeacherLoadSheet.jsx`:
 
@@ -2102,12 +2110,12 @@ export default function TeacherLoadSheet({
 }
 ```
 
-- [ ] **Step 2: Verify build and lint**
+- [x] **Step 2: Verify build and lint**
 
 Run: `npm run lint && npm run build`
 Expected: no errors
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/components/schedule/TeacherLoadSheet.jsx
@@ -2125,7 +2133,7 @@ git commit -m "feat(schedule): add printable teacher load sheet"
 - Consumes: everything from Tasks 1, 2, 3, 5, 6, 7, 8; `SCHEDULE_EDIT_ROLES` from Task 4.
 - Produces: default-exported `ClassProgramGenerator` component, props `{ goBack, userRoles }`.
 
-- [ ] **Step 1: Write the page**
+- [x] **Step 1: Write the page**
 
 Create `src/ClassProgramGenerator.jsx`:
 
@@ -2485,12 +2493,12 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
 }
 ```
 
-- [ ] **Step 2: Verify build and lint**
+- [x] **Step 2: Verify build and lint**
 
 Run: `npm run lint && npm run build`
 Expected: no errors
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/ClassProgramGenerator.jsx
@@ -2509,7 +2517,7 @@ git commit -m "feat(schedule): add class program generator page"
 - Consumes: `ClassProgramGenerator` from Task 9; page key `classProgram` from Task 4.
 - Produces: nothing downstream — this is the final wiring task.
 
-- [ ] **Step 1: Add the import to App.jsx**
+- [x] **Step 1: Add the import to App.jsx**
 
 In `src/App.jsx`, immediately after the `SF10Generator` import on line 28:
 
@@ -2517,7 +2525,7 @@ In `src/App.jsx`, immediately after the `SF10Generator` import on line 28:
 import ClassProgramGenerator from "./ClassProgramGenerator";
 ```
 
-- [ ] **Step 2: Add the route case to App.jsx**
+- [x] **Step 2: Add the route case to App.jsx**
 
 In `src/App.jsx`, immediately after the `case "sf10Generate":` block:
 
@@ -2536,7 +2544,7 @@ In `src/App.jsx`, immediately after the `case "sf10Generate":` block:
 `undefined` on first render. `ClassProgramGenerator` defaults the prop to `[]`,
 which keeps the `SCHEDULE_EDIT_ROLES.some(...)` call safe.
 
-- [ ] **Step 3: Add the sidebar entry**
+- [x] **Step 3: Add the sidebar entry**
 
 In `src/components/Sidebar.jsx`, immediately after the `SF10 Generator` entry on line 89:
 
@@ -2544,12 +2552,12 @@ In `src/components/Sidebar.jsx`, immediately after the `SF10 Generator` entry on
     { label: 'Class Program & Load', page: 'classProgram' },
 ```
 
-- [ ] **Step 4: Verify the full gate**
+- [x] **Step 4: Verify the full gate**
 
 Run: `npm run lint && npm run test && npm run build`
 Expected: no lint errors, all suites pass, build succeeds
 
-- [ ] **Step 5: Manually verify in the running app**
+- [x] **Step 5: Manually verify in the running app**
 
 Run: `npm run dev`
 
@@ -2558,7 +2566,7 @@ Check:
 2. Open it. With no config saved it shows the setup-needed message, not a crash.
 3. Sign in as a `guidance` user — the sidebar entry is absent.
 
-- [ ] **Step 6: Commit and push**
+- [x] **Step 6: Commit and push**
 
 ```bash
 git add src/App.jsx src/components/Sidebar.jsx
