@@ -9,6 +9,7 @@ export const PAGE_ACCESS = {
   sf4: ["adviser"],
   classRecord: ["subjectTeacher", "adviser"],
   consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"],
+  academicHub: ["adviser", "principal", "masterTeacher", "smeaCoordinator", "guidance"],
   reportCard: ["adviser", "principal"],
   viewLearners: "all",
   lardoTracking: ["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"],
