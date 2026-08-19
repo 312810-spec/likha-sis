@@ -100,6 +100,13 @@ export default function SF1PrintView({
   bosyDate = "",
   eosyDate = "",
 }) {
+  // Generated-on stamp shown at the very bottom, matching LIS output.
+  const generatedOn = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   // SF1 lists all males first, then all females, each block alphabetical.
   const byName = (a, b) => learnerName(a).localeCompare(learnerName(b));
   const males = learners.filter((l) => sexLetter(l.sex) === "M").sort(byName);
@@ -124,11 +131,11 @@ export default function SF1PrintView({
           <tbody>
             <tr>
               <td className="sf1-meta-label">School ID</td>
-              <td className="sf1-meta-value" style={{ width: "16%" }}>{school.schoolId || ""}</td>
+              <td className="sf1-meta-value">{school.schoolId || ""}</td>
               <td className="sf1-meta-label">Region</td>
-              <td className="sf1-meta-value" style={{ width: "14%" }}>{school.region || ""}</td>
+              <td className="sf1-meta-value">{school.region || ""}</td>
               <td className="sf1-meta-label">Division</td>
-              <td className="sf1-meta-value">{school.division || ""}</td>
+              <td className="sf1-meta-value" colSpan={3}>{school.division || ""}</td>
             </tr>
             <tr>
               <td className="sf1-meta-label">School Name</td>
@@ -136,11 +143,9 @@ export default function SF1PrintView({
               <td className="sf1-meta-label">School Year</td>
               <td className="sf1-meta-value">{school.schoolYear || ""}</td>
               <td className="sf1-meta-label">Grade Level</td>
-              <td className="sf1-meta-value">
-                {school.gradeLevel || ""}
-                <span className="sf1-meta-inline-label">Section</span>
-                <span className="sf1-meta-inline-value">{school.section || ""}</span>
-              </td>
+              <td className="sf1-meta-value">{school.gradeLevel || ""}</td>
+              <td className="sf1-meta-label">Section</td>
+              <td className="sf1-meta-value">{school.section || ""}</td>
             </tr>
           </tbody>
         </table>
@@ -185,7 +190,11 @@ export default function SF1PrintView({
               </th>
               <th rowSpan={2}>Contact Number of Parent or Guardian</th>
               <th rowSpan={2}>Learning Modality</th>
-              <th rowSpan={2}>REMARKS</th>
+              <th rowSpan={2}>
+                REMARKS
+                <br />
+                (Please refer to the legend on last page)
+              </th>
             </tr>
             <tr>
               <th>House #/ Street/ Sitio/ Purok</th>
@@ -316,6 +325,12 @@ export default function SF1PrintView({
               </tr>
             </tbody>
           </table>
+
+          {/* ---- bottom footer metadata, exactly as LIS stamps it ---- */}
+          <div className="sf1-footer-meta">
+            <span>Generated thru LIS</span>
+            <span>Generated on: {generatedOn}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -345,12 +360,14 @@ const PRINT_CSS = `
   font-size: 11pt;
   font-weight: bold;
   color: #000;
+  text-align: center;
   margin-bottom: 1px;
 }
 .sf1-subtitle {
   font-size: 6.5pt;
   font-style: italic;
   color: #000;
+  text-align: center;
   margin-bottom: 5px;
 }
 
@@ -458,11 +475,21 @@ const PRINT_CSS = `
   padding-top: 8px !important;
 }
 
+/* ---- bottom stamp ---- */
+.sf1-footer-meta {
+  display: flex;
+  justify-content: space-between;
+  color: #000;
+  background: #fff;
+  font-size: 6pt;
+  padding-top: 3px;
+}
+
 /* ---- print ---- */
 @media print {
   @page {
     size: legal landscape;
-    margin: 0.25in;
+    margin: 8mm;
   }
 
   body {
