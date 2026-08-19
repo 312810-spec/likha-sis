@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1760" viewBox="0 0 1240 1760">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0e1424"/>
+      <stop offset="0.55" stop-color="#151f38"/>
+      <stop offset="1" stop-color="#1c2a4a"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="0.5" stop-color="#a5b4fc"/>
+      <stop offset="1" stop-color="#fca5a5"/>
+    </linearGradient>
+    <linearGradient id="accentBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1240" height="1760" fill="url(#bg)"/>
+  <circle cx="40" cy="150" r="200" fill="#2dd4bf" opacity="0.06"/>
+  <circle cx="1210" cy="1700" r="260" fill="#818cf8" opacity="0.07"/>
+  <circle cx="1150" cy="40" r="90" fill="#fbbf24" opacity="0.05"/>
+
+  <!-- Header -->
+  <rect x="445" y="52" width="350" height="36" rx="18" fill="#fbbf24" opacity="0.12" stroke="#fbbf24" stroke-opacity="0.4"/>
+  <text x="620" y="75" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="3" fill="#fcd34d">DEV SESSION RECAP</text>
+
+  <text x="620" y="150" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="62" font-weight="800" fill="url(#titleGrad)">School-Wide Nutrition &amp;</text>
+  <text x="620" y="218" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="62" font-weight="800" fill="#eef2ff">SF10 Record Generators</text>
+  <text x="620" y="262" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="500" fill="#9aa3bd">Tingub National High School &bull; Learner Information &amp; Knowledge Hub Administrative System</text>
+
+  <!-- Stats band -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="60" y="318" width="268" height="128" rx="20" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <text x="194" y="378" text-anchor="middle" font-size="50" font-weight="800" fill="#5eead4">8</text>
+    <text x="194" y="414" text-anchor="middle" font-size="14" font-weight="600" letter-spacing="2.5" fill="#9aa3bd">COMMITS</text>
+    <rect x="344" y="318" width="268" height="128" rx="20" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <text x="478" y="378" text-anchor="middle" font-size="50" font-weight="800" fill="#818cf8">24</text>
+    <text x="478" y="414" text-anchor="middle" font-size="14" font-weight="600" letter-spacing="2.5" fill="#9aa3bd">FILES CHANGED</text>
+    <rect x="628" y="318" width="268" height="128" rx="20" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <text x="762" y="378" text-anchor="middle" font-size="50" font-weight="800" fill="#fca5a5">+1122</text>
+    <text x="762" y="414" text-anchor="middle" font-size="14" font-weight="600" letter-spacing="2.5" fill="#9aa3bd">LINES ADDED</text>
+    <rect x="912" y="318" width="268" height="128" rx="20" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <text x="1046" y="378" text-anchor="middle" font-size="50" font-weight="800" fill="#fbbf24">2</text>
+    <text x="1046" y="414" text-anchor="middle" font-size="14" font-weight="600" letter-spacing="2.5" fill="#9aa3bd">NEW MODULES</text>
+  </g>

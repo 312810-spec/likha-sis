@@ -62,6 +62,7 @@ export default function ReportCard({ goBack }) {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
   const GRADE_OPTIONS = gradeOptions;
+  const school = { ...schoolConfig, ...config };
 
   // DO 017 SHS: resolve weights for the school's configured SHS subjects
   // first, falling through to the static Grade 4-10 map.
@@ -485,14 +486,20 @@ export default function ReportCard({ goBack }) {
                 >
                   <div>Republic of the Philippines</div>
                   <div>Department of Education</div>
-                  <div>{schoolConfig.region}</div>
-                  <div>SCHOOLS DIVISION OFFICE OF {schoolConfig.divisionOffice}</div>
-                  <div>{schoolConfig.district}</div>
-                  <div>{schoolConfig.municipalityCityProvince}</div>
+                  <div>{school.region}</div>
+                  <div>SCHOOLS DIVISION OFFICE OF {school.divisionOffice}</div>
+                  <div>{school.district}</div>
+                  <div>{school.municipalityCityProvince}</div>
                   <div>
                     <strong>School: </strong>
-                    {schoolConfig.schoolName}
+                    {school.schoolName}
                   </div>
+                  {school.schoolId && (
+                    <div>
+                      <strong>School ID: </strong>
+                      {school.schoolId}
+                    </div>
+                  )}
                 </td>
 
                 {/* Right: Logo placeholder + Attendance table */}

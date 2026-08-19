@@ -204,4 +204,94 @@ describe("buildLearnerAcademicHistory", () => {
     expect(result.map((r) => r.schoolYear)).toEqual(["2024-2025", "2026-2027"]);
     expect(result.map((r) => r.source)).toEqual(["imported", "live"]);
   });
+
+  it("maps an imported subject name to its canonical key via alias, even with different wording", () => {
+    const academicRecords = [
+      {
+        lrn: "123456789012",
+        schoolYear: "2024-2025",
+        gradeLevel: "6",
+        learningAreas: [{ name: "Edukasyon sa Pagpapakatao", grades: [88] }],
+        generalAverage: "88",
+        promotionStatus: "Promoted",
+      },
+    ];
+    const result = buildLearnerAcademicHistory(
+      { learnerId: "learner-1", lrn: "123456789012" },
+      [],
+      academicRecords,
+      getSubjectWeights
+    );
+    expect(result[0].subjects).toEqual({ "GMRC/ESP": 88 });
+  });
+
+  it("maps a MATATAG-era imported 'Music and Arts' grade to the combined key", () => {
+    const academicRecords = [
+      {
+        lrn: "123456789012",
+        schoolYear: "2026-2027",
+        gradeLevel: "10",
+        learningAreas: [{ name: "Music and Arts", grades: [91] }],
+        generalAverage: "91",
+        promotionStatus: "Promoted",
+      },
+    ];
+    const result = buildLearnerAcademicHistory(
+      { learnerId: "learner-1", lrn: "123456789012" },
+      [],
+      academicRecords,
+      getSubjectWeights
+    );
+    expect(result[0].subjects).toEqual({ "MUSIC AND ARTS": 91 });
+  });
+
+  it("keeps a pre-MATATAG year's 4 separate MAPEH component grades distinct, never merging them", () => {
+    const academicRecords = [
+      {
+        lrn: "123456789012",
+        schoolYear: "2023-2024",
+        gradeLevel: "9",
+        learningAreas: [
+          { name: "Music", grades: [80] },
+          { name: "Arts", grades: [85] },
+          { name: "P.E.", grades: [90] },
+          { name: "Health", grades: [95] },
+        ],
+        generalAverage: "87.5",
+        promotionStatus: "Promoted",
+      },
+    ];
+    const result = buildLearnerAcademicHistory(
+      { learnerId: "learner-1", lrn: "123456789012" },
+      [],
+      academicRecords,
+      getSubjectWeights
+    );
+    expect(result[0].subjects).toEqual({
+      MUSIC: 80,
+      ARTS: 85,
+      "PHYSICAL EDUCATION": 90,
+      HEALTH: 95,
+    });
+  });
+
+  it("falls back to the raw imported name as its own row when nothing matches", () => {
+    const academicRecords = [
+      {
+        lrn: "123456789012",
+        schoolYear: "2024-2025",
+        gradeLevel: "6",
+        learningAreas: [{ name: "Home Economics", grades: [82] }],
+        generalAverage: "82",
+        promotionStatus: "Promoted",
+      },
+    ];
+    const result = buildLearnerAcademicHistory(
+      { learnerId: "learner-1", lrn: "123456789012" },
+      [],
+      academicRecords,
+      getSubjectWeights
+    );
+    expect(result[0].subjects).toEqual({ "HOME ECONOMICS": 82 });
+  });
 });

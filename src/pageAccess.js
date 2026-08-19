@@ -3,7 +3,9 @@
 export const PAGE_ACCESS = {
   dashboard: "all",
   sf1: ["adviser", "ictCoordinator", "principal"],
-  sf2: ["adviser"],
+  // Adviser marks attendance; the other roles only see the read-only Year
+  // Overview tab (SF2.jsx gates the monthly grid itself to adviser).
+  sf2: ["adviser", "principal", "masterTeacher", "smeaCoordinator", "guidance", "ictCoordinator"],
   sf4: ["adviser"],
   classRecord: ["subjectTeacher", "adviser"],
   consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"],
@@ -11,40 +13,42 @@ export const PAGE_ACCESS = {
   viewLearners: "all",
   lardoTracking: ["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"],
   nutritionStatus: ["adviser", "smeaCoordinator"],
+  nutritionConsolidator: ["adviser", "smeaCoordinator", "principal"],
   transfersLog: ["adviser", "ictCoordinator", "principal", "smeaCoordinator"],
-  certificates: ["ictCoordinator", "principal", "adviser"],
-  idGenerator: ["ictCoordinator"],
+  certificates: ["adviser", "subjectTeacher", "principal"],
+  idGenerator: ["adviser", "ictCoordinator", "principal"],
   smeaEnrollment: ["principal", "masterTeacher", "ictCoordinator", "smeaCoordinator"],
-  importCenter: ["ictCoordinator"],
-  sf1Import: ["ictCoordinator"],
-  sf10Import: ["ictCoordinator"],
+  smeaAcademicHub: ["principal", "masterTeacher", "ictCoordinator", "smeaCoordinator", "adviser", "subjectTeacher"],
+  importCenter: ["ictCoordinator", "principal"],
+  sf1Import: ["ictCoordinator", "principal"],
+  sf10Import: ["ictCoordinator", "principal"],
   sf10Generate: ["adviser", "principal", "ictCoordinator"],
+  classProgram: ["ictCoordinator", "principal", "adviser", "masterTeacher"],
   userManagement: ["ictCoordinator", "principal"],
-  brandingSettings: ["ictCoordinator", "principal"],
-  schoolSettings: ["ictCoordinator", "principal"],
+  schoolSettings: ["ictCoordinator"],
   accountSettings: "all",
+  anecdotalRecords: ["adviser", "guidance", "principal", "masterTeacher"],
+  // Parent portal: accessible only to the parent role.
+  // Parents are provisioned by ICT Coordinator and have no access to staff tools.
+  parentPortal: ["parent"],
   // Both pages are readable by every role — a teacher must be able to see a
   // class suspension or an upcoming holiday. Authoring is gated separately by
   // canPostAnnouncements / canManageSchoolEvents below, the same way LARDO
   // Tracking is viewable more widely than its discipline tab is.
   announcements: "all",
-  schoolCalendar: "all"
+  schoolCalendar: "all",
 };
 
-export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder"];
+export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder", "parent"];
 export const VIEW_LEARNERS_EDIT_ROLES = ["adviser"];
 
-// DO 006, s. 2026 (Safe Environment / LRP): behavioral incident records are
-// restricted to smeaCoordinator, principal, and guidance — narrower than the
-// dropout-risk side of LARDO Tracking, which adviser/masterTeacher can also see.
-export const DISCIPLINE_STAFF_ROLES = ["smeaCoordinator", "principal", "guidance"];
+// Schedules carry no learner PII, so reading is broad -- advisers and master
+// teachers print their own sheets. Writing matches the firestore.rules block.
+export const SCHEDULE_EDIT_ROLES = ["ictCoordinator", "principal"];
 
-export function canAccessDisciplineRecords(userRoles) {
-  if (!Array.isArray(userRoles) || userRoles.length === 0) {
-    return false;
-  }
-  return DISCIPLINE_STAFF_ROLES.some((role) => userRoles.includes(role));
-}
+// Roles that are restricted to the Parent Portal only — they must never
+// gain access to any staff page even if PAGE_ACCESS is accidentally set to "all".
+export const PARENT_ONLY_ROLES = ["parent"];
 
 // School-wide publishing rights. The Principal owns official school
 // communication; the ICT Coordinator is the one who actually operates the
@@ -66,36 +70,24 @@ export function canManageSchoolEvents(userRoles) {
   return canPostAnnouncements(userRoles);
 }
 
-export function canAccessPage(pageKey, userRoles) {
-  if (!Array.isArray(userRoles) || userRoles.length === 0) {
-    return false;
-  }
-
-  const access = PAGE_ACCESS[pageKey];
-  if (!access) {
-    return false;
-  }
-
-  if (access === "all") {
-    if (
-      pageKey === "viewLearners" &&
-      VIEW_LEARNERS_BLOCKED_ROLES.some((role) => userRoles.includes(role))
-    ) {
+export function canAccessPage(page, userRoles = []) {
+  if (!Array.isArray(userRoles) || userRoles.length === 0) return false;
+  const allowed = PAGE_ACCESS[page];
+  if (!allowed) return false;
+  if (page === "viewLearners") {
+    if (userRoles.some((role) => VIEW_LEARNERS_BLOCKED_ROLES.includes(role))) {
       return false;
     }
-    return true;
   }
-
-  if (Array.isArray(access)) {
-    return access.some((role) => userRoles.includes(role));
-  }
-
-  return false;
+  if (allowed === "all") return true;
+  return userRoles.some((role) => allowed.includes(role));
 }
 
-export function canEditLearners(userRoles) {
-  if (!Array.isArray(userRoles) || userRoles.length === 0) {
-    return false;
-  }
-  return userRoles.includes("adviser");
+export function canEditLearners(userRoles = []) {
+  if (!Array.isArray(userRoles) || userRoles.length === 0) return false;
+  return userRoles.some((role) => VIEW_LEARNERS_EDIT_ROLES.includes(role));
+}
+
+export function canAccessDisciplineRecords(userRoles = []) {
+  return canAccessPage("lardoTracking", userRoles);
 }

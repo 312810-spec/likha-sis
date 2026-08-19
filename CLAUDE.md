@@ -13,6 +13,7 @@ Development operates exclusively via **Claude Code CLI (Pro)** running directly 
 * **Routing:** Single-page string state (`currentPage`) in `App.jsx` (**STRICT: Do NOT use React Router**).
 * **Theming:** Screen-chrome dark/light/brand themes using `useDarkMode()` and `useBrandTheme()` hooks.
 * **Print Safety Boundaries:** Printable components (`ReportCard`, `CertificateGenerator`, `IDGenerator`) maintain a strict pure white background during `@media print`.
+* **Configuration:** All school setup lives in one ICT-Coordinator-only tabbed **School Settings** page, gated by a hashed School Settings key (see Section 4D).
 * **APIs:** QR generation via `api.qrserver.com` (no npm dependencies).
 * **Source of Truth:** Live GitHub repository at `https://github.com/312810-spec/likha-sis.git`.
 
@@ -86,6 +87,16 @@ Execution operates directly within Git Bash without third-party prompt handoffs:
 
 * **Dependency Traversal Rule:** Updates to core schemas (`Learner` / `Class Record`) automatically traverse and update dependent components (`Consolidated Grades`, `SF9`, `SMEA Rollups`, `LARDO`).
 
+### D. School Settings & the Settings Lock (ICT Coordinator)
+
+Everything the first-run `SetupWizard` collects is also editable at any time from a single tabbed **School Settings** page (`src/SchoolSettings.jsx`), owned exclusively by the `ictCoordinator` role. Tabs: School Identity, Grade Levels & SHS, Branding & Theme, Academic Calendar, Security. The standalone `brandingSettings` page no longer exists — branding renders inside the Branding & Theme tab via `<BrandingSettings embedded />`.
+
+* **Access:** `pageAccess.js` grants `schoolSettings` to `ictCoordinator` only. The principal keeps User Management but can no longer read or write `settings/*`; `firestore.rules` enforces the same narrowing server-side.
+* **Safety net — the School Settings key:** a dedicated key, separate from the login password, set during Step 2 of the SetupWizard and required before any tab is revealed. Only a PBKDF2-SHA256 record (150k iterations, 16-byte salt, 256 derived bits) is stored in `settings/security`; the plaintext key is never persisted. Implemented in `src/utils/settingsLock.js` on the Web Crypto API — **no npm dependency**. Verification fails closed, wrong attempts throttle after 5 tries, and the page re-locks on **Lock** or on leaving the page. A forgotten key is recovered by deleting `settings/security` in the Firebase console, which returns the page to "create a key" rather than locking the school out.
+* **Firestore rules caveat:** rules are *additive*, so a narrow `match /settings/security` block alone cannot hide the hash — the broad `match /settings/{document}` rule carries a `document != 'security'` guard, and that guard is what actually restricts it. Both blocks keep a `!isSetupComplete()` bootstrap branch so first-run writes succeed; the SetupWizard therefore writes `settings/security` *before* `settings/schoolConfig`.
+* **Threat model (honest):** `settings/security` is readable by the `ictCoordinator` role itself. The key guards against accidental edits, a forgotten open tab, and a borrowed workstation — not against a determined ICT Coordinator.
+* **Academic Calendar is now data, not code:** school years and the three term date ranges live in `settings/schoolConfig.academicCalendar`, layered by `mergeAcademicCalendar()` over the built-in SY 2026–2027 fallback in `src/academicCalendar.js`. Consumers (`SF4.jsx`, `SMEAEnrollment.jsx`) read it through the `useAcademicCalendar()` hook. Terms stay fixed at three per DO 15, s. 2026 — they can be dated, never added or removed.
+
 ---
 
 ## 5. Deployment Commands
@@ -133,3 +144,27 @@ A scheduled cloud routine runs the grading/LARDO/print/schema audit skills on a 
 * **`specialized-codebase-archaeologist`**, **`specialized-document-generator`** (SF9/SF10/report-style document work), **`specialized-mcp-builder`** (if integrating an external MCP server).
 
 Ignore every other division in the pool by default unless a task explicitly calls for it.
+
+---
+
+## 8. Full-Stack Engineering Lead Mode — Token Efficiency Directive
+
+Claude Code operates as the **Full-Stack Engineering Lead** for LIKHA-SIS (Vite + React + Firebase), under a standing mandate for extreme token efficiency and code precision: complete engineering tasks with minimum token consumption while maintaining 100% type safety and strict DepEd compliance.
+
+### A. Strict File & Read Boundaries (Token Saver)
+* **Never** read non-code/asset directories or files: `.infographic-build/`, `public/*.png`, `public/*.xlsx`, `src/assets/`.
+* **Never** output entire file contents when editing. Use targeted search-and-replace block edits (`Edit`-style snippet replaces) only — not full-file rewrites.
+* **Never** re-read a file immediately after writing/editing it unless an explicit syntax/lint error occurs.
+* When inspecting code structure, read **only** declaration lines, exported signatures, and interfaces first. Do not load full function bodies unless directly working inside them.
+
+### B. Execution & Tool Guidelines
+* **Targeted grep/search**: always constrain searches to the exact folder in scope.
+  * Good: search `computeLearnerGrade` within `src/utils/`.
+  * Bad: search `computeLearnerGrade` across the whole repo.
+* **Targeted testing only**: run tests for the specific file under modification (e.g. `npx vitest run src/utils/__tests__/autoFlagTriggers.test.js`), not the full suite, unless a change is repo-wide.
+* **Minimal terminal output**: prefer concise/quiet flags (`--silent`, `--reporter=compact`) to avoid inflating context with verbose CLI output.
+
+### C. Domain & Architecture Discipline
+* **State management**: keep components lean; rely on lightweight React hooks (`useSchoolConfig`, `useAcademicCalendar`) and pure functions inside `src/utils/`.
+* **Firebase reads/writes**: every Firestore query must abide strictly by the field rules defined in `firestore.rules`.
+* **Linting & hygiene**: run targeted ESLint checks on changed files only (e.g. `npx eslint src/path/to/File.jsx`) prior to declaring a task complete.

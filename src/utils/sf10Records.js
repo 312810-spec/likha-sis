@@ -7,6 +7,7 @@
 // arrays in.
 
 import { computeLearnerTermGrade } from "./gradeComputations.js";
+import { findCanonicalKey, getImportMatchRows } from "./subjectRows.js";
 
 const TERMS = ["Term 1", "Term 2", "Term 3"];
 
@@ -102,12 +103,20 @@ function buildImportedRows(lrn, academicRecordsList) {
   const rows = new Map();
   mine.forEach((doc) => {
     const key = yearGradeKey(doc.schoolYear, doc.gradeLevel);
+    const matchRows = getImportMatchRows(doc.schoolYear, doc.gradeLevel);
     const subjects = {};
     (Array.isArray(doc.learningAreas) ? doc.learningAreas : []).forEach((area) => {
-      const name = String(area?.name ?? "").trim().toUpperCase();
+      const rawName = String(area?.name ?? "").trim();
       const grades = Array.isArray(area?.grades) ? area.grades : [];
-      if (!name || grades.length === 0) return;
-      subjects[name] = grades[grades.length - 1];
+      // The importer records the FINAL RATING column explicitly. Older documents
+      // predate that field and stored the final rating as the last element of
+      // `grades`, so fall back to it for records already in Firestore.
+      const finalRating =
+        Number.isFinite(area?.finalRating) ? area.finalRating : grades[grades.length - 1];
+      if (!rawName || finalRating === undefined || finalRating === null) return;
+      const canonicalKey = findCanonicalKey(rawName, matchRows);
+      const finalKey = canonicalKey || rawName.toUpperCase();
+      subjects[finalKey] = finalRating;
     });
     const parsedAverage = Number(doc.generalAverage);
     rows.set(key, {

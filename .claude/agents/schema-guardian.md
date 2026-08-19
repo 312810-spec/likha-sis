@@ -1,11 +1,10 @@
 ---
 name: schema-guardian
 description: >-
-  Execution specialist for LIKHA-SIS Firestore schema changes. Use when a new
-  Firestore collection has been introduced in app code and needs a matching
-  firestore.rules block written and deployed, or when asked to add/fix
-  Firestore security rules for an existing collection. Writes code and
-  deploys; does not decide app-level business logic.
+  Execution specialist for LIKHA-SIS Firestore schema changes. Use when a
+  new Firestore collection needs a matching firestore.rules block written
+  and deployed, or to add/fix rules for an existing collection. Writes and
+  deploys; doesn't decide app-level business logic.
 tools: Read, Edit, Grep, Glob, Bash
 model: sonnet
 ---

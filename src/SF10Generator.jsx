@@ -12,11 +12,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
+import schoolConfig from "./schoolConfig";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import { getSubjectWeights } from "./utils/subjectWeights.js";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights.js";
 import { buildLearnerAcademicHistory } from "./utils/sf10Records.js";
-import { getSubjectRows } from "./utils/subjectRows.js";
+import { getSubjectRows, PRE_MATATAG_MAPEH_ROWS } from "./utils/subjectRows.js";
 import { ArrowLeft, Printer } from "lucide-react";
 
 function fullName(learner) {
@@ -29,7 +30,7 @@ function fullName(learner) {
 // (union of every subject that appears across the learner's history rows,
 // in the current grade level's canonical order first) with one column per
 // school year, plus a general-average row and a promotion-status row.
-function SF10Document({ learner, history, shsConfig }) {
+function SF10Document({ learner, history, shsConfig, school }) {
   if (history.length === 0) {
     return (
       <div
@@ -56,7 +57,16 @@ function SF10Document({ learner, history, shsConfig }) {
     });
   });
   const subjectKeys = [...canonicalRows.map((r) => r.key), ...extraKeys];
-  const subjectLabels = new Map(canonicalRows.map((r) => [r.key, r.label]));
+  // Pre-MATATAG MAPEH component keys (MUSIC, ARTS, PHYSICAL EDUCATION,
+  // HEALTH) never appear in canonicalRows (that's always the learner's
+  // CURRENT grade's rows, always the current 2-component MAPEH structure),
+  // so they'd otherwise fall through extraKeys with no nice label. Seeding
+  // labels for them here doesn't add them as rows -- a row only appears if
+  // some history entry's subjects actually contains that key.
+  const subjectLabels = new Map([
+    ...PRE_MATATAG_MAPEH_ROWS.map((r) => [r.key, r.label]),
+    ...canonicalRows.map((r) => [r.key, r.label]),
+  ]);
 
   return (
     <div
@@ -64,14 +74,26 @@ function SF10Document({ learner, history, shsConfig }) {
       style={{ fontFamily: "Arial, Helvetica, sans-serif", background: "#ffffff", color: "#111827", padding: "24px" }}
     >
       <div style={{ textAlign: "center", marginBottom: "12px" }}>
-        <div style={{ fontWeight: "bold", fontSize: "14px" }}>SCHOOL FORM 10 (SF10)</div>
-        <div style={{ fontSize: "12px" }}>Learner's Permanent Academic Record</div>
+        <div style={{ fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          Republic of the Philippines · Department of Education
+        </div>
+        {school?.region && (
+          <div style={{ fontSize: "9.5px", color: "#4b5563", marginTop: "1px" }}>
+            {[school.region, school.divisionOffice || school.divisionName, school.district].filter(Boolean).join(" · ")}
+          </div>
+        )}
+        <div style={{ fontWeight: "bold", fontSize: "14px", marginTop: "3px" }}>SCHOOL FORM 10 (SF10)</div>
+        <div style={{ fontSize: "11px", fontStyle: "italic" }}>Learner's Permanent Academic Record</div>
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11px", marginBottom: "12px" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10.5px", marginBottom: "10px" }}>
         <tbody>
           <tr>
-            <td style={{ padding: "2px 6px" }}><strong>Name:</strong> {fullName(learner)}</td>
+            <td style={{ padding: "2px 6px" }}><strong>School Name:</strong> {school?.schoolName || "—"}</td>
+            <td style={{ padding: "2px 6px" }}><strong>School ID:</strong> {school?.schoolId || "—"}</td>
+          </tr>
+          <tr>
+            <td style={{ padding: "2px 6px" }}><strong>Learner Name:</strong> {fullName(learner)}</td>
             <td style={{ padding: "2px 6px" }}><strong>LRN:</strong> {learner?.lrn || "—"}</td>
           </tr>
           <tr>
@@ -132,12 +154,31 @@ function SF10Document({ learner, history, shsConfig }) {
           </tr>
         </tbody>
       </table>
+
+      {/* Certification Footer */}
+      <div style={{ marginTop: "24px", display: "flex", justifyContent: "space-between", fontSize: "10.5px" }}>
+        <div style={{ width: "42%", textAlign: "center" }}>
+          <div style={{ borderBottom: "1px solid #000", minHeight: "22px" }} />
+          <div style={{ marginTop: "4px", fontSize: "9.5px" }}>Class Adviser / Prepared By</div>
+        </div>
+        <div style={{ width: "42%", textAlign: "center" }}>
+          <div style={{ borderBottom: "1px solid #000", minHeight: "22px", fontWeight: "bold" }}>
+            {school?.principalName || ""}
+          </div>
+          <div style={{ marginTop: "4px", fontSize: "9.5px" }}>{school?.principalPosition || "School Principal"} / Certified Correct</div>
+        </div>
+      </div>
     </div>
   );
 }
 
 export default function SF10Generator({ goBack }) {
   const { config } = useSchoolConfig();
+  const school = { ...schoolConfig, ...config };
+
+  // Mode state: "single" for single-learner, "section" for section-batch
+  const [mode, setMode] = useState("single"); // "single" | "section"
+  const [sectionFilter, setSectionFilter] = useState("");
 
   const getSHSAwareWeights = useMemo(
     () =>
@@ -158,9 +199,6 @@ export default function SF10Generator({ goBack }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
-
-  const [mode, setMode] = useState("single"); // "single" | "section"
-  const [sectionFilter, setSectionFilter] = useState("");
 
   useEffect(() => {
     async function fetchData() {
@@ -256,18 +294,14 @@ export default function SF10Generator({ goBack }) {
         <button
           type="button"
           onClick={() => setMode("single")}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            mode === "single" ? "bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          }`}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${mode === "single" ? "bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
         >
           Single Learner
         </button>
         <button
           type="button"
           onClick={() => setMode("section")}
-          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-            mode === "section" ? "bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-          }`}
+          className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${mode === "section" ? "bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white" : "text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"}`}
         >
           Section Batch
         </button>
@@ -334,7 +368,7 @@ export default function SF10Generator({ goBack }) {
 
       {mode === "single" && selectedLearner && (
         <div className="sf10-print-area">
-          <SF10Document learner={selectedLearner} history={selectedHistory} shsConfig={config?.shs} />
+          <SF10Document learner={selectedLearner} history={selectedHistory} shsConfig={config?.shs} school={school} />
         </div>
       )}
 
@@ -351,6 +385,7 @@ export default function SF10Generator({ goBack }) {
                   getSHSAwareWeights
                 )}
                 shsConfig={config?.shs}
+                school={school}
               />
             </div>
           ))}

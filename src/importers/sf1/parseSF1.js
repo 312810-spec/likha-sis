@@ -3,6 +3,7 @@
 // about "which cell is which field" — normalization/validation happen later.
 
 import { isBlankRow } from "../shared/excelReader.js";
+import { isSubtotalRow } from "./detectSF1Structure.js";
 
 /**
  * @param {Object} structure - output of detectSF1Structure()
@@ -21,6 +22,10 @@ export function parseSF1(structure) {
   dataRows.forEach((row, idx) => {
     if (row === "__BLANK__") return; // structural marker, not data
     if (!Array.isArray(row) || isBlankRow(row)) return;
+    // "MALE | TOTAL" / "TOTAL FEMALE" separators sit between the two blocks.
+    // They are structure, not learners, so they are skipped rather than counted
+    // among the dropped rows the reviewer is asked to look at.
+    if (isSubtotalRow(row)) return;
 
     const raw = {
       _rowIndex: structure.dataStartRow + idx,
@@ -35,8 +40,11 @@ export function parseSF1(structure) {
     // Attach the file-level context (source of truth = workbook).
     raw._context = context ? { ...context } : {};
 
-    // A row with no LRN AND no surname is not a real learner — drop it.
-    const hasIdentity = raw.lrn != null && String(raw.lrn).trim() !== "" && raw.lastName != null && String(raw.lastName).trim() !== "";
+    // A row with no LRN AND no name is not a real learner — drop it. The name
+    // may arrive either as a dedicated Last Name column or packed into a single
+    // merged "NAME (Last Name, First Name, Middle Name)" column.
+    const filled = (v) => v != null && String(v).trim() !== "";
+    const hasIdentity = filled(raw.lrn) && (filled(raw.lastName) || filled(raw.fullName));
     if (!hasIdentity) {
       droppedRows.push(raw);
       return;
