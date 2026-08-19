@@ -189,7 +189,8 @@ service cloud.firestore {
       // editing their own doc can't grant themselves a different role.
       //
       // Exception: an ICT Coordinator may also self-edit their own `roles`
-      // (e.g. adding a second role to themselves), but only while both the
+      // (e.g. adding a second role to themselves) and employee info fields
+      // (employeeNumber, position, mobileNumber), but only while both the
       // stored value AND the new value still contain "ictCoordinator" --
       // this is the server-side half of the self-lockout guard (the UI
       // additionally disables unchecking that role on your own account).
@@ -198,7 +199,8 @@ service cloud.firestore {
         && (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fullName"])
           || (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fullName", "roles"])
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["fullName", "roles", "employeeNumber", "position", "mobileNumber"])
             && resource.data.roles.hasAny(["ictCoordinator"])
             && request.resource.data.roles.hasAny(["ictCoordinator"])
           )
