@@ -200,7 +200,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
           />
           {!collapsed && (
             <div className="min-w-0">
-              <div className="text-sm font-semibold truncate text-white dark:text-gray-100 leading-tight">Tingub National High School</div>
+              <div className="text-sm font-semibold text-white dark:text-gray-100 leading-tight">Tingub National High School</div>
               <div className="text-[11px] font-medium tracking-wide text-accent-light dark:text-accent-light">LIKHA-SIS</div>
             </div>
           )}
