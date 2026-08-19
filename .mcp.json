@@ -7,6 +7,15 @@
         "@playwright/mcp@latest"
       ],
       "env": {}
+    },
+    "github": {
+      "type": "stdio",
+      "command": "bash",
+      "args": [
+        "-c",
+        "GITHUB_PERSONAL_ACCESS_TOKEN=\"$(gh auth token)\" exec npx -y @modelcontextprotocol/server-github"
+      ],
+      "env": {}
     }
   }
 }
