@@ -22,14 +22,14 @@ const PM_SHIFT = {
 const SHIFTS = { AM: AM_SHIFT, PM: PM_SHIFT };
 
 const CAMPOSO = {
-  id: "camposo",
-  displayName: "Mrs. Camposo",
+  id: "delacruz",
+  displayName: "Mrs. Dela Cruz",
   handles: ["Math 7"],
   designations: ["Grade 7 Adviser"],
   dutySlots: {},
 };
 
-// Camposo teaches Math 7 to LOVE at P1 and to HOPE at P3, every day.
+// Dela Cruz teaches Math 7 to LOVE at P1 and to HOPE at P3, every day.
 function amSections() {
   const daily = (subject, teacherId) => ({
     mon: { subject, teacherId },
@@ -45,16 +45,16 @@ function amSections() {
       gradeLevel: "7",
       name: "LOVE",
       shiftId: "AM",
-      subjects: [{ subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 5 }],
-      cells: { P1: daily("Math 7", "camposo") },
+      subjects: [{ subject: "Math 7", teacherId: "delacruz", sessionsPerWeek: 5 }],
+      cells: { P1: daily("Math 7", "delacruz") },
     },
     {
       id: "hope",
       gradeLevel: "7",
       name: "HOPE",
       shiftId: "AM",
-      subjects: [{ subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 5 }],
-      cells: { P3: daily("Math 7", "camposo") },
+      subjects: [{ subject: "Math 7", teacherId: "delacruz", sessionsPerWeek: 5 }],
+      cells: { P3: daily("Math 7", "delacruz") },
     },
   ];
 }
@@ -172,8 +172,8 @@ describe("deriveTeacherLoad", () => {
       gradeLevel: "10",
       name: "OBEDIENCE",
       shiftId: "AM",
-      subjects: [{ subject: "Math 10", teacherId: "camposo", sessionsPerWeek: 5 }],
-      cells: { P2: { mon: { subject: "Math 10", teacherId: "camposo" } } },
+      subjects: [{ subject: "Math 10", teacherId: "delacruz", sessionsPerWeek: 5 }],
+      cells: { P2: { mon: { subject: "Math 10", teacherId: "delacruz" } } },
     });
 
     const load = deriveTeacherLoad({ teacher: CAMPOSO, sections, shiftsById: SHIFTS });
@@ -220,8 +220,8 @@ describe("deriveTeacherLoad", () => {
       gradeLevel: "9",
       name: "JUSTICE",
       shiftId: "PM",
-      subjects: [{ subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 1 }],
-      cells: { P1: { mon: { subject: "Math 7", teacherId: "camposo" } } },
+      subjects: [{ subject: "Math 7", teacherId: "delacruz", sessionsPerWeek: 1 }],
+      cells: { P1: { mon: { subject: "Math 7", teacherId: "delacruz" } } },
     });
 
     const load = deriveTeacherLoad({ teacher: CAMPOSO, sections, shiftsById: SHIFTS });
@@ -376,8 +376,8 @@ describe("deriveTeacherLoad", () => {
         gradeLevel: "11",
         name: "CIVICS",
         shiftId: "LONG",
-        subjects: [{ subject: "Phil.Pol.", teacherId: "camposo", sessionsPerWeek: 1 }],
-        cells: { P1: { mon: { subject: "Phil.Pol.", teacherId: "camposo" } } },
+        subjects: [{ subject: "Phil.Pol.", teacherId: "delacruz", sessionsPerWeek: 1 }],
+        cells: { P1: { mon: { subject: "Phil.Pol.", teacherId: "delacruz" } } },
       };
 
       const load = deriveTeacherLoad({

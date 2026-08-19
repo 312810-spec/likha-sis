@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { findConflicts } from "../scheduleConflicts";
 
 const TEACHERS = {
-  camposo: { id: "camposo", displayName: "Mrs. Camposo", handles: ["Math 7"] },
-  hermoso: { id: "hermoso", displayName: "Mr. Hermoso", handles: ["TLE 7"] },
+  delacruz: { id: "delacruz", displayName: "Mrs. Dela Cruz", handles: ["Math 7"] },
+  mendoza: { id: "mendoza", displayName: "Mr. Mendoza", handles: ["TLE 7"] },
 };
 
 // Minimal section: one subject meeting once a week, on Monday only.
@@ -13,7 +13,7 @@ function sectionWith(cells, overrides = {}) {
     gradeLevel: "7",
     name: "LOVE",
     shiftId: "AM",
-    subjects: [{ subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 1 }],
+    subjects: [{ subject: "Math 7", teacherId: "delacruz", sessionsPerWeek: 1 }],
     cells,
     ...overrides,
   };
@@ -22,7 +22,7 @@ function sectionWith(cells, overrides = {}) {
 describe("findConflicts", () => {
   it("returns nothing for a clean single-section schedule", () => {
     const sections = [
-      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "camposo" } } }),
+      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "delacruz" } } }),
     ];
 
     expect(findConflicts({ sections, teachersById: TEACHERS })).toEqual([]);
@@ -30,9 +30,9 @@ describe("findConflicts", () => {
 
   it("flags a teacher booked in two sections at the same period and day, once per section", () => {
     const sections = [
-      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "camposo" } } }),
+      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "delacruz" } } }),
       sectionWith(
-        { P1: { mon: { subject: "Math 7", teacherId: "camposo" } } },
+        { P1: { mon: { subject: "Math 7", teacherId: "delacruz" } } },
         { id: "s7hope", name: "HOPE" }
       ),
     ];
@@ -46,18 +46,18 @@ describe("findConflicts", () => {
     expect(doubled).toHaveLength(2);
     expect(doubled.map((c) => c.sectionId).sort()).toEqual(["s7hope", "s7love"]);
     doubled.forEach((c) => {
-      expect(c.teacherId).toBe("camposo");
+      expect(c.teacherId).toBe("delacruz");
       expect(c.periodId).toBe("P1");
       expect(c.day).toBe("mon");
-      expect(c.message).toContain("Mrs. Camposo");
+      expect(c.message).toContain("Mrs. Dela Cruz");
     });
   });
 
   it("does not flag the same teacher in two sections on different days", () => {
     const sections = [
-      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "camposo" } } }),
+      sectionWith({ P1: { mon: { subject: "Math 7", teacherId: "delacruz" } } }),
       sectionWith(
-        { P1: { tue: { subject: "Math 7", teacherId: "camposo" } } },
+        { P1: { tue: { subject: "Math 7", teacherId: "delacruz" } } },
         { id: "s7hope", name: "HOPE" }
       ),
     ];
@@ -81,8 +81,8 @@ describe("findConflicts", () => {
   it("flags a subject placed fewer times than its sessionsPerWeek", () => {
     const sections = [
       sectionWith(
-        { P1: { mon: { subject: "Math 7", teacherId: "camposo" } } },
-        { subjects: [{ subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 5 }] }
+        { P1: { mon: { subject: "Math 7", teacherId: "delacruz" } } },
+        { subjects: [{ subject: "Math 7", teacherId: "delacruz", sessionsPerWeek: 5 }] }
       ),
     ];
 
@@ -99,11 +99,11 @@ describe("findConflicts", () => {
       sectionWith(
         {
           P1: {
-            mon: { subject: "Math 7", teacherId: "camposo" },
-            tue: { subject: "Math 7", teacherId: "camposo" },
+            mon: { subject: "Math 7", teacherId: "delacruz" },
+            tue: { subject: "Math 7", teacherId: "delacruz" },
           },
         },
-        { subjects: [{ subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 1 }] }
+        { subjects: [{ subject: "Math 7", teacherId: "delacruz", sessionsPerWeek: 1 }] }
       ),
     ];
 
@@ -114,8 +114,8 @@ describe("findConflicts", () => {
   it("warns when a teacher is assigned outside their handles list", () => {
     const sections = [
       sectionWith(
-        { P1: { mon: { subject: "TLE 7", teacherId: "camposo" } } },
-        { subjects: [{ subject: "TLE 7", teacherId: "camposo", sessionsPerWeek: 1 }] }
+        { P1: { mon: { subject: "TLE 7", teacherId: "delacruz" } } },
+        { subjects: [{ subject: "TLE 7", teacherId: "delacruz", sessionsPerWeek: 1 }] }
       ),
     ];
 
@@ -123,7 +123,7 @@ describe("findConflicts", () => {
     const outOfQual = conflicts.filter((c) => c.type === "outOfQualification");
 
     expect(outOfQual).toHaveLength(1);
-    expect(outOfQual[0].teacherId).toBe("camposo");
+    expect(outOfQual[0].teacherId).toBe("delacruz");
     expect(outOfQual[0].subject).toBe("TLE 7");
   });
 

@@ -43,7 +43,7 @@ describe("seedSectionCells", () => {
   it("gives each subject its own period row, spread by sessions per week", () => {
     const section = {
       subjects: [
-        { subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 5 },
+        { subject: "Math 7", teacherId: "delacruz", sessionsPerWeek: 5 },
         { subject: "MAPEH 7", teacherId: "eredera", sessionsPerWeek: 3 },
       ],
     };
@@ -51,14 +51,14 @@ describe("seedSectionCells", () => {
     const cells = seedSectionCells({ section, rows: ROWS });
 
     expect(Object.keys(cells.P1)).toEqual(["mon", "tue", "wed", "thu", "fri"]);
-    expect(cells.P1.mon).toEqual({ subject: "Math 7", teacherId: "camposo" });
+    expect(cells.P1.mon).toEqual({ subject: "Math 7", teacherId: "delacruz" });
     expect(Object.keys(cells.P2)).toEqual(["mon", "wed", "fri"]);
     expect(cells.P2.wed).toEqual({ subject: "MAPEH 7", teacherId: "eredera" });
   });
 
   it("never seeds into a fixed row", () => {
     const section = {
-      subjects: [{ subject: "Math 7", teacherId: "camposo", sessionsPerWeek: 5 }],
+      subjects: [{ subject: "Math 7", teacherId: "delacruz", sessionsPerWeek: 5 }],
     };
 
     expect(seedSectionCells({ section, rows: ROWS }).F0).toBeUndefined();

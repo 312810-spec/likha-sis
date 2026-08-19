@@ -8,7 +8,7 @@ import {
 const USERS = [
   {
     id: "u1",
-    fullName: "Ann A. Camposo",
+    fullName: "Ana B. Dela Cruz",
     roles: ["adviser", "subjectTeacher"],
     assignments: [
       { role: "subjectTeacher", subject: "Math 7", gradeLevel: "7", section: "LOVE" },
@@ -18,7 +18,7 @@ const USERS = [
   },
   {
     id: "u2",
-    fullName: "Karen Mae P. Cabahug",
+    fullName: "Karla P. Villanueva",
     roles: ["subjectTeacher"],
     assignments: [
       { role: "subjectTeacher", subject: "AP 7", gradeLevel: "7", section: "FAITH" },
@@ -29,19 +29,19 @@ const USERS = [
 describe("buildTeacherRoster", () => {
   it("seeds handles from distinct subjects in the user's assignments", () => {
     const roster = buildTeacherRoster({ users: USERS, adhocTeachers: [] });
-    const camposo = roster.find((t) => t.displayName === "Ann A. Camposo");
+    const delacruz = roster.find((t) => t.displayName === "Ana B. Dela Cruz");
 
-    expect(camposo.handles).toEqual(["Math 7"]);
-    expect(camposo.source).toBe("user");
-    expect(camposo.userId).toBe("u1");
+    expect(delacruz.handles).toEqual(["Math 7"]);
+    expect(delacruz.source).toBe("user");
+    expect(delacruz.userId).toBe("u1");
   });
 
   it("ignores adviser assignments, which carry no subject", () => {
     const roster = buildTeacherRoster({ users: USERS, adhocTeachers: [] });
-    const camposo = roster.find((t) => t.displayName === "Ann A. Camposo");
+    const delacruz = roster.find((t) => t.displayName === "Ana B. Dela Cruz");
 
-    expect(camposo.handles).not.toContain(undefined);
-    expect(camposo.handles).toHaveLength(1);
+    expect(delacruz.handles).not.toContain(undefined);
+    expect(delacruz.handles).toHaveLength(1);
   });
 
   it("includes ad-hoc teachers for staff with no account", () => {
@@ -63,9 +63,9 @@ describe("buildTeacherRoster", () => {
       adhocTeachers: [],
       storedHandles: { u1: ["Math 7", "Math 8"] },
     });
-    const camposo = roster.find((t) => t.userId === "u1");
+    const delacruz = roster.find((t) => t.userId === "u1");
 
-    expect(camposo.handles).toEqual(["Math 7", "Math 8"]);
+    expect(delacruz.handles).toEqual(["Math 7", "Math 8"]);
   });
 
   it("tolerates users with no assignments array", () => {
@@ -84,7 +84,7 @@ describe("buildTeacherRoster storedTeachers fallback (N1)", () => {
       users: [],
       adhocTeachers: [],
       storedTeachers: [
-        { id: "u1", source: "user", displayName: "Ann A. Camposo", handles: ["Math 7"] },
+        { id: "u1", source: "user", displayName: "Ana B. Dela Cruz", handles: ["Math 7"] },
         // An adhoc-sourced stored doc must NOT surface through storedTeachers --
         // that source is the adhocTeachers param's job.
         { id: "a1", source: "adhoc", displayName: "Teacher A", handles: ["ESP 7"] },
@@ -92,10 +92,10 @@ describe("buildTeacherRoster storedTeachers fallback (N1)", () => {
     });
 
     expect(roster).toHaveLength(1);
-    const camposo = roster.find((t) => t.id === "u1");
-    expect(camposo.displayName).toBe("Ann A. Camposo");
-    expect(camposo.handles).toEqual(["Math 7"]);
-    expect(camposo.source).toBe("user");
+    const delacruz = roster.find((t) => t.id === "u1");
+    expect(delacruz.displayName).toBe("Ana B. Dela Cruz");
+    expect(delacruz.handles).toEqual(["Math 7"]);
+    expect(delacruz.source).toBe("user");
   });
 
   it("does not duplicate a row when users already has the id -- merges instead", () => {
@@ -110,7 +110,7 @@ describe("buildTeacherRoster storedTeachers fallback (N1)", () => {
     const matches = roster.filter((t) => t.id === "u1");
     expect(matches).toHaveLength(1);
     // users stays the primary source, so nothing changes for editing roles.
-    expect(matches[0].displayName).toBe("Ann A. Camposo");
+    expect(matches[0].displayName).toBe("Ana B. Dela Cruz");
     expect(matches[0].handles).toEqual(["Math 7"]);
   });
 
