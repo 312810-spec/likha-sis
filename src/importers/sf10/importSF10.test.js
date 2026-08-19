@@ -20,6 +20,7 @@ function buildSF10Workbook(opts = {}) {
     grade = "Grade 10",
     section = "Rizal",
     invalidLrn = false,
+    promotionRow = ["PROMOTED", "", "", "", "", "", "", "", "", "", ""],
   } = opts;
 
   const aoa = [
@@ -46,7 +47,7 @@ function buildSF10Workbook(opts = {}) {
     ["Filipino", "", 90, "", "", "", "", "", "", "", ""],
     ["English", "", 88, "", "", "", "", "", "", "", ""],
     ["GENERAL AVERAGE: 89", "", "", "", "", "", "", "", "", "", ""],
-    ["PROMOTED", "", "", "", "", "", "", "", "", "", ""],
+    promotionRow,
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
@@ -81,6 +82,29 @@ describe("SF10 importer", () => {
     expect(learner.learningAreas).toHaveLength(2);
     expect(learner.learningAreas.map((a) => a.name)).toEqual(["Filipino", "English"]);
     expect(learner.generalAverage).toBe("89");
+    expect(learner.promotionStatus).toBe("PROMOTED");
+  });
+
+  it("captures RETAINED as the promotion status", async () => {
+    const buffer = buildSF10Workbook({ promotionRow: ["RETAINED", "", "", "", "", "", "", "", "", "", ""] });
+    const model = await processSF10Buffer(buffer, { filename: "sf10.xlsx", fileIndex: 0 });
+    expect(model.records[0].learner.promotionStatus).toBe("RETAINED");
+  });
+
+  it("captures a REMARKS row's full text as the promotion status", async () => {
+    const buffer = buildSF10Workbook({
+      promotionRow: ["REMARKS:", "Promoted with recognition", "", "", "", "", "", "", "", "", ""],
+    });
+    const model = await processSF10Buffer(buffer, { filename: "sf10.xlsx", fileIndex: 0 });
+    expect(model.records[0].learner.promotionStatus).toBe("REMARKS: Promoted with recognition");
+  });
+
+  it("does not capture a signature-block row as promotion status", async () => {
+    const buffer = buildSF10Workbook({
+      promotionRow: ["PREPARED BY:", "Maria Santos", "", "", "", "", "", "", "", "", ""],
+    });
+    const model = await processSF10Buffer(buffer, { filename: "sf10.xlsx", fileIndex: 0 });
+    expect(model.records[0].learner.promotionStatus).toBe("");
   });
 
   it("flags an invalid LRN as a blocking error", async () => {

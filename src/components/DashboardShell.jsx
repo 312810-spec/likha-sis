@@ -71,7 +71,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
   });
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950" role="region" aria-label="Dashboard Shell">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950" role="region" aria-label="Dashboard Shell">
       <Sidebar
         currentPage={currentPage}
         onNavigate={onNavigate}
@@ -81,8 +81,8 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
         onCloseMobile={() => setMobileNavOpen(false)}
       />
 
-      <main className="flex-1 min-w-0 overflow-x-hidden">
-        <div className="sticky top-0 z-30 flex items-start justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 bg-white/90 backdrop-blur-sm border-b border-gray-200 dark:bg-gray-900/90 dark:border-gray-700">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <header className="sticky top-0 z-30 flex-shrink-0 flex items-start justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 bg-white/90 backdrop-blur-sm border-b border-gray-200 dark:bg-gray-900/90 dark:border-gray-700">
           <div className="flex items-start gap-3 min-w-0">
             <button
               type="button"
@@ -227,12 +227,14 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
               )}
             </div>
           </div>
-        </div>
+        </header>
 
-        <section aria-label="Main" className="p-4 md:p-6">
-          {children ? children : <p className="text-gray-500 dark:text-gray-300">Select a section from the sidebar to begin.</p>}
-        </section>
-      </main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden focus:outline-none">
+          <section aria-label="Main" className="p-4 md:p-6">
+            {children ? children : <p className="text-gray-500 dark:text-gray-300">Select a section from the sidebar to begin.</p>}
+          </section>
+        </main>
+      </div>
     </div>
   );
 }

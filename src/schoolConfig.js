@@ -4,18 +4,19 @@
 // real school information before generating certificates in production.
 
 const schoolConfig = {
+  schoolId: "302975",
   schoolName: "Tingub National High School",
-  // DepEd School ID -- printed in the SF1, SF2, and SF8 report headers, all of
-  // which render it blank until the school fills this in via School Settings.
-  schoolId: "",
-  schoolAddress: "Tingub, [City/Municipality], Cebu",
-  divisionName: "Department of Education - Division of [Division Name]",
+  schoolAddress: "Tingub, Mandaue City, Cebu",
+  divisionName: "Department of Education - Division of Mandaue City",
   principalName: "[Principal Full Name]",
   principalPosition: "School Principal",
-  region: "[Region]",
-  divisionOffice: "[Division Office Name]",
-  district: "[District]",
-  municipalityCityProvince: "[Municipality/City], [Province]",
+  clinicTeacherName: "[School Clinic Teacher Full Name]",
+  divisionSuperintendent: "[Schools Division Superintendent]",
+  divisionSuperintendentPosition: "Schools Division Superintendent",
+  region: "Region VII",
+  divisionOffice: "Division of Mandaue City",
+  district: "Mandaue City District III",
+  municipalityCityProvince: "Mandaue City, Cebu",
   // Coordinates drive the local weather card and the "earthquake near your
   // school" radius. Approximate values for Tingub, Mandaue City -- the school
   // should refine these in School Settings. Weather simply doesn't render when

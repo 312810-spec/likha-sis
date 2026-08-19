@@ -5,7 +5,10 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // .infographic-build holds Node build scripts (require/Buffer/process), not
+  // browser app code, so linting them against browser globals only ever
+  // produces false no-undef errors.
+  globalIgnores(['dist', '.infographic-build']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

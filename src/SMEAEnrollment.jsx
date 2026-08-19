@@ -1,157 +1,52 @@
 // src/SMEAEnrollment.jsx
-// SMEA — Enrollment Report (First SMEA Feature)
+// SMEA — Enrollment Report (3-Term Enrollment Monitoring & Discrepancy Reporting)
 //
 // This report derives its data entirely from the existing Firestore "learners"
-// collection (single source of truth, populated through SF1). It does NOT create
-// enrollment events, does not add a term field, and does not modify SF1.
+// collection (single source of truth, populated through SF1). It does NOT duplicate
+// learner records or force external term storage on individual learners.
 //
-// Enrollment is summarized as: School Year -> Current Term -> Grade Level -> Section -> Sex.
-// Term is CONTEXTUAL only (learners have no stored term), so learners are never
-// filtered by term — the report is an enrollment snapshot for the selected school
-// year / current term context.
+// Enrollment is summarized across Grade Level -> Section -> Sex with 3-Term academic
+// calendar synchronization and automated discrepancy checks.
 
 import { useState, useEffect, useMemo } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
-import { academicCalendar, getCurrentTermForSchoolYear } from "./academicCalendar";
-import { BarChart3, Users, AlertTriangle } from "lucide-react";
-
-// Selectable school years derived from the academic calendar configuration, sorted descending.
-const SCHOOL_YEARS = Object.keys(academicCalendar).sort((a, b) => b.localeCompare(a));
-
-// Normalize a learner's sex into "Male" | "Female" | "" (unrecognized/empty).
-function normalizeSex(sex) {
-  if (sex === null || sex === undefined) return "";
-  const s = String(sex).trim();
-  if (/^m/i.test(s)) return "Male";
-  if (/^f/i.test(s)) return "Female";
-  return "";
-}
-
-// Normalize a grade level down to its numeric part (e.g. "Grade 10" -> "10").
-// Returns "" when no grade value (or no number) is present.
-function normalizeGrade(grade) {
-  if (grade === null || grade === undefined) return "";
-  const g = String(grade).trim();
-  const m = g.match(/\d+/);
-  return m ? m[0] : "";
-}
-
-function gradeNumber(grade) {
-  return parseInt(grade.match(/\d+/)?.[0] || "0", 10);
-}
-
-// Analyze the selected school year's learners and build the report structure.
-// Also performs data-quality validation so bad records are never silently counted.
-function buildReport(allLearners, selectedSY) {
-  const inSY = allLearners.filter(
-    (l) => String(l.schoolYear || "").trim() === String(selectedSY)
-  );
-
-  // ---- Data quality -------------------------------------------------------
-  const missingSection = [];
-  const missingSex = [];
-  const invalidGrade = [];
-
-  const lrnCount = {};
-  inSY.forEach((l) => {
-    const lrn = String(l.lrn || "").trim();
-    if (lrn) lrnCount[lrn] = (lrnCount[lrn] || 0) + 1;
-  });
-  const duplicateLrns = Object.keys(lrnCount).filter((k) => lrnCount[k] > 1);
-
-  // Only records with a grade level, section, AND a recognizable sex are valid
-  // for the main Grade x Section x Sex table. Everything else is reported
-  // separately in the Data Quality area.
-  const valid = [];
-  inSY.forEach((l) => {
-    const grade = normalizeGrade(l.gradeLevel);
-    const section = String(l.section || "").trim();
-    const sex = normalizeSex(l.sex);
-
-    if (!section) missingSection.push(l);
-    if (!sex) missingSex.push(l);
-    if (!grade) invalidGrade.push(l);
-
-    if (grade && section && sex) {
-      valid.push({ ...l, grade, section, sex });
-    }
-  });
-
-  // ---- Grade x Section x Sex matrix --------------------------------------
-  const matrix = {};
-  valid.forEach((l) => {
-    if (!matrix[l.grade]) matrix[l.grade] = {};
-    if (!matrix[l.grade][l.section]) matrix[l.grade][l.section] = { male: 0, female: 0 };
-    if (l.sex === "Male") matrix[l.grade][l.section].male += 1;
-    else matrix[l.grade][l.section].female += 1;
-  });
-
-  // Grade-level subtotals + global totals.
-  const gradeOrder = Object.keys(matrix).sort(
-    (a, b) => gradeNumber(a) - gradeNumber(b) || a.localeCompare(b)
-  );
-
-  let totalMale = 0;
-  let totalFemale = 0;
-
-  const gradeRows = gradeOrder.map((g) => {
-    const sections = Object.keys(matrix[g]).sort().map((sec) => {
-      const c = matrix[g][sec];
-      return { section: sec, male: c.male, female: c.female, total: c.male + c.female };
-    });
-    const male = sections.reduce((s, r) => s + r.male, 0);
-    const female = sections.reduce((s, r) => s + r.female, 0);
-    totalMale += male;
-    totalFemale += female;
-    return { grade: g, sections, male, female, total: male + female };
-  });
-
-  // Assemble the Data Quality issues list (only reported when present).
-  const issues = [];
-  if (missingSection.length) {
-    issues.push({ text: `${missingSection.length} learner${missingSection.length === 1 ? "" : "s"} have missing section` });
-  }
-  if (missingSex.length) {
-    issues.push({ text: `${missingSex.length} learner${missingSex.length === 1 ? "" : "s"} have missing sex` });
-  }
-  if (invalidGrade.length) {
-    issues.push({ text: `${invalidGrade.length} learner${invalidGrade.length === 1 ? "" : "s"} have an invalid/empty grade level` });
-  }
-  if (duplicateLrns.length) {
-    issues.push({ text: `${duplicateLrns.length} duplicate LRN${duplicateLrns.length === 1 ? "" : "s"} detected` });
-  }
-
-  return {
-    inSYCount: inSY.length,
-    validCount: valid.length,
-    gradeRows,
-    totalMale,
-    totalFemale,
-    totalLearners: totalMale + totalFemale,
-    issues,
-  };
-}
+import useAcademicCalendar from "./hooks/useAcademicCalendar";
+import useSchoolConfig from "./hooks/useSchoolConfig";
+import { computeSMEAEnrollment } from "./utils/smeaEnrollment.js";
+import computeSMEAIndicators from "./utils/smeaIndicators.js";
+import { BarChart3, Users, AlertTriangle, Calendar, AlertCircle, Info, Activity } from "lucide-react";
 
 function SMEAEnrollment() {
+  const { calendar, schoolYears } = useAcademicCalendar();
+  const { config } = useSchoolConfig();
   const [selectedSY, setSelectedSY] = useState("2026-2027");
   const [learners, setLearners] = useState([]);
+  const [attendanceDocs, setAttendanceDocs] = useState([]);
+  const [nutritionRecords, setNutritionRecords] = useState([]);
+  const [lardoRecords, setLardoRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Fetch ALL learners from Firestore once on mount.
+  // Fetch learners plus the domains that feed the indicator rollup
+  // (attendance, nutrition, LARDO) once on mount.
   useEffect(() => {
     let cancelled = false;
-    async function fetchLearners() {
+    async function fetchAll() {
       setLoading(true);
       setError("");
       try {
-        const snapshot = await getDocs(collection(db, "learners"));
-        const fetched = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-        if (!cancelled) setLearners(fetched);
+        const [learnersSnap, attendanceSnap, nutritionSnap, lardoSnap] = await Promise.all([
+          getDocs(collection(db, "learners")),
+          getDocs(collection(db, "attendance")),
+          getDocs(collection(db, "nutritionRecords")),
+          getDocs(collection(db, "lardoRecords")),
+        ]);
+        if (cancelled) return;
+        setLearners(learnersSnap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+        setAttendanceDocs(attendanceSnap.docs.map((docSnap) => docSnap.data()));
+        setNutritionRecords(nutritionSnap.docs.map((docSnap) => docSnap.data()));
+        setLardoRecords(lardoSnap.docs.map((docSnap) => docSnap.data()));
       } catch (err) {
         console.error("Failed to fetch learners for enrollment report:", err);
         if (!cancelled) setError("Unable to load enrollment data. Please try again.");
@@ -159,18 +54,35 @@ function SMEAEnrollment() {
         if (!cancelled) setLoading(false);
       }
     }
-    fetchLearners();
+    fetchAll();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const report = useMemo(() => buildReport(learners, selectedSY), [learners, selectedSY]);
+  const schoolYearOptions = schoolYears.includes(selectedSY)
+    ? schoolYears
+    : [selectedSY, ...schoolYears];
 
-  // Derive the current term using the shared academic calendar helper.
-  const currentTerm = getCurrentTermForSchoolYear(selectedSY, new Date());
-  const termLabel = currentTerm ? currentTerm.label : "Outside configured academic period";
+  const report = useMemo(
+    () => computeSMEAEnrollment(learners, selectedSY, calendar, new Date()),
+    [learners, selectedSY, calendar]
+  );
 
+  const indicators = useMemo(
+    () =>
+      computeSMEAIndicators({
+        attendanceDocs,
+        nutritionRecords,
+        lardoRecords,
+        selectedSY,
+        gradeLevelsOffered: config?.gradeLevelsOffered || [],
+      }),
+    [attendanceDocs, nutritionRecords, lardoRecords, selectedSY, config]
+  );
+
+  const activeTerm = report.activeTerm;
+  const termLabel = activeTerm ? activeTerm.label : "Outside configured academic period";
   const schoolYearLabel = String(selectedSY).replace("-", "–");
 
   // ---------- Loading state -------------------------------------------------
@@ -201,7 +113,13 @@ function SMEAEnrollment() {
   if (report.inSYCount === 0) {
     return (
       <div className="max-w-6xl mx-auto space-y-4 animate-slide-up">
-        <ReportControls selectedSY={selectedSY} setSelectedSY={setSelectedSY} schoolYearLabel={schoolYearLabel} termLabel={termLabel} />
+        <ReportControls
+          selectedSY={selectedSY}
+          setSelectedSY={setSelectedSY}
+          schoolYears={schoolYearOptions}
+          schoolYearLabel={schoolYearLabel}
+          termLabel={termLabel}
+        />
         <div className="flex flex-col items-center justify-center gap-2 py-16 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
           <Users size={22} className="text-gray-300 dark:text-gray-600" />
           <p className="text-sm text-gray-400 dark:text-gray-500">No enrollment records found for SY {schoolYearLabel}.</p>
@@ -212,21 +130,150 @@ function SMEAEnrollment() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-4 animate-slide-up">
-      <ReportControls selectedSY={selectedSY} setSelectedSY={setSelectedSY} schoolYearLabel={schoolYearLabel} termLabel={termLabel} />
+      <ReportControls
+        selectedSY={selectedSY}
+        setSelectedSY={setSelectedSY}
+        schoolYears={schoolYearOptions}
+        schoolYearLabel={schoolYearLabel}
+        termLabel={termLabel}
+      />
+
+      {/* 3-Term Academic Monitoring Status Cards */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <Calendar size={18} className="text-primary" />
+            3-Term Academic Calendar Tracking (DO 15, s. 2026)
+          </h4>
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Active: <span className="font-semibold text-primary">{termLabel}</span>
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {report.termBreakdown.map((term) => (
+            <div
+              key={term.id}
+              className={`p-3.5 rounded-lg border transition-all ${
+                term.isCurrent
+                  ? "bg-primary/5 border-primary dark:bg-primary/10 dark:border-primary/50 shadow-xs"
+                  : "bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-gray-900 dark:text-gray-100">{term.label}</span>
+                {term.isCurrent ? (
+                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-primary text-white rounded-full">
+                    Current Term
+                  </span>
+                ) : (
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500">Scheduled</span>
+                )}
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {term.startDate || "TBD"} – {term.endDate || "TBD"}
+              </div>
+              <div className="mt-2 text-sm font-semibold text-gray-800 dark:text-gray-200">
+                {term.totalLearners} <span className="text-xs font-normal text-gray-500">enrolled</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <SummaryCard label="Total Learners" value={report.totalLearners} tint="bg-primary/10 text-primary dark:bg-primary/20" />
+        <SummaryCard label="Total Active Learners" value={report.totalLearners} tint="bg-primary/10 text-primary dark:bg-primary/20" />
         <SummaryCard label="Total Male" value={report.totalMale} tint="bg-leaf/10 text-leaf dark:bg-leaf/20" />
         <SummaryCard label="Total Female" value={report.totalFemale} tint="bg-accent/10 text-accent-dark dark:bg-accent/20" />
       </div>
 
-      {/* Report table */}
+      {/* Discrepancy & Data Quality Alerts */}
+      {report.discrepancies.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-5 animate-fade-in space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
+              <AlertTriangle size={16} /> SF1 Record Discrepancies & Quality Indicators
+            </h4>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-200/70 text-amber-900 dark:bg-amber-900/50 dark:text-amber-200">
+              {report.discrepancies.length} indicator{report.discrepancies.length === 1 ? "" : "s"}
+            </span>
+          </div>
+
+          <ul className="space-y-1.5 text-sm text-amber-800 dark:text-amber-300">
+            {report.discrepancies.map((disc, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                {disc.severity === "error" ? (
+                  <AlertCircle size={15} className="text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                ) : disc.severity === "info" ? (
+                  <Info size={15} className="text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                ) : (
+                  <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                )}
+                <span>{disc.text}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-amber-700/80 dark:text-amber-400/80">
+            Learners with critical record errors or transferred-out status are segregated from active enrollment totals to preserve SMEA reporting accuracy.
+          </p>
+        </div>
+      )}
+
+      {/* Other SMEA Indicators — attendance, nutrition, LARDO monitoring per grade */}
+      {indicators.rows.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5">
+          <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3">
+            <Activity size={18} className="text-primary" />
+            Other SMEA Indicators
+          </h4>
+          <div className="overflow-x-auto -mx-5 px-5">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-800/60 border-y border-gray-200 dark:border-gray-700">
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Grade</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Attendance Rate</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nutrition (Normal)</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nutrition (Wasted+)</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">LARDO Monitoring</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {indicators.rows.map((row) => {
+                  const wastedPct =
+                    (row.nutrition.severelyWastedPct ?? 0) + (row.nutrition.wastedPct ?? 0);
+                  return (
+                    <tr key={row.grade} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                      <td className="px-3 py-2.5 text-gray-900 dark:text-gray-100 font-medium">{row.grade}</td>
+                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">
+                        {row.attendanceRate === null ? "—" : `${row.attendanceRate.toFixed(1)}%`}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">
+                        {row.nutrition.weighedCount === 0 ? "—" : `${(row.nutrition.normalPct ?? 0).toFixed(1)}%`}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">
+                        {row.nutrition.weighedCount === 0 ? "—" : `${wastedPct.toFixed(1)}%`}
+                      </td>
+                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{row.lardoMonitoringCount}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+            Attendance, nutrition, and LARDO monitoring indicators aggregated from existing SF2, Nutrition Status,
+            and LARDO Tracking records for SY {schoolYearLabel}. Academic performance indicators are not yet included.
+          </p>
+        </div>
+      )}
+
+      {/* Main Tabulation Table */}
       {report.gradeRows.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-2 py-16 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
           <AlertTriangle size={22} className="text-gray-300 dark:text-gray-600" />
           <p className="text-sm text-gray-400 dark:text-gray-500">
-            No valid records to tabulate for SY {schoolYearLabel}. Check the Data Quality area below.
+            No valid active records to tabulate for SY {schoolYearLabel}. Check the discrepancy report above.
           </p>
         </div>
       ) : (
@@ -256,26 +303,7 @@ function SMEAEnrollment() {
             </table>
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-            Enrollment snapshot for SY {schoolYearLabel} ({termLabel}). Term is contextual —
-            learner records carry no stored term, so no filtering by term is applied.
-          </p>
-        </div>
-      )}
-
-      {/* Data Quality area — only rendered when issues exist */}
-      {report.issues.length > 0 && (
-        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-5 animate-fade-in">
-          <h4 className="text-sm font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
-            <AlertTriangle size={16} /> Data Quality
-          </h4>
-          <ul className="mt-2 space-y-1 text-sm text-amber-800 dark:text-amber-300">
-            {report.issues.map((issue, i) => (
-              <li key={i}>⚠ {issue.text}</li>
-            ))}
-          </ul>
-          <p className="text-xs text-amber-700/80 dark:text-amber-400/80 mt-3">
-            Incomplete or invalid records are excluded from the main Grade × Section × Sex
-            totals to avoid misleading numbers; their counts are shown here.
+            Enrollment snapshot for SY {schoolYearLabel} ({termLabel}). Auto-aggregated from SF1 learner records.
           </p>
         </div>
       )}
@@ -323,7 +351,7 @@ function RowGroup({ row }) {
 }
 
 // School year selector + term display (shared by all states).
-function ReportControls({ selectedSY, setSelectedSY, schoolYearLabel, termLabel }) {
+function ReportControls({ selectedSY, setSelectedSY, schoolYears, schoolYearLabel, termLabel }) {
   return (
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
@@ -332,7 +360,7 @@ function ReportControls({ selectedSY, setSelectedSY, schoolYearLabel, termLabel 
           SMEA Enrollment Report
         </h3>
         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Auto-generated enrollment summary from existing learner records.
+          Auto-generated 3-term enrollment monitoring derived from SF1 records.
         </p>
       </div>
 
@@ -344,7 +372,7 @@ function ReportControls({ selectedSY, setSelectedSY, schoolYearLabel, termLabel 
             value={selectedSY}
             onChange={(e) => setSelectedSY(e.target.value)}
           >
-            {SCHOOL_YEARS.map((sy) => (
+            {schoolYears.map((sy) => (
               <option key={sy} value={sy}>
                 {String(sy).replace("-", "–")}
               </option>
