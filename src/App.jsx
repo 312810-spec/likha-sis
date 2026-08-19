@@ -145,21 +145,13 @@ function App() {
   if (!hasAccess) {
     pageTitle = "Access Restricted";
     pageContent = (
-      <div style={{ textAlign: "center", marginTop: "80px", padding: "0 16px" }}>
-        <p style={{ fontSize: "16px", color: "#374151", marginBottom: "16px" }}>
+      <div className="text-center mt-20 px-4">
+        <p className="text-base text-gray-600 dark:text-gray-300 mb-4">
           You don't have access to this page. Contact your ICT Coordinator if you believe this is a mistake.
         </p>
         <button
           onClick={() => setCurrentPage("dashboard")}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#1e3a8a",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "500",
-          }}
+          className="px-4 py-2 rounded-md font-medium text-white bg-primary hover:opacity-90 transition-opacity"
         >
           Go to Dashboard
         </button>

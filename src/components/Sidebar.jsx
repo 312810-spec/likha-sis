@@ -76,44 +76,61 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     // module-specific ones.
     { label: 'Announcements', page: 'announcements' },
     { label: 'School Calendar', page: 'schoolCalendar' },
-    // NOTE: Access control for User Management will be restricted to ictCoordinator/principal roles in Phase B.
-    { label: 'User Management', page: 'userManagement' },
-    // Branding is a tab inside School Settings now, not a separate page.
-    { label: 'School Settings', page: 'schoolSettings' },
-    { label: 'Import Center', page: 'importCenter' },
     {
-      label: 'School Forms',
+      label: 'Learner Records',
       children: [
+        { label: 'View Learners', page: 'viewLearners' },
         { label: 'SF1', page: 'sf1' },
+        { label: 'Transfers', page: 'transfersLog' },
+      ],
+    },
+    {
+      label: 'Attendance & Forms',
+      children: [
         { label: 'SF2', page: 'sf2' },
         { label: 'SF4', page: 'sf4' },
       ],
     },
-    { label: 'Class Record', page: 'classRecord' },
-    { label: 'Consolidated Grades', page: 'consolidatedGrades' },
-    { label: 'Academic Hub', page: 'academicHub' },
-    { label: 'Report Card (SF9)', page: 'reportCard' },
-    { label: 'SF10 Generator', page: 'sf10Generate' },
-    { label: 'Class Program & Load', page: 'classProgram' },
-    { label: 'View Learners', page: 'viewLearners' },
-    { label: 'LARDO Tracking', page: 'lardoTracking' },
-    { label: 'Nutrition Status', page: 'nutritionStatus' },
-    { label: 'Nutrition Consolidator', page: 'nutritionConsolidator' },
-    { label: 'Transfers', page: 'transfersLog' },
-    { label: 'Certificates', page: 'certificates' },
-    { label: 'ID Generator', page: 'idGenerator' },
     {
-      label: 'SMEA',
+      label: 'Academics',
       children: [
-        { label: 'Enrollment', page: 'smeaEnrollment' },
+        { label: 'Class Record', page: 'classRecord' },
+        { label: 'Consolidated Grades', page: 'consolidatedGrades' },
+        { label: 'Academic Hub', page: 'academicHub' },
+        { label: 'Report Card (SF9)', page: 'reportCard' },
+        { label: 'SF10 Generator', page: 'sf10Generate' },
+        { label: 'Class Program & Load', page: 'classProgram' },
+      ],
+    },
+    {
+      label: 'Learner Welfare',
+      children: [
+        { label: 'LARDO Tracking', page: 'lardoTracking' },
+        { label: 'Nutrition Status', page: 'nutritionStatus' },
+        { label: 'Nutrition Consolidator', page: 'nutritionConsolidator' },
         { label: 'Anecdotal Records', page: 'anecdotalRecords' },
       ],
     },
     {
-      label: 'Imports',
+      label: 'SMEA',
+      children: [{ label: 'Enrollment', page: 'smeaEnrollment' }],
+    },
+    {
+      label: 'Documents',
       children: [
+        { label: 'Certificates', page: 'certificates' },
+        { label: 'ID Generator', page: 'idGenerator' },
+      ],
+    },
+    {
+      label: 'Admin',
+      children: [
+        { label: 'Import Center', page: 'importCenter' },
         { label: 'SF1 Bulk Import', page: 'sf1Import' },
         { label: 'SF10 Import', page: 'sf10Import' },
+        { label: 'User Management', page: 'userManagement' },
+        // Branding is a tab inside School Settings now, not a separate page.
+        { label: 'School Settings', page: 'schoolSettings' },
       ],
     },
   ];
