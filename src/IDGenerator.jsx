@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import { User } from "lucide-react";
 
 const CARD_W = 204; // px == 2.125in — standard CR80 ID card width, portrait
@@ -97,7 +98,8 @@ function CardBackground() {
   );
 }
 
-function IDCardFront({ learner, adviserName }) {
+function IDCardFront({ learner, adviserName, school = schoolConfig }) {
+  const currentSchool = { ...schoolConfig, ...school };
   return (
     <div className="id-card" style={cardStyle}>
       <CardBackground />
@@ -111,13 +113,13 @@ function IDCardFront({ learner, adviserName }) {
           />
           <div style={{ fontSize: "5.6px", fontWeight: "bold" }}>Republic of the Philippines</div>
           <div style={{ fontSize: "5.6px" }}>Department of Education</div>
-          <div style={{ fontSize: "5px", color: "#555" }}>{schoolConfig.region}</div>
-          <div style={{ fontSize: "5px", color: "#555" }}>{schoolConfig.divisionOffice}</div>
-          <div style={{ fontSize: "5px", color: "#555" }}>{schoolConfig.district}</div>
+          <div style={{ fontSize: "5px", color: "#555" }}>{currentSchool.region}</div>
+          <div style={{ fontSize: "5px", color: "#555" }}>{currentSchool.divisionOffice}</div>
+          <div style={{ fontSize: "5px", color: "#555" }}>{currentSchool.district}</div>
         </div>
 
         {/* School name band */}
-        <div style={nameBandStyle}>{schoolConfig.schoolName}</div>
+        <div style={nameBandStyle}>{currentSchool.schoolName}</div>
 
         {/* Photo and QR, matched in size and placed side by side so the QR
             stays large enough to scan reliably */}
@@ -216,6 +218,8 @@ function IDCardBack({ learner, principalName, principalPosition }) {
 
 // ---------------------------------------------------------------------------
 function IDGenerator({ user, goBack }) {
+  const { config } = useSchoolConfig();
+  const school = { ...schoolConfig, ...config };
   const [learners, setLearners] = useState([]);
   const [advisers, setAdvisers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -448,11 +452,11 @@ function IDGenerator({ user, goBack }) {
         <div className="id-print-area" style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
           {selectedLearner ? (
             <>
-              <IDCardFront learner={selectedLearner} adviserName={adviserNameFor(selectedLearner, advisers)} />
+              <IDCardFront learner={selectedLearner} adviserName={adviserNameFor(selectedLearner, advisers)} school={school} />
               <IDCardBack
                 learner={selectedLearner}
-                principalName={schoolConfig.principalName}
-                principalPosition={schoolConfig.principalPosition}
+                principalName={school.principalName}
+                principalPosition={school.principalPosition}
               />
             </>
           ) : (
@@ -484,13 +488,13 @@ function IDGenerator({ user, goBack }) {
           )}
           {sectionLearners.map((learner) =>
             side === "front" ? (
-              <IDCardFront key={learner.id} learner={learner} adviserName={adviserNameFor(learner, advisers)} />
+              <IDCardFront key={learner.id} learner={learner} adviserName={adviserNameFor(learner, advisers)} school={school} />
             ) : (
               <IDCardBack
                 key={learner.id}
                 learner={learner}
-                principalName={schoolConfig.principalName}
-                principalPosition={schoolConfig.principalPosition}
+                principalName={school.principalName}
+                principalPosition={school.principalPosition}
               />
             )
           )}

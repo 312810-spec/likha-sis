@@ -1,0 +1,13 @@
+{
+  "model": "standard",
+  "env": {
+    "MAX_THINKING_TOKENS": "8000",
+    "CODEX_CODE_SUBAGENT_MODEL": "fast",
+    "MODEL_VERBOSITY": "low",
+    "OPENCODEX_ENABLE_PROMPT_CACHING": "true"
+  },
+  "context": {
+    "autoCompactThreshold": 0.70,
+    "maxFileReadBytes": 50000
+  }
+}

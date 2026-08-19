@@ -9,6 +9,8 @@ import { useState, useEffect } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
+import useSchoolConfig from "./hooks/useSchoolConfig";
+import { formatDivisionHeader } from "./utils/depedHierarchy.js";
 
 // --- Small date helpers (local-timezone safe, matching the use of
 //     "YYYY-MM-DD" date strings used elsewhere in the app) ---------------
@@ -38,6 +40,8 @@ function formatDate(dateString) {
 }
 
 function CertificateGenerator({ user, goBack }) {
+  const { config } = useSchoolConfig();
+  const school = { ...schoolConfig, ...config };
   // learners: all learner documents from Firestore, each with its id included.
   const [learners, setLearners] = useState([]);
   // loading: true while we fetch learner data.
@@ -256,9 +260,11 @@ function CertificateGenerator({ user, goBack }) {
       {/* ---- Live certificate preview ---- */}
       <div className="certificate-preview" style={certificateBorderStyle}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "20px", fontWeight: "bold" }}>{schoolConfig.schoolName}</div>
-          <div style={{ fontSize: "14px", marginTop: "4px" }}>{schoolConfig.schoolAddress}</div>
-          <div style={{ fontSize: "12px", marginTop: "2px", fontStyle: "italic" }}>{schoolConfig.divisionName}</div>
+          <div style={{ fontSize: "20px", fontWeight: "bold" }}>{school.schoolName}</div>
+          <div style={{ fontSize: "14px", marginTop: "4px" }}>{school.schoolAddress}</div>
+          <div style={{ fontSize: "12px", marginTop: "2px", fontStyle: "italic" }}>
+            {formatDivisionHeader(school.divisionOffice || school.divisionName)}
+          </div>
         </div>
 
         <h2 style={{ textAlign: "center", margin: "36px 0 28px", fontWeight: "bold" }}>{heading}</h2>
@@ -269,8 +275,8 @@ function CertificateGenerator({ user, goBack }) {
 
         <div style={{ textAlign: "right", marginTop: "60px", marginRight: "20px" }}>
           <div style={{ fontSize: "15px", marginBottom: "50px" }}>{formatDate(dateIssued)}</div>
-          <div style={{ fontWeight: "bold", fontSize: "17px" }}>{schoolConfig.principalName}</div>
-          <div style={{ fontSize: "14px" }}>{schoolConfig.principalPosition}</div>
+          <div style={{ fontWeight: "bold", fontSize: "17px" }}>{school.principalName}</div>
+          <div style={{ fontSize: "14px" }}>{school.principalPosition}</div>
         </div>
       </div>
 

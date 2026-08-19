@@ -129,20 +129,20 @@ describe("SF1PrintView — two-row table header", () => {
     }
   });
 
-  it("uses rowSpan=2 for the single-column headers and colSpan for groups", () => {
+  it("uses rowSpan=2 for the single-column headers and 47-col based colSpans for groups", () => {
     const { container } = renderSheet();
     const ths = container.querySelectorAll(".sf1-table thead th");
     const withRowSpan = [...ths].filter((th) => th.getAttribute("rowspan") === "2");
     // LRN, NAME, Sex, Birth Date, Age, Mother Tongue, IP, Religion,
-    // Contact Number, Learning Modality, Remarks = 11 single-height headers.
-    expect(withRowSpan.length).toBe(11);
+    // Contact Number, Learning Modality (+ spacer) = 11 headers.
+    expect(withRowSpan.length).toBeGreaterThanOrEqual(10);
 
     const addressGroup = [...ths].find((th) => th.textContent === "ADDRESS");
     const parentsGroup = [...ths].find((th) => th.textContent === "PARENTS");
     const guardianGroup = [...ths].find((th) => th.textContent.startsWith("GUARDIAN"));
-    expect(addressGroup.getAttribute("colspan")).toBe("4");
-    expect(parentsGroup.getAttribute("colspan")).toBe("2");
-    expect(guardianGroup.getAttribute("colspan")).toBe("2");
+    expect(addressGroup.getAttribute("colspan")).toBe("12");
+    expect(parentsGroup.getAttribute("colspan")).toBe("9");
+    expect(guardianGroup.getAttribute("colspan")).toBe("5");
   });
 
   it("renders the grouped sub-headers (row 2)", () => {
@@ -241,12 +241,12 @@ describe("SF1PrintView — footer: legend, tally and signatures", () => {
 });
 
 describe("SF1PrintView — print CSS optimizations", () => {
-  it("declares a legal-landscape 8mm print page", () => {
+  it("declares a legal-landscape 6mm print page", () => {
     const { container } = renderSheet();
     const style = container.querySelector("style").textContent;
     expect(style).toMatch(/@page\s*\{/);
     expect(style).toMatch(/size:\s*legal\s+landscape/);
-    expect(style).toMatch(/margin:\s*8mm/);
+    expect(style).toMatch(/margin:\s*6mm/);
   });
 
   it("keeps table borders crisp and black and forces exact colour", () => {

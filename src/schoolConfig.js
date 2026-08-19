@@ -4,16 +4,19 @@
 // real school information before generating certificates in production.
 
 const schoolConfig = {
+  schoolId: "302975",
   schoolName: "Tingub National High School",
-  schoolAddress: "Tingub, [City/Municipality], Cebu",
-  divisionName: "Department of Education - Division of [Division Name]",
+  schoolAddress: "Tingub, Mandaue City, Cebu",
+  divisionName: "Department of Education - Division of Mandaue City",
   principalName: "[Principal Full Name]",
   principalPosition: "School Principal",
   clinicTeacherName: "[School Clinic Teacher Full Name]",
-  region: "[Region]",
-  divisionOffice: "[Division Office Name]",
-  district: "[District]",
-  municipalityCityProvince: "[Municipality/City], [Province]",
+  divisionSuperintendent: "[Schools Division Superintendent]",
+  divisionSuperintendentPosition: "Schools Division Superintendent",
+  region: "Region VII",
+  divisionOffice: "Division of Mandaue City",
+  district: "Mandaue City District III",
+  municipalityCityProvince: "Mandaue City, Cebu",
   gradeLevelsOffered: [
     "Grade 4",
     "Grade 5",

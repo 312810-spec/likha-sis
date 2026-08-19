@@ -28,3 +28,11 @@
 .sidebar-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
+@media print {
+  body, #root, [role="region"][aria-label="Dashboard Shell"], main {
+    height: auto !important;
+    overflow: visible !important;
+    min-height: 0 !important;
+  }
+}
