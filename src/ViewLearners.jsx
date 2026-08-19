@@ -134,10 +134,10 @@ function ViewLearners({ user, goBack, userRoles }) {
         <ArrowLeft size={16} /> Back to Dashboard
       </button>
 
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card p-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
+            <h1 className="font-display text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
               <Users className="text-primary" size={24} />
               Saved Learners
             </h1>
@@ -202,7 +202,7 @@ function ViewLearners({ user, goBack, userRoles }) {
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {filteredLearners.map((l) => (
                   <tr key={l.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                    <td className={tdClass}>{l.lrn || ""}</td>
+                    <td className={`${tdClass} font-mono`}>{l.lrn || ""}</td>
                     <td className={tdClass}>
                       <span className="flex items-center gap-2">
                         {l.lastName || ""}

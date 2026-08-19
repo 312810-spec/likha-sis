@@ -386,7 +386,7 @@ export default function ClassRecord({ user, goBack }) {
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
       {/* Top Banner / Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
         <div className="flex items-center gap-3">
           {goBack && (
             <button
@@ -399,7 +399,7 @@ export default function ClassRecord({ user, goBack }) {
             </button>
           )}
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
+            <h1 className="font-display text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
               <BookOpen className="text-primary" size={26} />
               Class Record
             </h1>
@@ -505,7 +505,7 @@ export default function ClassRecord({ user, goBack }) {
 
       {/* SETUP PANEL */}
       {!isLoaded ? (
-        <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm p-6 space-y-6">
+        <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-card p-6 space-y-6">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-3">
             Select Class &amp; Subject Parameters
           </h2>
@@ -668,7 +668,7 @@ export default function ClassRecord({ user, goBack }) {
           </div>
 
           {/* Grid Container */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card overflow-hidden">
             <div className="overflow-x-auto max-h-[70vh]">
               <table className="w-full border-collapse text-xs text-left">
                 {/* Header Group 1: Category Sections */}
