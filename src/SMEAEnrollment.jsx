@@ -15,7 +15,7 @@ import useAcademicCalendar from "./hooks/useAcademicCalendar";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import { computeSMEAEnrollment } from "./utils/smeaEnrollment.js";
 import computeSMEAIndicators from "./utils/smeaIndicators.js";
-import { BarChart3, Users, AlertTriangle, Calendar, AlertCircle, Info, CheckCircle2, Activity } from "lucide-react";
+import { BarChart3, Users, AlertTriangle, Calendar, AlertCircle, Info, Activity } from "lucide-react";
 
 function SMEAEnrollment() {
   const { calendar, schoolYears } = useAcademicCalendar();

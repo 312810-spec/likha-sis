@@ -88,6 +88,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     { label: 'Consolidated Grades', page: 'consolidatedGrades' },
     { label: 'Report Card (SF9)', page: 'reportCard' },
     { label: 'SF10 Generator', page: 'sf10Generate' },
+    { label: 'Class Program & Load', page: 'classProgram' },
     { label: 'View Learners', page: 'viewLearners' },
     { label: 'LARDO Tracking', page: 'lardoTracking' },
     { label: 'Nutrition Status', page: 'nutritionStatus' },
