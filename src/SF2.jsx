@@ -21,6 +21,7 @@ import { Info } from "lucide-react";
 
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import { getWeekdays, makeAttendanceDocId } from "./utils/attendanceDates";
+import buildAttendanceYearOverview from "./utils/attendanceYearOverview";
 
 // Dropout reason codes (a1–f) per the DepEd NLS legend. Used both for the
 // "Legend & Guidelines" section and the per-learner Remarks dropdown options.
@@ -93,9 +94,16 @@ function schoolYearFromMonth(monthValue) {
 
 // ---- Component -------------------------------------------------------------
 
-function SF2({ user, goBack }) {
+function SF2({ user, userRoles, goBack }) {
   const { config } = useSchoolConfig();
   const currentSchool = { ...schoolConfig, ...config };
+  // Only the adviser marks attendance; other roles granted sf2 access
+  // (principal, masterTeacher, smeaCoordinator, guidance, ictCoordinator)
+  // only see the read-only Year Overview tab.
+  const isAdviser = Array.isArray(userRoles) && userRoles.includes("adviser");
+  const [activeTab, setActiveTab] = useState(isAdviser ? "grid" : "overview");
+  const [yearOverviewDocs, setYearOverviewDocs] = useState([]);
+  const [loadingOverview, setLoadingOverview] = useState(false);
   // learners: full roster fetched from Firestore, each with its document id.
   const [learners, setLearners] = useState([]);
   // loading: true while the roster is being fetched on mount.
@@ -226,6 +234,44 @@ function SF2({ user, goBack }) {
     loadAttendance();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterValue, monthValue]);
+
+  // Load every attendance doc for the selected class across the current
+  // school year (all months, not just the one picked above) to power the
+  // Year Overview tab.
+  useEffect(() => {
+    if (activeTab !== "overview" || !filterValue) {
+      return;
+    }
+    let cancelled = false;
+
+    async function loadYearOverview() {
+      setLoadingOverview(true);
+      try {
+        const snapshot = await getDocs(collection(db, "attendance"));
+        if (cancelled) return;
+        const targetSchoolYear = schoolYearFromMonth(monthValue);
+        const docs = [];
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          if (d.gradeLevel !== selectedGradeLevel) return;
+          if (d.section !== selectedSection) return;
+          if (schoolYearFromMonth(d.month) !== targetSchoolYear) return;
+          docs.push(d);
+        });
+        setYearOverviewDocs(docs);
+      } catch (err) {
+        console.error("Failed to load attendance year overview:", err);
+        if (!cancelled) setYearOverviewDocs([]);
+      } finally {
+        if (!cancelled) setLoadingOverview(false);
+      }
+    }
+
+    loadYearOverview();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, filterValue, selectedGradeLevel, selectedSection, monthValue]);
 
   // Cycles a learner+date cell: "" (Present) -> "A" -> "T" -> "".
   function cycleCell(learnerId, dateString) {
@@ -682,6 +728,10 @@ function SF2({ user, goBack }) {
     );
   }
   const hasSelection = Boolean(filterValue && monthValue);
+  const yearOverview = buildAttendanceYearOverview({
+    monthDocs: yearOverviewDocs,
+    learners: filteredLearners,
+  });
 
   const registeredLearners = maleLearners.length + femaleLearners.length;
   // Auto-computed values for the Class Summary, recalculated live from current state.
@@ -956,6 +1006,96 @@ function SF2({ user, goBack }) {
         </div>
       </div>
 
+      {/* Tab bar — adviser can switch between marking attendance and the
+          year-long trend; other sf2-access roles only ever see Year Overview. */}
+      {isAdviser && (
+        <div className="no-print flex gap-2 border-b border-gray-200 dark:border-gray-700">
+          {[
+            { id: "grid", label: "Attendance Grid" },
+            { id: "overview", label: "Year Overview" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-150 ${
+                activeTab === tab.id
+                  ? "border-primary text-primary dark:text-primary-light"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === "overview" && (
+        <div className="no-print bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+            Attendance Year Overview{filterValue ? ` — ${filterValue}` : ""}
+          </h2>
+          {!filterValue && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Select a class above to see its attendance trend.
+            </p>
+          )}
+          {filterValue && loadingOverview && (
+            <div className="h-24 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+          )}
+          {filterValue && !loadingOverview && yearOverview.months.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No saved attendance found yet for this class this school year.
+            </p>
+          )}
+          {filterValue && !loadingOverview && yearOverview.months.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-primary/5 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold">
+                    <th className="p-2 text-left border-b border-gray-200 dark:border-gray-700">Learner</th>
+                    {yearOverview.months.map((m) => (
+                      <th key={m} className="p-2 text-center border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">
+                        {formatMonthLabel(m)}
+                      </th>
+                    ))}
+                    <th className="p-2 text-center border-b border-gray-200 dark:border-gray-700">Year Avg</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
+                  {yearOverview.perLearner.map((l) => (
+                    <tr key={l.learnerId}>
+                      <td className="p-2">{l.name}</td>
+                      {yearOverview.months.map((m) => (
+                        <td key={m} className="p-2 text-center font-mono">
+                          {l.monthlyRates[m] === null ? "—" : `${l.monthlyRates[m].toFixed(1)}%`}
+                        </td>
+                      ))}
+                      <td className="p-2 text-center font-mono font-semibold">
+                        {l.yearAverage === null ? "—" : `${l.yearAverage.toFixed(1)}%`}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-gray-50 dark:bg-gray-800/60 font-bold">
+                    <td className="p-2">Class Average</td>
+                    {yearOverview.months.map((m) => (
+                      <td key={m} className="p-2 text-center font-mono">
+                        {yearOverview.classAverage[m] === null
+                          ? "—"
+                          : `${yearOverview.classAverage[m].toFixed(1)}%`}
+                      </td>
+                    ))}
+                    <td className="p-2" />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isAdviser && activeTab === "grid" && (
+        <>
       {/* Legend & Guidelines */}
       <div className="no-print">{renderLegend()}</div>
 
@@ -1165,6 +1305,8 @@ function SF2({ user, goBack }) {
             {renderPrintSignature()}
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

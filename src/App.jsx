@@ -173,7 +173,9 @@ function App() {
         break;
       case "sf2":
         pageTitle = "School Form 2 - Attendance";
-        pageContent = <SF2 user={user} goBack={() => setCurrentPage("dashboard")} />;
+        pageContent = (
+          <SF2 user={user} userRoles={userRoles} goBack={() => setCurrentPage("dashboard")} />
+        );
         break;
       case "sf4":
         pageTitle = "School Form 4 - Monthly Learner Movement Report";

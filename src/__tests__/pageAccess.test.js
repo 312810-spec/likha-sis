@@ -23,9 +23,13 @@ describe("pageAccess", () => {
       expect(canAccessPage("sf1", ["subjectTeacher"])).toBe(false);
       expect(canAccessPage("sf1", ["stakeholder"])).toBe(false);
 
-      // sf2: ["adviser"]
+      // sf2: ["adviser", "principal", "masterTeacher", "smeaCoordinator", "guidance", "ictCoordinator"]
+      // Non-adviser roles can open SF2 to view the Year Overview tab, but the
+      // page itself (SF2.jsx) still gates attendance-marking to adviser.
       expect(canAccessPage("sf2", ["adviser"])).toBe(true);
-      expect(canAccessPage("sf2", ["principal"])).toBe(false);
+      expect(canAccessPage("sf2", ["principal"])).toBe(true);
+      expect(canAccessPage("sf2", ["guidance"])).toBe(true);
+      expect(canAccessPage("sf2", ["subjectTeacher"])).toBe(false);
 
       // userManagement: ["ictCoordinator", "principal"]
       expect(canAccessPage("userManagement", ["ictCoordinator"])).toBe(true);

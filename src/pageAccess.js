@@ -3,7 +3,9 @@
 export const PAGE_ACCESS = {
   dashboard: "all",
   sf1: ["adviser", "ictCoordinator", "principal"],
-  sf2: ["adviser"],
+  // Adviser marks attendance; the other roles only see the read-only Year
+  // Overview tab (SF2.jsx gates the monthly grid itself to adviser).
+  sf2: ["adviser", "principal", "masterTeacher", "smeaCoordinator", "guidance", "ictCoordinator"],
   sf4: ["adviser"],
   classRecord: ["subjectTeacher", "adviser"],
   consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"],
