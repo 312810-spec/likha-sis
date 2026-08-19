@@ -3,16 +3,18 @@
 @tailwind utilities;
 
 :root {
-  /* Brand tokens — default palette; useBrandTheme() overrides these live per school. */
+  /* Brand tokens — default palette; useBrandTheme() overrides these live per school.
+     Values are pre-passed through ensureReadableContrast() (WCAG AA, luminance <= 0.18)
+     so bg-primary/accent/leaf + text-white always meets 4.5:1, same as an extracted logo theme. */
   --color-primary: 31 111 92;
-  --color-primary-light: 79 168 143;
-  --color-primary-dark: 22 79 66;
-  --color-accent: 201 130 46;
-  --color-accent-light: 224 165 92;
-  --color-accent-dark: 185 121 28;
-  --color-leaf: 47 138 78;
-  --color-leaf-light: 92 184 124;
-  --color-leaf-dark: 28 44 31;
+  --color-primary-light: 48 171 142;
+  --color-primary-dark: 14 51 42;
+  --color-accent: 150 97 34;
+  --color-accent-light: 209 137 52;
+  --color-accent-dark: 88 57 20;
+  --color-leaf: 42 123 69;
+  --color-leaf-light: 61 180 101;
+  --color-leaf-dark: 23 66 37;
 
   /* Neutral surface tokens — warm paper, not glass. */
   --color-paper: 246 244 238;

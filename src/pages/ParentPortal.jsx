@@ -134,7 +134,7 @@ export default function ParentPortal({ user }) {
       {/* Top Bar */}
       <header
         style={{
-          background: "linear-gradient(135deg, #1A2F5F 0%, #0f1f3d 100%)",
+          background: "linear-gradient(135deg, rgb(var(--color-primary)) 0%, rgb(var(--color-primary-dark)) 100%)",
           padding: "0 24px",
           height: "60px",
           display: "flex",
@@ -147,14 +147,14 @@ export default function ParentPortal({ user }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <GraduationCap size={22} color="#F2A93B" />
+          <GraduationCap size={22} color="rgb(var(--color-accent-light))" />
           <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "16px", letterSpacing: "0.02em" }}>
             LIKHA-SIS
           </span>
           <span
             style={{
-              backgroundColor: "#F2A93B",
-              color: "#1A2F5F",
+              backgroundColor: "rgb(var(--color-accent))",
+              color: "#ffffff",
               fontSize: "10px",
               fontWeight: 700,
               padding: "2px 8px",

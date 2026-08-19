@@ -52,16 +52,16 @@ describe("colorTheory utilities", () => {
 
   describe("ensureReadableContrast", () => {
     it("leaves sufficiently dark colors unchanged", () => {
-      // #1A2FA0 has luminance ~0.046 (< 0.6)
+      // #1A2FA0 has luminance ~0.046 (< 0.18)
       expect(ensureReadableContrast("#1A2FA0")).toBe("#1A2FA0");
       expect(ensureReadableContrast("#1E5C29")).toBe("#1E5C29");
     });
 
-    it("darkens too-light colors until relative luminance is <= 0.6", () => {
+    it("darkens too-light colors until relative luminance is <= 0.18 (WCAG AA vs. white text)", () => {
       const tooLight = "#FFFF00"; // Pure bright yellow, luminance ~0.93
       const adjusted = ensureReadableContrast(tooLight);
 
-      expect(getRelativeLuminance(adjusted)).toBeLessThanOrEqual(0.6);
+      expect(getRelativeLuminance(adjusted)).toBeLessThanOrEqual(0.18);
       expect(getRelativeLuminance(adjusted)).toBeLessThan(getRelativeLuminance(tooLight));
     });
 
@@ -69,7 +69,7 @@ describe("colorTheory utilities", () => {
       const white = "#FFFFFF";
       const adjusted = ensureReadableContrast(white);
 
-      expect(getRelativeLuminance(adjusted)).toBeLessThanOrEqual(0.6);
+      expect(getRelativeLuminance(adjusted)).toBeLessThanOrEqual(0.18);
     });
   });
 });

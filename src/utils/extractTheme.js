@@ -8,15 +8,15 @@ import {
 } from './colorTheory.js';
 
 export const DEFAULT_THEME_HEX = {
-  primary: '#1A2FA0',
-  primaryLight: '#2E45C7',
-  primaryDark: '#101D6B',
-  accent: '#F2A93B',
-  accentLight: '#F5C168',
-  accentDark: '#D48C1F',
-  leaf: '#1E5C29',
-  leafLight: '#2E7D3A',
-  leafDark: '#123D1A',
+  primary: '#1F6F5C',
+  primaryLight: '#30AB8E',
+  primaryDark: '#0E332A',
+  accent: '#966122',
+  accentLight: '#D18934',
+  accentDark: '#583914',
+  leaf: '#2A7B45',
+  leafLight: '#3DB465',
+  leafDark: '#174225',
 };
 
 function extractRgb(item) {

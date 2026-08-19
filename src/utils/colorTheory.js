@@ -153,10 +153,10 @@ export function getRelativeLuminance(hex) {
 /**
  * Exports a function ensureReadableContrast(hex) that checks the color's
  * relative luminance; if it's too light to give sufficient contrast against
- * white text (luminance above roughly 0.6), darken it via adjustLightness
- * until it passes, returning the adjusted hex.
+ * white text (WCAG AA 4.5:1 requires background luminance at or below ~0.18),
+ * darken it via adjustLightness until it passes, returning the adjusted hex.
  */
-export function ensureReadableContrast(hex, maxLuminance = 0.6) {
+export function ensureReadableContrast(hex, maxLuminance = 0.18) {
   let currentHex = hex.startsWith('#') ? hex.toUpperCase() : `#${hex.toUpperCase()}`;
   let iterations = 0;
   const MAX_ITERATIONS = 30;
