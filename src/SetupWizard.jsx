@@ -11,6 +11,7 @@ import {
   makeDefaultShsClusters,
 } from "./utils/keyStagesConfig.js";
 import { toCoordinate } from "./utils/coordinates.js";
+import { makeDefaultShift } from "./utils/scheduleModel.js";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
 import { hashSettingsKey, validateSettingsKey, SETTINGS_KEY_MIN_LENGTH } from "./utils/settingsLock.js";
@@ -109,6 +110,18 @@ function SetupWizard({ onComplete }) {
   const [shsClusters, setShsClusters] = useState(() =>
     initialConfig?.shs?.electiveClusters?.length ? initialConfig.shs.electiveClusters : makeDefaultShsClusters()
   );
+
+  // Shifts (how many sessions the school runs) and, once at least one shift
+  // exists, sections per grade level -- both editable in full later from
+  // School Settings > Sections & Shifts. Kept lightweight here since no
+  // teacher accounts exist yet to assign as advisers.
+  const [shifts, setShifts] = useState(() =>
+    initialConfig?.shifts?.length ? initialConfig.shifts : [makeDefaultShift("Whole Day")]
+  );
+  const [sectionsByGrade, setSectionsByGrade] = useState({});
+  const [newSectionName, setNewSectionName] = useState({});
+  const [newSectionShift, setNewSectionShift] = useState({});
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -185,6 +198,48 @@ function SetupWizard({ onComplete }) {
         i === clusterIndex ? { ...c, subjects: c.subjects.filter((_, si) => si !== subjectIndex) } : c
       )
     );
+  }
+
+  function updateShiftLabel(index, label) {
+    setShifts((prev) => prev.map((s, i) => (i === index ? { ...s, label } : s)));
+  }
+
+  function addShift() {
+    setShifts((prev) => [...prev, makeDefaultShift(`Shift ${prev.length + 1}`)]);
+  }
+
+  function removeShift(index) {
+    const removed = shifts[index];
+    setShifts((prev) => prev.filter((_, i) => i !== index));
+    // Sections pointed at the removed shift fall back to whatever shift is
+    // first afterward, so "Add" never silently points at a shift that no
+    // longer exists.
+    setSectionsByGrade((prev) => {
+      const next = {};
+      Object.entries(prev).forEach(([grade, list]) => {
+        next[grade] = list.map((s) => (s.shiftId === removed?.id ? { ...s, shiftId: "" } : s));
+      });
+      return next;
+    });
+  }
+
+  function addSection(gradeLevel) {
+    const name = (newSectionName[gradeLevel] || "").trim();
+    if (!name) return;
+    const shiftId = newSectionShift[gradeLevel] || shifts[0]?.id || "";
+    const id = `${gradeLevel}_${name}`.toLowerCase().replace(/\s+/g, "-");
+    setSectionsByGrade((prev) => ({
+      ...prev,
+      [gradeLevel]: [...(prev[gradeLevel] || []), { id, gradeLevel, name, shiftId }],
+    }));
+    setNewSectionName((prev) => ({ ...prev, [gradeLevel]: "" }));
+  }
+
+  function removeSection(gradeLevel, sectionId) {
+    setSectionsByGrade((prev) => ({
+      ...prev,
+      [gradeLevel]: (prev[gradeLevel] || []).filter((s) => s.id !== sectionId),
+    }));
   }
 
   function validateStep1() {
@@ -273,8 +328,21 @@ function SetupWizard({ onComplete }) {
         longitude: toCoordinate(schoolData.longitude),
         gradeLevelsOffered,
         shs,
+        shifts,
         setupCompletedAt: serverTimestamp(),
       });
+
+      // Sections live in schedules/{schoolYear}/sections -- the same
+      // collection Class Program Generator reads -- keyed to the built-in
+      // default school year until Academic Calendar is configured. Written
+      // after users/{uid} above so hasAnyRole(["ictCoordinator"]) already
+      // resolves for this account.
+      const allSections = Object.values(sectionsByGrade).flat();
+      await Promise.all(
+        allSections.map((section) =>
+          setDoc(doc(db, "schedules", "2026-2027", "sections", section.id), section)
+        )
+      );
 
       // Advance to Step 3 (Branding)
       setStep(3);
@@ -635,6 +703,109 @@ function SetupWizard({ onComplete }) {
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {getGradeLevelsFromStages(selectedKeyStages).length > 0 && (
+              <div className="mt-6 border-t border-gray-200 pt-5 space-y-5">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Shifts &amp; Sections</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    How many shifts does the school run, and how many sections per grade level? You can
+                    fine-tune shift start times and periods later in School Settings.
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Shifts</p>
+                  <div className="space-y-1.5">
+                    {shifts.map((shift, i) => (
+                      <div key={shift.id} className="flex items-center gap-1.5">
+                        <input
+                          className="flex-1 border p-1.5 rounded text-sm"
+                          value={shift.label}
+                          onChange={(e) => updateShiftLabel(i, e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeShift(i)}
+                          className="text-xs text-red-600 hover:text-red-700 px-1"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addShift}
+                    className="text-xs font-medium text-primary hover:text-primary-light mt-1.5"
+                  >
+                    + Add Shift
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Sections per Grade Level
+                  </p>
+                  {getGradeLevelsFromStages(selectedKeyStages).map((gradeLevel) => (
+                    <div key={gradeLevel} className="border rounded-lg p-3 bg-gray-50/70">
+                      <p className="text-xs font-semibold text-gray-600 mb-1.5">{gradeLevel}</p>
+                      {(sectionsByGrade[gradeLevel] || []).length > 0 && (
+                        <ul className="flex flex-wrap gap-1.5 mb-1.5">
+                          {sectionsByGrade[gradeLevel].map((s) => (
+                            <li
+                              key={s.id}
+                              className="flex items-center gap-1.5 text-xs font-medium bg-white text-gray-700 border border-gray-200 rounded-full px-2.5 py-1"
+                            >
+                              {s.name}
+                              <button
+                                type="button"
+                                onClick={() => removeSection(gradeLevel, s.id)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                &times;
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <input
+                          className="flex-1 min-w-[100px] border p-1.5 rounded text-xs"
+                          placeholder="Section name"
+                          value={newSectionName[gradeLevel] || ""}
+                          onChange={(e) =>
+                            setNewSectionName((prev) => ({ ...prev, [gradeLevel]: e.target.value }))
+                          }
+                        />
+                        <select
+                          className="border p-1.5 rounded text-xs"
+                          value={newSectionShift[gradeLevel] || shifts[0]?.id || ""}
+                          onChange={(e) =>
+                            setNewSectionShift((prev) => ({ ...prev, [gradeLevel]: e.target.value }))
+                          }
+                          disabled={shifts.length === 0}
+                        >
+                          {shifts.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => addSection(gradeLevel)}
+                          disabled={shifts.length === 0}
+                          className="text-xs font-semibold text-white bg-primary hover:bg-primary-light disabled:opacity-50 rounded px-2.5 py-1.5"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

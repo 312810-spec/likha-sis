@@ -14,6 +14,7 @@ import { ArrowLeft, Settings, Lock } from "lucide-react";
 import SettingsLockScreen from "./components/settings/SettingsLockScreen.jsx";
 import SchoolIdentityTab from "./components/settings/SchoolIdentityTab.jsx";
 import GradeLevelsShsTab from "./components/settings/GradeLevelsShsTab.jsx";
+import SectionsShiftsTab from "./components/settings/SectionsShiftsTab.jsx";
 import AcademicCalendarTab from "./components/settings/AcademicCalendarTab.jsx";
 import SecurityTab from "./components/settings/SecurityTab.jsx";
 import BrandingSettings from "./BrandingSettings";
@@ -21,6 +22,7 @@ import BrandingSettings from "./BrandingSettings";
 const TABS = [
   { key: "identity", label: "School Identity" },
   { key: "gradeLevels", label: "Grade Levels & SHS" },
+  { key: "sections", label: "Sections & Shifts" },
   { key: "branding", label: "Branding & Theme" },
   { key: "calendar", label: "Academic Calendar" },
   { key: "security", label: "Security" },
@@ -50,8 +52,8 @@ export default function SchoolSettings({ user, goBack }) {
               School Settings
             </h1>
             <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-              School identity, grade levels, branding and the academic calendar — everything first-time
-              Setup asked for, editable any time.
+              School identity, grade levels, sections, shifts, branding and the academic calendar —
+              everything first-time Setup asked for, editable any time.
             </p>
           </div>
         </div>
@@ -94,6 +96,7 @@ export default function SchoolSettings({ user, goBack }) {
           <div className="pt-2">
             {activeTab === "identity" && <SchoolIdentityTab />}
             {activeTab === "gradeLevels" && <GradeLevelsShsTab />}
+            {activeTab === "sections" && <SectionsShiftsTab />}
             {activeTab === "branding" && <BrandingSettings user={user} embedded />}
             {activeTab === "calendar" && <AcademicCalendarTab />}
             {activeTab === "security" && <SecurityTab user={user} />}
