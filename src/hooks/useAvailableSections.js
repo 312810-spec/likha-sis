@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 
-export default function useAvailableSections(gradeLevel, schoolYear) {
+export default function useAvailableSections(gradeLevel, schoolYear, refreshKey) {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,20 +19,28 @@ export default function useAvailableSections(gradeLevel, schoolYear) {
 
       setLoading(true);
       try {
-        // Query learners collection filtered by gradeLevel and schoolYear.
-        const learnersRef = collection(db, "learners");
-        const q = query(
-          learnersRef,
-          where("gradeLevel", "==", gradeLevel),
-          where("schoolYear", "==", schoolYear)
-        );
-        const snapshot = await getDocs(q);
+        // Fetch the learners collection and derive distinct sections CLIENT-SIDE.
+        //
+        // This deliberately avoids a compound Firestore query
+        // (where("gradeLevel", ...) + where("schoolYear", ...)), which would
+        // require a composite index on the learners collection. That index is
+        // not declared in firestore.indexes.json, so the compound query throws
+        // "query requires an index" at runtime and the catch below silently
+        // returned [], meaning sections never showed up — e.g. a section that
+        // was just created by an SF1 bulk import never appeared on the SF1 /
+        // Class Record / Report Card pages. Fetching the whole collection and
+        // filtering here matches how every other learner-reading module in the
+        // app reads Firestore (ReportCard, ClassRecord, ConsolidatedGrades, ...).
+        const snapshot = await getDocs(collection(db, "learners"));
         if (cancelled) return;
 
-        // Extract distinct, non-empty section values.
+        // Extract distinct, non-empty section values for the matching class.
         const sectionSet = new Set();
         snapshot.forEach((docSnap) => {
-          const section = docSnap.data().section;
+          const data = docSnap.data();
+          if (data.gradeLevel !== gradeLevel) return;
+          if (data.schoolYear !== schoolYear) return;
+          const section = data.section;
           if (section && section.trim()) {
             sectionSet.add(section.trim());
           }
@@ -51,7 +59,7 @@ export default function useAvailableSections(gradeLevel, schoolYear) {
     return () => {
       cancelled = true;
     };
-  }, [gradeLevel, schoolYear]);
+  }, [gradeLevel, schoolYear, refreshKey]);
 
   return { sections, loading };
 }

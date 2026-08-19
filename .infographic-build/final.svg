@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1760" viewBox="0 0 1240 1760">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0e1424"/>
+      <stop offset="0.55" stop-color="#151f38"/>
+      <stop offset="1" stop-color="#1c2a4a"/>
+    </linearGradient>
+    <linearGradient id="titleGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="0.5" stop-color="#a5b4fc"/>
+      <stop offset="1" stop-color="#fca5a5"/>
+    </linearGradient>
+    <linearGradient id="accentBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1240" height="1760" fill="url(#bg)"/>
+  <circle cx="40" cy="150" r="200" fill="#2dd4bf" opacity="0.06"/>
+  <circle cx="1210" cy="1700" r="260" fill="#818cf8" opacity="0.07"/>
+  <circle cx="1150" cy="40" r="90" fill="#fbbf24" opacity="0.05"/>
+
+  <!-- Header -->
+  <rect x="445" y="52" width="350" height="36" rx="18" fill="#fbbf24" opacity="0.12" stroke="#fbbf24" stroke-opacity="0.4"/>
+  <text x="620" y="75" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="3" fill="#fcd34d">DEV SESSION RECAP</text>
+
+  <text x="620" y="150" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="62" font-weight="800" fill="url(#titleGrad)">School-Wide Nutrition &amp;</text>
+  <text x="620" y="218" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="62" font-weight="800" fill="#eef2ff">SF10 Record Generators</text>
+  <text x="620" y="262" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="500" fill="#9aa3bd">Tingub National High School &#8226; Learner Information &amp; Knowledge Hub Administrative System</text>
+
+  <!-- Stats band -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="60" y="318" width="268" height="128" rx="20" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <text x="194" y="378" text-anchor="middle" font-size="50" font-weight="800" fill="#5eead4">8</text>
+    <text x="194" y="414" text-anchor="middle" font-size="14" font-weight="600" letter-spacing="2.5" fill="#9aa3bd">COMMITS</text>
+    <rect x="344" y="318" width="268" height="128" rx="20" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <text x="478" y="378" text-anchor="middle" font-size="50" font-weight="800" fill="#818cf8">24</text>
+    <text x="478" y="414" text-anchor="middle" font-size="14" font-weight="600" letter-spacing="2.5" fill="#9aa3bd">FILES CHANGED</text>
+    <rect x="628" y="318" width="268" height="128" rx="20" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <text x="762" y="378" text-anchor="middle" font-size="50" font-weight="800" fill="#fca5a5">+1122</text>
+    <text x="762" y="414" text-anchor="middle" font-size="14" font-weight="600" letter-spacing="2.5" fill="#9aa3bd">LINES ADDED</text>
+    <rect x="912" y="318" width="268" height="128" rx="20" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <text x="1046" y="378" text-anchor="middle" font-size="50" font-weight="800" fill="#fbbf24">2</text>
+    <text x="1046" y="414" text-anchor="middle" font-size="14" font-weight="600" letter-spacing="2.5" fill="#9aa3bd">NEW MODULES</text>
+  </g>
+
+  <!-- Section heading -->
+  <text x="620" y="512" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="4" fill="#eef2ff">WHAT SHIPPED TODAY</text>
+  <rect x="570" y="530" width="100" height="4" rx="2" fill="url(#accentBar)"/>
+
+  <!-- Feature cards -->
+  <g font-family="Segoe UI, Arial, sans-serif">
+    <rect x="60" y="560" width="1120" height="196" rx="22" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <circle cx="132" cy="610" r="34" fill="#2dd4bf" opacity="0.16" stroke="#2dd4bf" stroke-opacity="0.55"/>
+    <g fill="#2dd4bf">
+      <rect x="115" y="616" width="14" height="18" rx="2"/>
+      <rect x="133" y="608" width="14" height="26" rx="2"/>
+      <rect x="151" y="600" width="14" height="34" rx="2"/>
+    </g>
+    <text x="190" y="598" font-size="25" font-weight="700" fill="#eef2ff">School-Wide SF8 Nutrition Consolidator</text>
+    <text x="1015" y="598" font-size="13" font-weight="600" letter-spacing="1.5" fill="#2dd4bf" text-anchor="end">FEATURE &#8226; NEW</text>
+    <text x="190" y="636" font-size="17.5" fill="#b6bfd8">New dashboard that aggregates Height-for-Age &amp; BMI status across every</text>
+    <text x="190" y="666" font-size="17.5" fill="#b6bfd8">section &#8212; with Baseline &#8596; Endline period views to track learner nutrition all year.</text>
+    <text x="190" y="720" font-size="14.5" fill="#7f8aa8">NutritionConsolidator.jsx &#8226; nutritionConsolidation.js &#8226; baseline / endline periods</text>
+
+    <rect x="60" y="772" width="1120" height="196" rx="22" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <circle cx="132" cy="822" r="34" fill="#fbbf24" opacity="0.16" stroke="#fbbf24" stroke-opacity="0.55"/>
+    <g stroke="#fbbf24" stroke-width="5" stroke-linecap="round">
+      <line x1="112" y1="828" x2="152" y2="828"/>
+      <line x1="112" y1="808" x2="112" y2="848"/>
+      <line x1="123" y1="814" x2="123" y2="842"/>
+      <line x1="134" y1="808" x2="134" y2="848"/>
+      <line x1="145" y1="814" x2="145" y2="842"/>
+      <line x1="152" y1="808" x2="152" y2="848"/>
+    </g>
+    <text x="190" y="810" font-size="25" font-weight="700" fill="#eef2ff">WHO Height-for-Age Reference</text>
+    <text x="1015" y="810" font-size="13" font-weight="600" letter-spacing="1.5" fill="#fbbf24" text-anchor="end">FEATURE &#8226; NUTRITION</text>
+    <text x="190" y="848" font-size="17.5" fill="#b6bfd8">Imported the WHO growth reference table and classifyHeightForAge() so each learner&#8217;s</text>
+    <text x="190" y="878" font-size="17.5" fill="#b6bfd8">nutrition status is graded consistently against national DepEd standards.</text>
+    <text x="190" y="932" font-size="14.5" fill="#7f8aa8">hfaForAgeTable.js &#8226; nutritionComputations.js &#8226; shared normalizeSex()</text>
+
+    <rect x="60" y="984" width="1120" height="196" rx="22" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <circle cx="132" cy="1034" r="34" fill="#fb7185" opacity="0.16" stroke="#fb7185" stroke-opacity="0.55"/>
+    <g fill="none" stroke="#fb7185" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="113" y="1016" width="32" height="18" rx="2"/>
+      <line x1="120" y1="1022" x2="138" y2="1022"/>
+      <path d="M 118 1040 L 145 1040 L 145 1050 L 118 1050 Z"/>
+      <rect x="120" y="1036" width="22" height="12"/>
+    </g>
+    <text x="190" y="1022" font-size="25" font-weight="700" fill="#eef2ff">SF10 Generator</text>
+    <text x="1015" y="1022" font-size="13" font-weight="600" letter-spacing="1.5" fill="#fb7185" text-anchor="end">FEATURE &#8226; PRINT</text>
+    <text x="190" y="1060" font-size="17.5" fill="#b6bfd8">Print official SF10 forms per learner or in section-batch print mode; now also</text>
+    <text x="190" y="1090" font-size="17.5" fill="#b6bfd8">captures promotion status straight from imported SF10 records.</text>
+    <text x="190" y="1144" font-size="14.5" fill="#7f8aa8">SF10Generator.jsx &#8226; single-learner &amp; section-batch modes &#8226; promotion status</text>
+  </g>
+    <rect x="60" y="1196" width="1120" height="166" rx="22" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <circle cx="132" cy="1246" r="34" fill="#818cf8" opacity="0.16" stroke="#818cf8" stroke-opacity="0.55"/>
+    <g fill="none" stroke="#818cf8" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="114" y="1220" width="34" height="28" rx="4"/>
+      <line x1="114" y1="1236" x2="148" y2="1236"/>
+      <line x1="124" y1="1212" x2="124" y2="1226"/>
+      <line x1="138" y1="1212" x2="138" y2="1226"/>
+    </g>
+    <text x="190" y="1234" font-size="25" font-weight="700" fill="#eef2ff">Class Program SY 2026&#8211;2027</text>
+    <text x="1015" y="1234" font-size="13" font-weight="600" letter-spacing="1.5" fill="#818cf8" text-anchor="end">ASSET &#8226; DOCX</text>
+    <text x="190" y="1272" font-size="17.5" fill="#b6bfd8">Added the official class program &amp; teacher-load DOCX for the new school year</text>
+    <text x="190" y="1302" font-size="17.5" fill="#b6bfd8">to the app&#8217;s public assets.</text>
+
+    <rect x="60" y="1378" width="1120" height="196" rx="22" fill="#ffffff" opacity="0.045" stroke="#ffffff" stroke-opacity="0.09"/>
+    <circle cx="132" cy="1428" r="34" fill="#34d399" opacity="0.16" stroke="#34d399" stroke-opacity="0.55"/>
+    <path d="M132 1400 L152 1408 L152 1430 C152 1447 144 1452 132 1457 C120 1452 112 1447 112 1430 L112 1408 Z" fill="none" stroke="#34d399" stroke-width="5" stroke-linejoin="round"/>
+    <text x="190" y="1416" font-size="25" font-weight="700" fill="#eef2ff">Security, Roles &amp; Settings</text>
+    <text x="1015" y="1416" font-size="13" font-weight="600" letter-spacing="1.5" fill="#34d399" text-anchor="end">SECURITY &#8226; ROLES</text>
+    <text x="190" y="1454" font-size="17.5" fill="#b6bfd8">Principal gained read access to nutrition records for the consolidator; added the</text>
+    <text x="190" y="1484" font-size="17.5" fill="#b6bfd8">clinic-teacher name to School Settings; tightened Firestore rules.</text>
+    <text x="190" y="1538" font-size="14.5" fill="#7f8aa8">PII guardrails kept in line with the Philippine Data Privacy Act</text>
+
+  <!-- Footer -->
+  <line x1="60" y1="1612" x2="1180" y2="1612" stroke="#ffffff" stroke-opacity="0.12"/>
+  <rect x="370" y="1644" width="500" height="44" rx="22" fill="#ffffff" opacity="0.05" stroke="#ffffff" stroke-opacity="0.14"/>
+  <text x="620" y="1671" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="15" font-weight="600" letter-spacing="2" fill="#c7cfe6">REACT &#8226; VITE &#8226; TAILWIND &#8226; FIREBASE</text>
+  <rect x="525" y="1706" width="190" height="34" rx="17" fill="#34d399" opacity="0.14" stroke="#34d399" stroke-opacity="0.4"/>
+  <text x="620" y="1728" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="1" fill="#6ee7b7">&#10003;  LINT &amp; TESTS PASSED</text>
+</svg>

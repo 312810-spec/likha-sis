@@ -6,7 +6,7 @@
 **Location:** Philippines  
 **Current School Year:** 2026–2027  
 **Document Status:** Living Specification  
-**Last Updated:** August 11, 2026
+**Last Updated:** August 19, 2026
 
 ---
 
@@ -64,14 +64,14 @@ The administrator should eventually be able to:
 
 ## 2.3 Parents
 
-Parent access is planned for a later phase.
+Parent access shipped in Phase 5.8 (`src/pages/ParentPortal.jsx`, `pageAccess.js`'s `parent` role) — read-only, gated to verified parent-learner relationships, with a separate parent login flow.
 
-Potential capabilities include:
+Status of the potential capabilities below:
 
-- Viewing learner information
-- Viewing grades
-- Viewing attendance
-- Viewing selected school announcements/reports
+- Viewing learner information — implemented
+- Viewing grades — placeholder in the UI, pending the academic/grade-data domain
+- Viewing attendance — placeholder in the UI, pending wiring to the new attendance domain (Section 22)
+- Viewing selected school announcements/reports — not yet implemented
 - Other parent-facing services
 
 Parent access must use strict authorization and must never expose unrelated learner records.
@@ -848,27 +848,23 @@ Offline conflict handling must be considered before implementing highly collabor
 
 # 29. PWA Roadmap
 
-PWA packaging is planned for a later phase.
+PWA packaging shipped (`vite-plugin-pwa` in `vite.config.js`; manifest + service worker generated on every build).
 
-Expected capabilities:
+Status of the expected capabilities below:
 
-- Installable application
-- Mobile-friendly interface
-- Desktop-friendly interface
-- Offline support
-- Application icon
-- Service worker
-- Cached application shell
-
-Do not prioritize PWA packaging before core data and reporting workflows are stable.
+- Installable application — implemented
+- Mobile-friendly interface — implemented
+- Desktop-friendly interface — implemented
+- Offline support — partial: the app shell and static assets are cached and precompiled (`src/components/SyncStatusBanner.jsx` surfaces connection state); offline *data entry* with deferred sync is not yet implemented (see Section 28)
+- Application icon — implemented
+- Service worker — implemented
+- Cached application shell — implemented
 
 ---
 
 # 30. Parent Portal
 
-Parent access is planned for Phase 7.
-
-It should be implemented only after the core teacher/admin workflows are stable.
+Parent access shipped in Phase 5.8, after the core teacher/admin workflows stabilized (see Section 2.3 for capability status).
 
 Parent access must use strong authorization.
 
@@ -1293,36 +1289,59 @@ Every implementation should be understandable and maintainable by the developer.
 | Saved Learners | ✅ Complete |
 | Grade/Section Filtering | ✅ Complete |
 | Delete Learner | ✅ Complete |
+| Edit Learner | ✅ Complete |
 | Firestore Authentication Rules | ✅ Complete |
 | Git Checkpoints | ✅ Complete |
-| Edit Learner | ⏳ Planned |
-| Enrollment Report | 🔜 Next |
-| Anecdotal Records | 🔜 Planned |
-| SF2 | 🔜 Planned |
-| Academic/Grade Data | 🔜 Planned |
-| Attendance | 🔜 Planned |
-| Nutrition/LPN | 🔜 Planned |
-| Additional SMEA Indicators | 🔜 Planned |
-| PWA Packaging | 🔜 Later |
-| Parent Portal | 🔜 Phase 7 |
+| SF2 Daily Attendance Grid | ✅ Complete |
+| SF4 Monthly Learner Movement Report | ✅ Complete |
+| SF10 Generator (Permanent Record) | ✅ Complete |
+| SF1 Bulk Importer | ✅ Complete |
+| SF10 Bulk Importer | ✅ Complete |
+| Import Center | ✅ Complete |
+| SMEA — Enrollment Report (3-term) | ✅ Complete |
+| Anecdotal Records | ✅ Complete |
+| LARDO Tracking | ✅ Complete |
+| Nutrition Status (BMI-for-Age, HFA) | ✅ Complete |
+| Nutrition Status Consolidator (SF8-style) | ✅ Complete |
+| Class Record (ECR) | ✅ Complete |
+| Consolidated Grades | ✅ Complete |
+| Report Card (SF9) | ✅ Complete |
+| Transfers Log | ✅ Complete |
+| Certificate Generator | ✅ Complete |
+| ID Generator | ✅ Complete |
+| User Management (RBAC) | ✅ Complete |
+| Role-Based Page Access (pageAccess.js) | ✅ Complete |
+| School Settings (setup wizard, branding) | ✅ Complete |
+| Account Settings | ✅ Complete |
+| Dark Mode | ✅ Complete |
+| Branding / Theme Engine | ✅ Complete |
+| PWA Support (manifest, service worker) | ✅ Complete |
+| Offline / Sync Status Banner | ✅ Complete |
+| Parent Portal (read-only, linked learners) | ✅ Complete |
+| Parent Login (separate flow) | ✅ Complete |
+| Academic Calendar (3-term, configurable) | ✅ Complete |
+| Settings Lock (school year lock) | ✅ Complete |
+| Transmutation Table | ✅ Complete |
+| SHS Subject Weights | ✅ Complete |
+| Key Stages Config | ✅ Complete |
+| Additional SMEA Indicators | ✅ Complete (attendance/nutrition/LARDO; academic performance deferred) |
+| Attendance (dedicated domain) | ✅ Complete (SF2 Year Overview tab) |
 
 ---
 
-# 47. Immediate Next Action
+# 47. Immediate Next Action (historical — superseded)
 
-The next development action is **NOT yet to code the Enrollment Report**.
+This section originally preceded the SMEA Enrollment Report build; that work is long since complete (see Section 46's feature table). Kept for history rather than deleted.
 
-First:
+As of this update, Phase 7 (Attendance dedicated domain, Additional SMEA Indicators) is also complete:
 
-> Inspect the existing learner database and application structure.
+- Attendance: SF2 gained a Year Overview tab (per-learner and class-wide monthly attendance-rate trend across the school year), and `sf2` page access opened to principal/masterTeacher/smeaCoordinator/guidance/ictCoordinator as read-only viewers.
+- Additional SMEA Indicators: the Enrollment Report gained an "Other SMEA Indicators" table aggregating attendance rate, nutrition status distribution, and LARDO monitoring count per grade. Academic performance (MPS/passing rate) remains deferred — it needs the full per-subject/term grade transmutation that `ConsolidatedGrades` resolves per-class, not a cheap school-wide aggregate.
 
-Confirm that the current SF1 implementation contains the required fields for automatic enrollment reporting.
-
-After confirmation:
-
-> Implement the Enrollment Report using the current **three-term academic structure**.
-
-The report must derive its data from existing learner records.
+Remaining known gaps, not yet scheduled:
+- Parent Portal's grades/attendance/nutrition panels are still UI placeholders (Section 2.3).
+- Offline data entry with deferred sync (Section 28) — only app-shell caching and connection-status display exist today.
+- SMEA academic performance indicator (above).
 
 ---
 
@@ -1379,6 +1398,46 @@ The AI assistant should first understand:
 12. Every stable feature must be tested and committed to Git.
 
 Before making architectural changes, inspect the current codebase and compare proposed changes against this specification.
+
+---
+
+# 50. Phase 6 — System Audit & Documentation Sync (August 19, 2026)
+
+## Regression Test Results
+
+Performed a full regression pass using Vitest across all implemented modules.
+
+```
+Test Files: 38 passed (38)
+Tests:      382 passed (382)
+Duration:   ~5s
+```
+
+All 382 unit and integration tests passed with zero failures.
+
+## Code Hygiene Fixes Applied
+
+| File | Issue | Fix |
+|---|---|---|
+| `src/App.jsx` | Duplicate `PARENT_ONLY_ROLES` import from `pageAccess.js` | Consolidated into single named import |
+| `src/pages/ParentPortal.jsx` | `linkDoc` state assigned but never consumed in JSX | Removed dead state variable |
+| `src/components/SyncStatusBanner.jsx` | Synchronous `setState` inside `useEffect` (lint violation) | Replaced with `useRef` + async `setTimeout` pattern |
+
+## Implementation Phase Summary
+
+| Phase | Description | Status |
+|---|---|---|
+| Phase 1 | Authentication + Dashboard | ✅ Complete |
+| Phase 2 | SF1 Learner Management | ✅ Complete |
+| Phase 3 | Academic Data (ECR, Grades, SF4, SF9, SF10) | ✅ Complete |
+| Phase 4 | Nutrition, LARDO, Transfers, Certificates, IDs | ✅ Complete |
+| Phase 5 | SMEA Enrollment, Anecdotal Records, SF2 | ✅ Complete |
+| Phase 5.5 | Import Center (SF1/SF10), User Management, RBAC | ✅ Complete |
+| Phase 5.6 | School Settings, Branding, Dark Mode, Setup Wizard | ✅ Complete |
+| Phase 5.7 | PWA Support, Offline Banner, Sync Status | ✅ Complete |
+| Phase 5.8 | Parent Portal + Parent Login | ✅ Complete |
+| Phase 6 | Full System Audit, Regression Pass, Documentation Sync | ✅ Complete |
+| Phase 7 | Attendance (dedicated domain), Additional SMEA Indicators | ✅ Complete |
 
 ---
 

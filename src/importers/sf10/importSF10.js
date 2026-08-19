@@ -8,7 +8,7 @@
 import { readWorkbook } from "../shared/excelReader.js";
 import { detectDocumentType } from "../shared/documentDetector.js";
 import { detectSF10Structure } from "./detectSF10Structure.js";
-import { parseSF10 } from "./parseSF10.js";
+import { parseSF10, extractSF10Identity } from "./parseSF10.js";
 import { normalizeSF10 } from "./normalizeSF10.js";
 import { validateSF10 } from "./validateSF10.js";
 import { identityFingerprint, ERROR, WARNING } from "../shared/validation.js";
@@ -70,18 +70,17 @@ export async function processSF10Buffer(arrayBuffer, opts = {}) {
     return errorFileResult({ ...base, message: err.message, code: "unreadable" });
   }
 
-  // Select the best SF10 sheet (the one with a detected identity header).
-  let chosen = null;
-  for (const sheet of workbook.sheets) {
-    if (detectDocumentType(sheet) === "unknown") continue;
-    const structure = detectSF10Structure(sheet);
-    if (structure.identityRow === null) continue;
-    if (!chosen || sheet.rowCount > chosen.sheet.rowCount) {
-      chosen = { sheet, structure };
-    }
-  }
+  // The SF10 is a multi-page, multi-year form: the learner's identity appears
+  // once (page 1) while the scholastic blocks continue across the later pages.
+  // Every SF10-looking sheet therefore contributes its blocks, all of them
+  // parsed against the single identity.
+  const sf10Sheets = workbook.sheets
+    .filter((sheet) => detectDocumentType(sheet) !== "unknown")
+    .map((sheet) => ({ sheet, structure: detectSF10Structure(sheet) }));
 
-  if (!chosen) {
+  const identityEntry = sf10Sheets.find((e) => e.structure.identityRow !== null);
+
+  if (!identityEntry) {
     return errorFileResult({
       ...base,
       message:
@@ -90,57 +89,80 @@ export async function processSF10Buffer(arrayBuffer, opts = {}) {
     });
   }
 
-  const { raw } = parseSF10(chosen.structure, chosen.sheet);
-  const normalized = normalizeSF10([raw])[0];
+  const identity = extractSF10Identity(identityEntry.structure);
 
-  const fileIssues = (chosen.structure.warnings || []).map((w) => ({
+  const raws = [];
+  sf10Sheets.forEach((entry) => {
+    const { raws: sheetRaws } = parseSF10(entry.structure, entry.sheet, identity);
+    sheetRaws.forEach((raw) => raws.push({ raw, entry }));
+  });
+
+  const fileIssues = (identityEntry.structure.warnings || []).map((w) => ({
     severity: WARNING,
     code: "structure",
     message: w,
   }));
 
-  const { records } = validateSF10([normalized]);
-  const final = {
-    ...records[0],
-    _id: `f${fileIndex}-r0`,
+  if (raws.length === 0) {
+    fileIssues.push({
+      severity: WARNING,
+      code: "structure",
+      message:
+        "The learner was identified but no scholastic record with grades could be read from this workbook.",
+    });
+  }
+
+  const normalized = normalizeSF10(raws.map((r) => r.raw));
+  const { records } = validateSF10(normalized);
+
+  const finalRecords = records.map((rec, i) => ({
+    ...rec,
+    _id: `f${fileIndex}-r${i}`,
     fileIndex,
     fileLabel: filename,
-    identity: identityFingerprint(records[0].learner),
+    identity: identityFingerprint(rec.learner),
     sourceFileFingerprint: fingerprint,
     duplicate: { withinFile: false, crossFile: false, inFirestore: false, enrollment: false },
-    summary: records[0].summary,
+    summary: rec.summary,
     severity:
-      records[0].summary.errors > 0
-        ? "error"
-        : records[0].summary.warnings > 0
-        ? "warning"
-        : "valid",
-  };
+      rec.summary.errors > 0 ? "error" : rec.summary.warnings > 0 ? "warning" : "valid",
+    learner: { ...rec.learner, _rowIndex: raws[i].raw._blockRow },
+  }));
 
-  const learner = { ...final.learner };
+  const first = finalRecords[0] ? finalRecords[0].learner : emptyRecord();
+  const hasError = finalRecords.some((r) => r.severity === "error");
+  const hasWarning =
+    !hasError && (finalRecords.some((r) => r.severity === "warning") || fileIssues.length > 0);
+
   return {
     ...base,
-    sheetName: chosen.sheet.name,
+    sheetName: identityEntry.sheet.name,
     sheetCount: workbook.sheets.length,
     school: {
-      schoolId: learner.schoolId,
-      schoolName: learner.schoolName,
-      division: learner.division,
-      district: learner.district,
-      schoolYear: learner.schoolYear,
-      gradeLevel: learner.gradeLevel,
-      section: learner.section,
+      schoolId: first.schoolId,
+      schoolName: first.schoolName,
+      division: first.division,
+      district: first.district,
+      schoolYear: first.schoolYear,
+      gradeLevel: first.gradeLevel,
+      section: first.section,
     },
-    records: [
-      {
-        ...final,
-        learner: { ...final.learner, _rowIndex: chosen.structure.identityRow + 1 },
-      },
-    ],
+    records: finalRecords,
     fileIssues,
-    status: final.severity === "error" ? "error" : final.severity === "warning" ? "warning" : "valid",
-    learnerCount: learner.lrn ? 1 : 0,
+    status: hasError ? "error" : hasWarning ? "warning" : "valid",
+    learnerCount: finalRecords.length,
   };
+}
+
+/**
+ * Dedupe key for SF10 records. A permanent academic record legitimately repeats
+ * the same LRN once per school year + grade level, so only a repeat of the SAME
+ * year and grade is a genuine duplicate. This mirrors the Firestore document id
+ * used by executeSF10Import (`${lrn}_${schoolYear}_${gradeLevel}`).
+ */
+export function sf10DedupeKey(record) {
+  if (!record.lrn) return "";
+  return [record.lrn, record.schoolYear || "", record.gradeLevel || ""].join("|");
 }
 
 /** Analyze many SF10 files and aggregate batch totals. */
@@ -167,7 +189,7 @@ export async function analyzeSF10Files(files, existingByLrn = {}) {
       );
     }
   }
-  const analyzed = applyDuplicates(fileModels, existingByLrn);
+  const analyzed = applyDuplicates(fileModels, existingByLrn, { keyOf: sf10DedupeKey });
   return { files: analyzed, batch: aggregateBatch(analyzed) };
 }
 

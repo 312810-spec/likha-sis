@@ -7,7 +7,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
 import { Mail, Lock, LogIn, AlertCircle, ShieldAlert } from "lucide-react";
 
-function Login({ deactivated = false }) {
+function Login({ deactivated = false, onSwitchToParent }) {
   // "State" is like a sticky note React watches — whenever it changes, the screen re-draws automatically.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -116,6 +116,21 @@ function Login({ deactivated = false }) {
             {isLoading ? "Logging in..." : "Log In"}
           </button>
         </form>
+
+        {onSwitchToParent && (
+          <div style={{ textAlign: "center", marginTop: "16px" }}>
+            <p className="text-xs text-gray-400 dark:text-gray-600">
+              Parent or Guardian?{" "}
+              <button
+                type="button"
+                onClick={onSwitchToParent}
+                className="text-primary dark:text-primary-light font-semibold underline cursor-pointer bg-transparent border-none p-0 text-xs"
+              >
+                Parent Portal Login →
+              </button>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

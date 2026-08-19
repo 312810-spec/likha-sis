@@ -17,6 +17,8 @@ import {
   getAgeInMonths,
   computeBMI,
   classifyNutritionalStatus,
+  classifyHeightForAge,
+  normalizeSex,
 } from "./utils/nutritionComputations";
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import {
@@ -29,16 +31,6 @@ import {
   Users,
   Printer,
 } from "lucide-react";
-
-// Normalizes a learner's sex value ("M"/"F"/"Male"/"Female") to "M" | "F" | "" so
-// the SF8 printout can group rows by Male / Female reliably regardless of how the
-// learner doc stores the field.
-function normalizeSex(sex) {
-  const s = String(sex || "").trim().toUpperCase();
-  if (s === "M" || s === "MALE") return "M";
-  if (s === "F" || s === "FEMALE") return "F";
-  return "";
-}
 
 // Converts an age in months to the "X yrs Y mos" convention used on the SF8 report.
 function formatAgeLabel(ageInMonths) {
@@ -64,6 +56,7 @@ export default function NutritionStatus({ user, goBack }) {
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
+  const [period, setPeriod] = useState("Baseline");
   const { sections: availableSections, loading } = useAvailableSections(gradeLevel, schoolYear);
   const [measurementDate, setMeasurementDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -79,6 +72,21 @@ export default function NutritionStatus({ user, goBack }) {
   const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
   // Renders the printable SF8 block while printing (same pattern as SF1/SF2).
   const [showPrintArea, setShowPrintArea] = useState(false);
+
+  // Switching Baseline <-> Endline invalidates any grid already on screen:
+  // the loaded heights/weights belong to the *previous* period, and handleSave
+  // writes using the CURRENT period. Dropping the grid forces a fresh Load, so
+  // measurements can never be saved under a period they weren't loaded for.
+  function handlePeriodChange(nextPeriod) {
+    if (nextPeriod === period) return;
+    setPeriod(nextPeriod);
+    setGridData([]);
+    setIsLoaded(false);
+    setErrorMessage("");
+    setStatusMessage(
+      `Period switched to ${nextPeriod}. Click "Load Class" to load the ${nextPeriod} measurements.`
+    );
+  }
 
   // Load learners and matching nutrition records
   async function handleLoad(e) {
@@ -116,7 +124,7 @@ export default function NutritionStatus({ user, goBack }) {
       // 2. Fetch existing nutritionRecords for each learner
       const rows = await Promise.all(
         filteredLearners.map(async (learner) => {
-          const docId = `${learner.id}_${schoolYear.trim()}`;
+          const docId = `${learner.id}_${schoolYear.trim()}_${period}`;
           let heightM = "";
           let weightKg = "";
           let recordMeasDate = measurementDate;
@@ -194,8 +202,9 @@ export default function NutritionStatus({ user, goBack }) {
         const ageInMonths = getAgeInMonths(learner.birthDate, measurementDate);
         const bmi = computeBMI(w, h);
         const nutritionalStatus = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
+        const heightForAgeStatus = classifyHeightForAge(h, ageInMonths, learner.sex);
 
-        const docId = `${learner.id}_${schoolYear.trim()}`;
+        const docId = `${learner.id}_${schoolYear.trim()}_${period}`;
         const fullName = `${learner.lastName || ""}, ${learner.firstName || ""}${
           learner.middleName ? " " + learner.middleName : ""
         }`.trim();
@@ -209,12 +218,14 @@ export default function NutritionStatus({ user, goBack }) {
           gradeLevel: gradeLevel.trim(),
           section: section.trim(),
           schoolYear: schoolYear.trim(),
+          period,
           heightM: h,
           weightKg: w,
           measurementDate: measurementDate.trim(),
           bmi,
           ageInMonths,
           nutritionalStatus,
+          heightForAgeStatus,
           measuredByEmail: user?.email || "",
           updatedAt: serverTimestamp(),
         };
@@ -360,6 +371,7 @@ export default function NutritionStatus({ user, goBack }) {
     const ageInMonths = getAgeInMonths(learner.birthDate, measurementDate);
     const bmi = computeBMI(w, h);
     const status = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
+    const hfaStatus = classifyHeightForAge(h, ageInMonths, learner.sex);
 
     return (
       <tr key={rowNumber}>
@@ -373,7 +385,7 @@ export default function NutritionStatus({ user, goBack }) {
         <td>{isValid ? (h * h).toFixed(2) : "—"}</td>
         <td>{bmi !== null && bmi !== undefined ? bmi.toFixed(2) : "—"}</td>
         <td>{status || "—"}</td>
-        <td>—</td>
+        <td>{hfaStatus || "—"}</td>
         <td>{learner.remarks || "—"}</td>
       </tr>
     );
@@ -398,8 +410,8 @@ export default function NutritionStatus({ user, goBack }) {
             color: #000;
             background: #fff;
           }
+          @page { size: A4 landscape; margin: 8mm; }
         }
-        @page { size: A4 landscape; margin: 8mm; }
         .sf8-table { border-collapse: collapse; width: 100%; }
         .sf8-table th, .sf8-table td {
           border: 1px solid #000;
@@ -478,7 +490,7 @@ export default function NutritionStatus({ user, goBack }) {
       {/* Filter Bar */}
       <form
         onSubmit={handleLoad}
-        className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end"
+        className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 items-end"
       >
         <div>
           <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
@@ -528,6 +540,20 @@ export default function NutritionStatus({ user, goBack }) {
             onChange={(e) => setSchoolYear(e.target.value)}
             className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
           />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
+            Period
+          </label>
+          <select
+            value={period}
+            onChange={(e) => handlePeriodChange(e.target.value)}
+            className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-colors"
+          >
+            <option value="Baseline">Baseline</option>
+            <option value="Endline">Endline</option>
+          </select>
         </div>
 
         <div>
@@ -662,12 +688,13 @@ export default function NutritionStatus({ user, goBack }) {
                   <th className="py-3 px-4 w-28">Weight (kg)</th>
                   <th className="py-3 px-4 w-24">BMI</th>
                   <th className="py-3 px-4 w-36 text-center">Nutritional Status</th>
+                  <th className="py-3 px-4 w-36 text-center">Height-for-Age</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
                 {gridData.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={11} className="py-8 text-center text-gray-500 dark:text-gray-400">
                       No learners found for Grade {gradeLevel} - {section}.
                     </td>
                   </tr>
@@ -679,6 +706,7 @@ export default function NutritionStatus({ user, goBack }) {
                     const ageInMonths = getAgeInMonths(learner.birthDate, measurementDate);
                     const bmi = computeBMI(w, h);
                     const status = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
+                    const hfaStatus = classifyHeightForAge(h, ageInMonths, learner.sex);
 
                     return (
                       <tr key={learner.id} className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
@@ -740,6 +768,23 @@ export default function NutritionStatus({ user, goBack }) {
                           ) : status === "Overweight" || status === "Obese" ? (
                             <span className="inline-block bg-accent/10 text-accent-dark dark:bg-accent/20 dark:text-accent-light border border-accent/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
                               {status}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 dark:text-gray-500 font-mono">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          {hfaStatus === "Severely Stunted" || hfaStatus === "Stunted" ? (
+                            <span className="inline-block bg-red-500/10 text-red-700 dark:bg-red-500/20 dark:text-red-300 border border-red-500/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
+                              {hfaStatus}
+                            </span>
+                          ) : hfaStatus === "Normal" ? (
+                            <span className="inline-block bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light border border-leaf/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
+                              {hfaStatus}
+                            </span>
+                          ) : hfaStatus === "Tall" ? (
+                            <span className="inline-block bg-accent/10 text-accent-dark dark:bg-accent/20 dark:text-accent-light border border-accent/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
+                              {hfaStatus}
                             </span>
                           ) : (
                             <span className="text-gray-400 dark:text-gray-500 font-mono">—</span>
@@ -853,6 +898,12 @@ export default function NutritionStatus({ user, goBack }) {
                   <td className="sf8-hdr-value">{section}</td>
                   <td className="sf8-hdr-label">School Year:</td>
                   <td className="sf8-hdr-value">{schoolYear}</td>
+                </tr>
+                {/* Two SF8 printouts now exist per section per school year
+                    (Baseline and Endline) — this row is what tells them apart. */}
+                <tr>
+                  <td className="sf8-hdr-label">Period:</td>
+                  <td className="sf8-hdr-value" colSpan={7}>{period}</td>
                 </tr>
               </tbody>
             </table>

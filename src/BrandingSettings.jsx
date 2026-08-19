@@ -17,7 +17,9 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-export default function BrandingSettings({ goBack }) {
+// `embedded` renders this as a tab inside SchoolSettings (no page header, no
+// outer page width) instead of as a standalone page.
+export default function BrandingSettings({ goBack, embedded = false }) {
   const [currentLogo, setCurrentLogo] = useState(null);
   const [currentTheme, setCurrentTheme] = useState(null);
   const [uploadedLogoUrl, setUploadedLogoUrl] = useState(null);
@@ -168,31 +170,34 @@ export default function BrandingSettings({ goBack }) {
   const displayTheme = extractedTheme || currentTheme;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-200 pb-4 dark:border-gray-700">
-        <div>
-          <div className="flex items-center gap-2">
-            {goBack && (
-              <button
-                type="button"
-                onClick={goBack}
-                className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-                aria-label="Back to dashboard"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            )}
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Palette className="text-primary" size={24} />
-              School Branding & Dynamic Theme
-            </h1>
+    <div className={embedded ? "space-y-6" : "max-w-4xl mx-auto space-y-6 pb-12"}>
+      {/* Header -- suppressed when embedded as a School Settings tab, which
+          supplies its own page header. */}
+      {!embedded && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-200 pb-4 dark:border-gray-700">
+          <div>
+            <div className="flex items-center gap-2">
+              {goBack && (
+                <button
+                  type="button"
+                  onClick={goBack}
+                  className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+                  aria-label="Back to dashboard"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+              )}
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Palette className="text-primary" size={24} />
+                School Branding & Dynamic Theme
+              </h1>
+            </div>
+            <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
+              Upload your school logo to extract brand colors and automatically customize LIKHA-SIS theme colors.
+            </p>
           </div>
-          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-            Upload your school logo to extract brand colors and automatically customize LIKHA-SIS theme colors.
-          </p>
         </div>
-      </div>
+      )}
 
       {/* Alerts */}
       {successMessage && (

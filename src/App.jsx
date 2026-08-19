@@ -22,6 +22,7 @@ import LardoTracking from "./LardoTracking";
 import CertificateGenerator from "./CertificateGenerator";
 import IDGenerator from "./IDGenerator";
 import SMEAEnrollment from "./SMEAEnrollment";
+import AnecdotalRecords from "./AnecdotalRecords";
 import ImportCenter from "./pages/ImportCenter";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
@@ -29,12 +30,15 @@ import SF10Generator from "./SF10Generator";
 import ClassProgramGenerator from "./ClassProgramGenerator";
 import UserManagement from "./pages/UserManagement";
 import NutritionStatus from "./NutritionStatus";
+import NutritionConsolidator from "./NutritionConsolidator";
 import TransfersLog from "./TransfersLog";
-import BrandingSettings from "./BrandingSettings";
 import SchoolSettings from "./SchoolSettings";
 import AccountSettings from "./AccountSettings";
-import { canAccessPage } from "./pageAccess.js";
+import { canAccessPage, PARENT_ONLY_ROLES } from "./pageAccess.js";
 import { useUserProfile } from "./hooks/useUserProfile.js";
+import SyncStatusBanner from "./components/SyncStatusBanner";
+import ParentPortal from "./pages/ParentPortal";
+import ParentLogin from "./pages/ParentLogin";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -45,6 +49,7 @@ function App() {
 
   const { profile, loading: profileLoading } = useUserProfile(user);
   const [showDeactivatedNotice, setShowDeactivatedNotice] = useState(false);
+  const [showParentLogin, setShowParentLogin] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -97,8 +102,34 @@ function App() {
     return <SetupWizard />;
   }
 
+  // If the user is a parent, show the parent portal (no staff shell).
+  const isParent =
+    user &&
+    profile &&
+    Array.isArray(profile.roles) &&
+    profile.roles.some((r) => PARENT_ONLY_ROLES.includes(r));
+
   if (!user) {
-    return <Login deactivated={showDeactivatedNotice} />;
+    // Show parent login if the user toggled to it, otherwise staff login.
+    if (showParentLogin) {
+      return <ParentLogin onSwitchToTeacher={() => setShowParentLogin(false)} />;
+    }
+    return (
+      <Login
+        deactivated={showDeactivatedNotice}
+        onSwitchToParent={() => setShowParentLogin(true)}
+      />
+    );
+  }
+
+  // Parent users get a completely separate read-only portal with no staff navigation.
+  if (isParent) {
+    return (
+      <>
+        <SyncStatusBanner />
+        <ParentPortal user={user} />
+      </>
+    );
   }
 
   // Determine page title and content
@@ -143,7 +174,9 @@ function App() {
         break;
       case "sf2":
         pageTitle = "School Form 2 - Attendance";
-        pageContent = <SF2 user={user} goBack={() => setCurrentPage("dashboard")} />;
+        pageContent = (
+          <SF2 user={user} userRoles={userRoles} goBack={() => setCurrentPage("dashboard")} />
+        );
         break;
       case "sf4":
         pageTitle = "School Form 4 - Monthly Learner Movement Report";
@@ -193,6 +226,10 @@ function App() {
         pageTitle = "Nutrition Status";
         pageContent = <NutritionStatus user={user} goBack={() => setCurrentPage("dashboard")} />;
         break;
+      case "nutritionConsolidator":
+        pageTitle = "Nutrition Status Consolidator";
+        pageContent = <NutritionConsolidator goBack={() => setCurrentPage("dashboard")} />;
+        break;
       case "transfersLog":
         pageTitle = "Transfers Log";
         pageContent = <TransfersLog user={user} goBack={() => setCurrentPage("dashboard")} />;
@@ -209,6 +246,16 @@ function App() {
         pageTitle = "SMEA — Enrollment";
         pageContent = <SMEAEnrollment />;
         break;
+      case "anecdotalRecords":
+        pageTitle = "Anecdotal Records";
+        pageContent = (
+          <AnecdotalRecords
+            user={user}
+            userRoles={userRoles}
+            goBack={() => setCurrentPage("dashboard")}
+          />
+        );
+        break;
       case "importCenter":
         pageTitle = "Import Center";
         pageContent = <ImportCenter onNavigate={setCurrentPage} />;
@@ -221,13 +268,9 @@ function App() {
         pageTitle = "Import Center — SF10 Import";
         pageContent = <SF10Importer user={user} />;
         break;
-      case "brandingSettings":
-        pageTitle = "School Branding & Theme";
-        pageContent = <BrandingSettings user={user} goBack={() => setCurrentPage("dashboard")} />;
-        break;
       case "schoolSettings":
         pageTitle = "School Settings";
-        pageContent = <SchoolSettings goBack={() => setCurrentPage("dashboard")} />;
+        pageContent = <SchoolSettings user={user} goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "accountSettings":
         pageTitle = "Account Settings";
@@ -259,6 +302,7 @@ function App() {
       pageTitle={pageTitle}
       userRoles={userRoles}
     >
+      <SyncStatusBanner />
       {pageContent}
     </DashboardShell>
   );

@@ -63,6 +63,7 @@ export function normalizeSF10Record(raw) {
 
   rec.learningAreas = Array.isArray(raw._learningAreas) ? raw._learningAreas : [];
   rec.generalAverage = text(raw._generalAverage);
+  rec.promotionStatus = text(raw._promotionStatus);
   return rec;
 }
 
