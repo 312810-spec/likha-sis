@@ -1,9 +1,11 @@
 # LIKHA-SIS Roadmap
 
 **Last updated:** August 19, 2026
-**Baseline at time of writing:** `npm run test` 603 passed / 18 skipped (54 files); `npm run lint` clean across `src/` (see Tier 4 for the worktree-traversal caveat).
+**Baseline at time of writing:** `npm run test` 627 passed / 18 skipped (55 files); `npm run lint` clean.
 
-This file tracks what's actually pending in the codebase, derived from the sidebar's own "Future" stubs, gaps against `CLAUDE.md`'s architecture mandates, and DepEd mandates referenced but never scoped. It supersedes `LIKHA-SIS — Living Project Specification.md` as the pending-work tracker — that spec still describes SF1-only, pre-Firebase-role-system LIKHA-SIS and should be treated as historical context, not current status.
+This file tracks what's actually pending in the codebase, derived from the sidebar's own stubs (now none — see P2 below) and gaps against `CLAUDE.md`'s architecture mandates. `LIKHA-SIS — Living Project Specification.md` is actively maintained and no longer needs archiving; both docs are kept current going forward.
+
+DO 016 (Lesson Planning) and DO 014 (Flexible Learning Programs) are intentionally not tracked here — both are blocked on an official DepEd reference template that isn't on file, and per the project's authenticity rule (`CLAUDE.md` §26 / spec §25) no field or page work can start without one. Revisit once a template is obtained; there is nothing actionable in the codebase until then.
 
 ---
 
@@ -29,6 +31,7 @@ For reference, so the pending list below isn't mistaken for the whole picture. A
 - **Print safety:** pure-white `@media print` boundary — audited by `print-safety-audit`
 - **Security:** role-gated `firestore.rules` per collection — kept in sync by `firestore-schema-sync`
 - **Automation:** weekly cloud compliance sweep (lint + test + all four audit skills) — see `.claude/CRON.md`
+- **Academic Hub:** combined Grades + Attendance rollup per section (`src/AcademicHub.jsx`), reusing `computeLearnerTermGrade` and `buildAttendanceYearOverview` over existing `classRecords`/`learners`/`attendance` data — no new collection
 
 ---
 
@@ -38,24 +41,21 @@ Ranked highest priority first. Ranking weighs cost-to-fix against active harm �
 
 ### P1 — Fix the broken compliance signal
 
-- [x] ~~**ESLint traverses `.claude/worktrees/`.**~~ Fixed in `a2a17e6` — added `.claude/worktrees` to `globalIgnores` in `eslint.config.js`. `npm run lint` exits 0 and the `.claude/CRON.md` chain now reaches the test suite (603 passed / 18 skipped), so the weekly audit sweep runs again.
+- [x] ~~**ESLint traverses `.claude/worktrees/`.**~~ Fixed in `a2a17e6` — added `.claude/worktrees` to `globalIgnores` in `eslint.config.js`. `npm run lint` exits 0 and the `.claude/CRON.md` chain now reaches the test suite, so the weekly audit sweep runs again.
 
-- [ ] **Fill the four gaps in `LIKHA-SIS — Living Project Specification.md`.** *Corrected:* an earlier version of this roadmap called the spec an Aug-11, SF1-only, pre-role-system document and proposed archiving it. That was wrong — it is 1,443 lines across 92 sections, was reconciled as recently as `f3799b4`, and already covers SF10, LARDO, Nutrition, School Settings, Firebase Auth and the Parent Portal. It should be refreshed, not archived. Actual missing coverage, verified by search: **Anecdotal Records**, **Class Program / Teacher's Load**, **offline-first Firestore persistence**, and the **role-system vocabulary** (`ictCoordinator` and the other role names appear nowhere in it). Its line 1383 still tells sessions to paste the whole file in as current status, which is what makes those gaps worth closing.
+- [x] ~~**Fill the four gaps in `LIKHA-SIS — Living Project Specification.md`.**~~ Fixed in `ca2b250` — added actual-implementation status to Anecdotal Records (§19), Attendance (§22) plus a new Class Program & Teacher's Load section (§22a), offline-first Firestore persistence (§28), and a new §2.4 documenting the real role-system vocabulary (`ictCoordinator`, `smeaCoordinator`, etc.). Also corrected an overclaim in §47/§50: "Attendance dedicated domain complete" referred only to SF2's Year Overview tab, not the (then still-unbuilt) combined Grades+Attendance rollup — now resolved by P2 below.
 
 ### P2 — The one real feature decision
 
-- [ ] **Academic hub (Grades / Attendance).** The only remaining entry under the sidebar's "Future" section (`src/components/Sidebar.jsx`, `const future`); both children render disabled with a "(Soon)" badge, so users see dead navigation. **Blocked on a scope call, not on effort:** a rollup view over existing `classRecords`/`attendance` data needs no new Firestore collection and is modest work; a genuinely new surface needs a collection, rules, and its own data model. Make that call before any code, since the two paths share almost nothing.
+- [x] ~~**Academic hub (Grades / Attendance).**~~ Fixed in `61ec335` — built as a read-only rollup view (`src/AcademicHub.jsx`) over existing `classRecords`/`learners`/`attendance` data, no new Firestore collection. Reuses `computeLearnerTermGrade` and SF2's `buildAttendanceYearOverview` rather than reimplementing either. Wired into `pageAccess.js`, `App.jsx`, and `Sidebar.jsx`; the sidebar's "Future" section (disabled "(Soon)" stubs) is now empty and was removed entirely, along with its now-dead icon-map entries.
 
 ### P3 — Low urgency, low cost
 
-- [ ] **`README.md` is still the default Vite template** — never customized to describe LIKHA-SIS, its stack, or setup steps. Nothing depends on it; it just looks unfinished to anyone opening the repo.
+- [x] ~~**`README.md` is still the default Vite template.**~~ Fixed — replaced with a real project README covering the stack, DepEd compliance scope, getting-started commands, and pointers to `CLAUDE.md`/the Living Spec/this roadmap.
 
-### P4 — Blocked on external artifacts
+---
 
-Named in the spec's reference list but not covered by any current skill, page, or `CLAUDE.md` domain mandate. Per the project's authenticity rule these cannot start until the official DepEd template is on file — don't invent fields. They rank last because the blocker is outside the codebase.
-
-- [ ] **DO 016, s. 2026 (Lesson Planning)** — no feature, no reference template yet. Note that the "Lesson Planning" string in `src/utils/teacherLoadDerivation.js` is an ancillary-duty label for load computation, unrelated to this mandate.
-- [ ] **DO 014, s. 2026 (Flexible Learning Programs)** — no feature, no reference template yet.
+All tracked pending items are resolved as of this update. DO 016/DO 014 remain intentionally untracked (see note above) until an official reference template is on file.
 
 ---
 
