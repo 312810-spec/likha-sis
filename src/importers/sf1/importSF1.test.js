@@ -171,7 +171,7 @@ describe("duplicate detection", () => {
     expect(conflicted[0].severity).toBe("error");
   });
 
-  it("flags an existing LRN already present in Firestore as a skip warning", async () => {
+  it("flags an existing LRN with a new enrollment context as a re-enrollment update, not a skip", async () => {
     const buffer = buildSF1Workbook({ learners: [learner({ lrn: VALID_LRN })] });
     const existing = {
       [VALID_LRN]: {
@@ -182,14 +182,50 @@ describe("duplicate detection", () => {
           firstName: "Juan",
           sex: "Male",
           birthDate: "2010-01-15",
+          // Different enrollment context than the imported row -> re-enrollment.
+          schoolYear: "2020-2021",
+          gradeLevel: "Grade 4",
+          section: "Old Section",
         },
       },
     };
     const { files } = await analyzeSF1Files([fakeFile("exists.xlsx", buffer)], existing);
     const rec = files[0].records[0];
     expect(rec.duplicate.inFirestore).toBe(true);
-    expect(rec.issues.some((i) => i.code === "existing-lrn")).toBe(true);
+    expect(rec.duplicate.enrollment).toBe(false);
+    expect(rec.duplicate.existingId).toBe("existing-doc");
+    expect(rec.issues.some((i) => i.code === "existing-lrn-reenrollment")).toBe(true);
     // Matching identity -> warning, not a blocking error.
+    expect(rec.severity).not.toBe("error");
+  });
+
+  it("flags an existing LRN with the exact same enrollment already recorded as a skip warning", async () => {
+    const buffer = buildSF1Workbook({
+      learners: [learner({ lrn: VALID_LRN })],
+      grade: "Grade 7",
+      section: "Rizal",
+      schoolYear: "SY 2026-2027",
+    });
+    const existing = {
+      [VALID_LRN]: {
+        id: "existing-doc",
+        data: {
+          lrn: VALID_LRN,
+          lastName: "Dela Cruz",
+          firstName: "Juan",
+          sex: "Male",
+          birthDate: "2010-01-15",
+          schoolYear: "2026-2027",
+          gradeLevel: "Grade 7",
+          section: "Rizal",
+        },
+      },
+    };
+    const { files } = await analyzeSF1Files([fakeFile("exists.xlsx", buffer)], existing);
+    const rec = files[0].records[0];
+    expect(rec.duplicate.inFirestore).toBe(true);
+    expect(rec.duplicate.enrollment).toBe(true);
+    expect(rec.issues.some((i) => i.code === "existing-lrn")).toBe(true);
     expect(rec.severity).not.toBe("error");
   });
 });

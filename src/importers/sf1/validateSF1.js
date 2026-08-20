@@ -62,9 +62,12 @@ export function validateLearner(learner, index = 0) {
   }
 
   // --- School / enrollment context --------------------------------------
+  // Blocking: a learner with no school year/grade/section is written with
+  // those fields blank and then can never be found by any grade+section
+  // filter in SF1, SF2, ClassRecord, etc. — effectively orphaned data.
   if (!learner.schoolYear) {
     issues.push(
-      makeIssue(WARNING, "missing-school-year", "School year could not be read from the workbook.", {
+      makeIssue(ERROR, "missing-school-year", "School year could not be read from the workbook.", {
         field: "schoolYear",
         ...ref,
       })
@@ -72,7 +75,7 @@ export function validateLearner(learner, index = 0) {
   }
   if (!learner.gradeLevel) {
     issues.push(
-      makeIssue(WARNING, "missing-grade", "Grade level could not be read from the workbook.", {
+      makeIssue(ERROR, "missing-grade", "Grade level could not be read from the workbook.", {
         field: "gradeLevel",
         ...ref,
       })
@@ -80,7 +83,7 @@ export function validateLearner(learner, index = 0) {
   }
   if (!learner.section) {
     issues.push(
-      makeIssue(WARNING, "missing-section", "Section could not be read from the workbook.", {
+      makeIssue(ERROR, "missing-section", "Section could not be read from the workbook.", {
         field: "section",
         ...ref,
       })

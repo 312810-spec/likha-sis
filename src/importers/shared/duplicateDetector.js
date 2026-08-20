@@ -123,6 +123,7 @@ export function detectDuplicates(records, existingByLrn = {}, options = {}) {
     const existing = existingByLrn[r.lrn];
     if (existing) {
       r.duplicate.inFirestore = true;
+      r.duplicate.existingId = existing.id;
       const matchedIdent = r.identity && existing.data
         ? identityFingerprint(existing.data) === r.identity
         : false;
@@ -136,15 +137,6 @@ export function detectDuplicates(records, existingByLrn = {}, options = {}) {
             { field: "lrn", recordIndex: r.recordIndex }
           )
         );
-      } else {
-        r.issues.push(
-          makeIssue(
-            WARNING,
-            "existing-lrn",
-            `LRN ${r.lrn} already exists in the system. The learner will be skipped (identity matches).`,
-            { field: "lrn", recordIndex: r.recordIndex }
-          )
-        );
       }
 
       // Duplicate enrollment: same learner already enrolled for that context.
@@ -155,6 +147,23 @@ export function detectDuplicates(records, existingByLrn = {}, options = {}) {
         String(existing.data.section || "") === String(r.section || "")
       ) {
         r.duplicate.enrollment = true;
+        r.issues.push(
+          makeIssue(
+            WARNING,
+            "existing-lrn",
+            `LRN ${r.lrn} already exists in the system with this exact enrollment (school year, grade, section). The learner will be skipped.`,
+            { field: "lrn", recordIndex: r.recordIndex }
+          )
+        );
+      } else if (matchedIdent) {
+        r.issues.push(
+          makeIssue(
+            WARNING,
+            "existing-lrn-reenrollment",
+            `LRN ${r.lrn} already exists in the system. This import will update their school year/grade/section and enrollment details.`,
+            { field: "lrn", recordIndex: r.recordIndex }
+          )
+        );
       }
     }
   });
