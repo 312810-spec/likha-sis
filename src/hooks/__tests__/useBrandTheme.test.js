@@ -30,7 +30,7 @@ describe("useBrandTheme and applyThemeToDocument", () => {
       });
     });
 
-    it("applies all 9 RGB triplets when a valid theme object is provided", () => {
+    it("applies light-mode (--lm-*) RGB triplets from the flat theme fields", () => {
       const mockTheme = {
         primary: "#112233",
         primaryLight: "#223344",
@@ -45,11 +45,53 @@ describe("useBrandTheme and applyThemeToDocument", () => {
 
       applyThemeToDocument(mockTheme);
 
-      expect(document.documentElement.style.getPropertyValue("--color-primary")).toBe("17 34 51");
-      expect(document.documentElement.style.getPropertyValue("--color-primary-light")).toBe("34 51 68");
-      expect(document.documentElement.style.getPropertyValue("--color-primary-dark")).toBe("0 17 34");
-      expect(document.documentElement.style.getPropertyValue("--color-accent")).toBe("170 85 0");
-      expect(document.documentElement.style.getPropertyValue("--color-leaf")).toBe("34 136 51");
+      expect(document.documentElement.style.getPropertyValue("--lm-primary")).toBe("17 34 51");
+      expect(document.documentElement.style.getPropertyValue("--lm-primary-light")).toBe("34 51 68");
+      expect(document.documentElement.style.getPropertyValue("--lm-primary-dark")).toBe("0 17 34");
+      expect(document.documentElement.style.getPropertyValue("--lm-accent")).toBe("170 85 0");
+      expect(document.documentElement.style.getPropertyValue("--lm-leaf")).toBe("34 136 51");
+    });
+
+    it("derives and applies --dm-* variants for a theme saved before dual-mode support existed", () => {
+      // Flat theme with no .dark sub-object, exactly as stored before this
+      // feature. #FF00FF sits well outside the dark-safe luminance window,
+      // so the derived --dm-primary must actually differ from --lm-primary.
+      const legacyTheme = {
+        primary: "#FF00FF",
+        primaryLight: "#FF66FF",
+        primaryDark: "#990099",
+        accent: "#966122",
+        accentLight: "#D18934",
+        accentDark: "#583914",
+        leaf: "#2A7B45",
+        leafLight: "#3DB465",
+        leafDark: "#174225",
+      };
+
+      applyThemeToDocument(legacyTheme);
+
+      const dmPrimary = document.documentElement.style.getPropertyValue("--dm-primary");
+      expect(dmPrimary).not.toBe("");
+      expect(dmPrimary).not.toBe(document.documentElement.style.getPropertyValue("--lm-primary"));
+    });
+
+    it("applies text-on-* ink colors for both modes", () => {
+      const mockTheme = {
+        primary: "#1F6F5C",
+        primaryLight: "#30AB8E",
+        primaryDark: "#0E332A",
+        accent: "#966122",
+        accentLight: "#D18934",
+        accentDark: "#583914",
+        leaf: "#2A7B45",
+        leafLight: "#3DB465",
+        leafDark: "#174225",
+      };
+
+      applyThemeToDocument(mockTheme);
+
+      expect(document.documentElement.style.getPropertyValue("--lm-text-on-primary")).not.toBe("");
+      expect(document.documentElement.style.getPropertyValue("--dm-text-on-primary")).not.toBe("");
     });
   });
 
@@ -107,9 +149,9 @@ describe("useBrandTheme and applyThemeToDocument", () => {
 
       expect(result.current.theme).toEqual(sampleTheme);
       expect(result.current.loading).toBe(false);
-      expect(document.documentElement.style.getPropertyValue("--color-primary")).toBe("26 47 160");
-      expect(document.documentElement.style.getPropertyValue("--color-accent")).toBe("242 169 59");
-      expect(document.documentElement.style.getPropertyValue("--color-leaf")).toBe("30 92 41");
+      expect(document.documentElement.style.getPropertyValue("--lm-primary")).toBe("26 47 160");
+      expect(document.documentElement.style.getPropertyValue("--lm-accent")).toBe("242 169 59");
+      expect(document.documentElement.style.getPropertyValue("--lm-leaf")).toBe("30 92 41");
     });
   });
 });

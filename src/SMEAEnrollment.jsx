@@ -313,7 +313,7 @@ function SMEAEnrollment() {
 
 function SummaryCard({ label, value, tint }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm flex items-center gap-3 hover:shadow-md transition-shadow duration-200">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-3">
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 font-bold text-lg ${tint}`}>
         {value}
       </div>

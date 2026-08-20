@@ -168,3 +168,81 @@ export function ensureReadableContrast(hex, maxLuminance = 0.18) {
 
   return currentHex;
 }
+
+/**
+ * WCAG contrast ratio between two colors: (Lmax + 0.05) / (Lmin + 0.05).
+ * Returns a number from 1 (identical) to 21 (black vs. white).
+ */
+export function getContrastRatio(hexA, hexB) {
+  const lumA = getRelativeLuminance(hexA);
+  const lumB = getRelativeLuminance(hexB);
+  const lighter = Math.max(lumA, lumB);
+  const darker = Math.min(lumA, lumB);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Classifies a contrast ratio against WCAG's normal-text thresholds
+ * (AA 4.5:1, AAA 7:1). Returns 'AAA', 'AA', or 'FAIL'.
+ */
+export function getWcagLevel(ratio) {
+  if (ratio >= 7) return 'AAA';
+  if (ratio >= 4.5) return 'AA';
+  return 'FAIL';
+}
+
+/**
+ * Picks whichever of a light or dark ink color gives the higher contrast
+ * ratio against the given background, so text stays readable regardless of
+ * the background's hue. Defaults to a near-white and a near-black ink
+ * rather than pure #FFFFFF/#000000, matching how buttons render elsewhere
+ * in the app.
+ */
+export function getReadableTextColor(hex, { light = '#FFFFFF', dark = '#101418' } = {}) {
+  const contrastWithLight = getContrastRatio(hex, light);
+  const contrastWithDark = getContrastRatio(hex, dark);
+  return contrastWithLight >= contrastWithDark ? light : dark;
+}
+
+/**
+ * Derives a dark-surface-safe variant of a color extracted from a logo.
+ * ensureReadableContrast() darkens colors for legibility on white/light
+ * surfaces; on a near-black surface (e.g. #090D16) that same color usually
+ * reads as muddy (over-saturated hues turn olive/purple and can "bloom"
+ * against the dark background). This caps saturation (the anti-muddy fix)
+ * and pulls luminance into a narrow window rather than just raising it:
+ * L >= ~0.12 is needed for 3:1 against #090D16, and L <= 0.18 is the same
+ * ceiling ensureReadableContrast() enforces for 4.5:1 against white text.
+ * That window keeps existing bg-primary/accent/leaf + text-white usages
+ * across the app valid in dark mode too, instead of only in this preview.
+ */
+export function deriveDarkSurfaceVariant(hex, { minLuminance = 0.12, maxLuminance = 0.18, maxSaturation = 62 } = {}) {
+  const { r, g, b } = hexToRgb(hex);
+  const { h, s, l } = rgbToHsl(r, g, b);
+
+  const cappedS = Math.min(s, maxSaturation);
+  const toHex = (lightness) => {
+    const rgb = hslToRgb(h, cappedS, lightness);
+    return rgbToHex(rgb.r, rgb.g, rgb.b);
+  };
+
+  let targetL = l;
+  let result = toHex(targetL);
+  const MAX_ITERATIONS = 40;
+
+  let iterations = 0;
+  while (getRelativeLuminance(result) < minLuminance && iterations < MAX_ITERATIONS) {
+    targetL = Math.min(100, targetL + 2);
+    result = toHex(targetL);
+    iterations++;
+  }
+
+  iterations = 0;
+  while (getRelativeLuminance(result) > maxLuminance && iterations < MAX_ITERATIONS) {
+    targetL = Math.max(0, targetL - 2);
+    result = toHex(targetL);
+    iterations++;
+  }
+
+  return result;
+}

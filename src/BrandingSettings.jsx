@@ -3,8 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import { doc, getDoc, setDoc, updateDoc, deleteField, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
-import { extractThemeFromImage } from "./utils/extractTheme.js";
+import {
+  extractThemeSuggestionsFromImage,
+  deriveDarkThemeFromLight,
+  overrideThemeRole,
+  buildTextOnRoles,
+} from "./utils/extractTheme.js";
 import { resizeImageToCanvas } from "./utils/resizeImage.js";
+import ThemeSuggestionPicker from "./components/ThemeSuggestionPicker.jsx";
 import {
   Palette,
   Upload,
@@ -15,7 +21,31 @@ import {
   AlertCircle,
   Image as ImageIcon,
   ArrowLeft,
+  Sun,
+  Moon,
 } from "lucide-react";
+
+// Preview-only surfaces (not the app's own .dark class), matching the
+// Branding & Theme spec's named light/dark surfaces. The preview toggle
+// must work regardless of which mode the app itself is currently in, so
+// these are applied via inline style rather than Tailwind's dark: variant.
+const PREVIEW_SURFACES = {
+  light: { page: "#F8FAFC", card: "#FFFFFF", border: "#E2E8F0", text: "#334155", subtext: "#64748B" },
+  dark: { page: "#090D16", card: "#131826", border: "#232B3D", text: "#E2E8F0", subtext: "#94A3B8" },
+};
+
+/**
+ * Ensures a theme object (freshly generated, saved, or loaded from
+ * Firestore before dual-mode support existed) always has `.dark` and
+ * `.textOn`, so every consumer in this file can rely on both being present.
+ */
+function ensureDualMode(theme) {
+  if (!theme || !theme.primary) return theme;
+  const dark = theme.dark || deriveDarkThemeFromLight(theme);
+  const textOn = theme.textOn || buildTextOnRoles(theme, dark);
+  if (theme.dark && theme.textOn) return theme;
+  return { ...theme, dark, textOn };
+}
 
 // `embedded` renders this as a tab inside SchoolSettings (no page header, no
 // outer page width) instead of as a standalone page.
@@ -24,6 +54,9 @@ export default function BrandingSettings({ goBack, embedded = false }) {
   const [currentTheme, setCurrentTheme] = useState(null);
   const [uploadedLogoUrl, setUploadedLogoUrl] = useState(null);
   const [extractedTheme, setExtractedTheme] = useState(null);
+  const [themeSuggestions, setThemeSuggestions] = useState([]);
+  const [selectedThemeIndex, setSelectedThemeIndex] = useState(0);
+  const [previewMode, setPreviewMode] = useState("light");
 
   const [loadingDoc, setLoadingDoc] = useState(true);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -44,8 +77,9 @@ export default function BrandingSettings({ goBack, embedded = false }) {
           const data = snap.data();
           if (data.logo) setCurrentLogo(data.logo);
           if (data.theme) {
-            setCurrentTheme(data.theme);
-            setExtractedTheme(data.theme);
+            const dualModeTheme = ensureDualMode(data.theme);
+            setCurrentTheme(dualModeTheme);
+            setExtractedTheme(dualModeTheme);
           }
         }
       } catch (err) {
@@ -98,13 +132,29 @@ export default function BrandingSettings({ goBack, embedded = false }) {
         img.src = imageSrc;
       });
 
-      const theme = await extractThemeFromImage(img);
-      setExtractedTheme(theme);
+      const suggestions = await extractThemeSuggestionsFromImage(img);
+      setThemeSuggestions(suggestions);
+      setSelectedThemeIndex(0);
+      setExtractedTheme(suggestions[0]?.theme || null);
     } catch (err) {
       console.error("Failed to extract theme from logo:", err);
       setErrorMessage("Failed to extract colors from the image. Please try again or use another image.");
     } finally {
       setIsExtracting(false);
+    }
+  }
+
+  function handleSelectThemeSuggestion(index) {
+    setSelectedThemeIndex(index);
+    setExtractedTheme(themeSuggestions[index]?.theme || null);
+  }
+
+  function handleOverrideRole(suggestionIndex, role, overrides) {
+    setThemeSuggestions((prev) =>
+      prev.map((s, i) => (i === suggestionIndex ? { ...s, theme: overrideThemeRole(s.theme, role, overrides) } : s))
+    );
+    if (themeSuggestions.length === 0 || suggestionIndex === selectedThemeIndex) {
+      setExtractedTheme((prev) => overrideThemeRole(prev, role, overrides));
     }
   }
 
@@ -157,6 +207,8 @@ export default function BrandingSettings({ goBack, embedded = false }) {
 
       setCurrentTheme(null);
       setExtractedTheme(null);
+      setThemeSuggestions([]);
+      setSelectedThemeIndex(0);
       setSuccessMessage("Brand theme has been reset to Tingub NHS default colors.");
     } catch (err) {
       console.error("Failed to reset theme:", err);
@@ -168,6 +220,17 @@ export default function BrandingSettings({ goBack, embedded = false }) {
 
   const activeLogo = uploadedLogoUrl || currentLogo || "/Tingub%20National%20High%20School%28clear%29.png";
   const displayTheme = extractedTheme || currentTheme;
+  const previewSurface = PREVIEW_SURFACES[previewMode];
+
+  function previewColor(role) {
+    if (!displayTheme) return previewSurface.text;
+    return previewMode === "dark" ? displayTheme.dark?.[role] || displayTheme[role] : displayTheme[role];
+  }
+
+  function previewTextOn(role) {
+    if (!displayTheme?.textOn) return "#FFFFFF";
+    return displayTheme.textOn[previewMode]?.[role] || "#FFFFFF";
+  }
 
   return (
     <div className={embedded ? "space-y-6" : "max-w-4xl mx-auto space-y-6 pb-12"}>
@@ -214,8 +277,11 @@ export default function BrandingSettings({ goBack, embedded = false }) {
         </div>
       )}
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Main Grid -- extraction controls + swatches on the left, the live
+          dual-mode preview on the right on wide screens; stacked below
+          that so the preview never has to be scrolled past to be edited. */}
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start gap-6 space-y-6 lg:space-y-0">
+      <div className="space-y-6">
         {/* Step 1: Upload Logo */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4 dark:bg-gray-900 dark:border-gray-700">
           <div className="flex items-center gap-2">
@@ -295,78 +361,23 @@ export default function BrandingSettings({ goBack, embedded = false }) {
           </button>
 
           {/* Color Swatches */}
-          {displayTheme ? (
-            <div className="space-y-3 pt-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                Extracted Color Palette
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                {/* Primary Swatch */}
-                <div className="p-2.5 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 text-center space-y-1.5">
-                  <div
-                    className="w-full h-10 rounded shadow-inner"
-                    style={{ backgroundColor: displayTheme.primary }}
-                  />
-                  <div className="text-xs font-bold text-gray-800 dark:text-gray-200">Primary</div>
-                  <div className="text-[10px] text-gray-500 font-mono">{displayTheme.primary}</div>
-                  <div className="flex gap-1 justify-center pt-1">
-                    <div
-                      className="w-4 h-4 rounded"
-                      title={`Light: ${displayTheme.primaryLight}`}
-                      style={{ backgroundColor: displayTheme.primaryLight }}
-                    />
-                    <div
-                      className="w-4 h-4 rounded"
-                      title={`Dark: ${displayTheme.primaryDark}`}
-                      style={{ backgroundColor: displayTheme.primaryDark }}
-                    />
-                  </div>
-                </div>
-
-                {/* Accent Swatch */}
-                <div className="p-2.5 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 text-center space-y-1.5">
-                  <div
-                    className="w-full h-10 rounded shadow-inner"
-                    style={{ backgroundColor: displayTheme.accent }}
-                  />
-                  <div className="text-xs font-bold text-gray-800 dark:text-gray-200">Accent</div>
-                  <div className="text-[10px] text-gray-500 font-mono">{displayTheme.accent}</div>
-                  <div className="flex gap-1 justify-center pt-1">
-                    <div
-                      className="w-4 h-4 rounded"
-                      title={`Light: ${displayTheme.accentLight}`}
-                      style={{ backgroundColor: displayTheme.accentLight }}
-                    />
-                    <div
-                      className="w-4 h-4 rounded"
-                      title={`Dark: ${displayTheme.accentDark}`}
-                      style={{ backgroundColor: displayTheme.accentDark }}
-                    />
-                  </div>
-                </div>
-
-                {/* Leaf Swatch */}
-                <div className="p-2.5 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 text-center space-y-1.5">
-                  <div
-                    className="w-full h-10 rounded shadow-inner"
-                    style={{ backgroundColor: displayTheme.leaf }}
-                  />
-                  <div className="text-xs font-bold text-gray-800 dark:text-gray-200">Leaf</div>
-                  <div className="text-[10px] text-gray-500 font-mono">{displayTheme.leaf}</div>
-                  <div className="flex gap-1 justify-center pt-1">
-                    <div
-                      className="w-4 h-4 rounded"
-                      title={`Light: ${displayTheme.leafLight}`}
-                      style={{ backgroundColor: displayTheme.leafLight }}
-                    />
-                    <div
-                      className="w-4 h-4 rounded"
-                      title={`Dark: ${displayTheme.leafDark}`}
-                      style={{ backgroundColor: displayTheme.leafDark }}
-                    />
-                  </div>
-                </div>
-              </div>
+          {themeSuggestions.length > 0 ? (
+            <div className="pt-2">
+              <ThemeSuggestionPicker
+                suggestions={themeSuggestions}
+                selectedIndex={selectedThemeIndex}
+                onSelect={handleSelectThemeSuggestion}
+                onOverrideRole={handleOverrideRole}
+              />
+            </div>
+          ) : displayTheme ? (
+            <div className="pt-2">
+              <ThemeSuggestionPicker
+                suggestions={[{ label: "Current Theme", theme: displayTheme }]}
+                selectedIndex={0}
+                onSelect={() => {}}
+                onOverrideRole={handleOverrideRole}
+              />
             </div>
           ) : (
             <div className="text-center py-6 text-xs text-gray-400 dark:text-gray-500 border border-dashed rounded-lg">
@@ -376,49 +387,90 @@ export default function BrandingSettings({ goBack, embedded = false }) {
         </div>
       </div>
 
-      {/* Live Component Preview */}
-      {displayTheme && (
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4 dark:bg-gray-900 dark:border-gray-700">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-            Live Component Preview
-          </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Preview how buttons, badges, and cards look with the extracted theme before saving.
-          </p>
+      {/* Live Component Preview -- driven entirely by inline styles keyed
+          off local previewMode state, not Tailwind's dark: variant, so the
+          Light/Dark toggle works regardless of the app's own current theme. */}
+      <div
+        className="p-6 rounded-xl border space-y-4"
+        style={{ backgroundColor: previewSurface.card, borderColor: previewSurface.border }}
+      >
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="text-base font-semibold" style={{ color: previewSurface.text }}>
+              Live Component Preview
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: previewSurface.subtext }}>
+              Preview buttons, badges, and cards in both modes before saving.
+            </p>
+          </div>
 
-          <div className="p-5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-gray-800/60 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+          {/* Light / Dark segment toggle */}
+          <div className="relative inline-flex items-center rounded-full p-0.5 bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+            <span
+              aria-hidden="true"
+              className="absolute top-0.5 left-0.5 w-[74px] h-7 rounded-full bg-white shadow-sm dark:bg-gray-700 transition-transform duration-200 ease-out"
+              style={{ transform: `translateX(${previewMode === "dark" ? 74 : 0}px)` }}
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewMode("light")}
+              aria-pressed={previewMode === "light"}
+              className={`relative z-10 w-[74px] h-7 flex items-center justify-center gap-1 rounded-full text-xs font-semibold transition-colors duration-150 ${
+                previewMode === "light" ? "text-primary dark:text-white" : "text-gray-500 dark:text-gray-400"
+              }`}
+            >
+              <Sun size={13} /> Light
+            </button>
+            <button
+              type="button"
+              onClick={() => setPreviewMode("dark")}
+              aria-pressed={previewMode === "dark"}
+              className={`relative z-10 w-[74px] h-7 flex items-center justify-center gap-1 rounded-full text-xs font-semibold transition-colors duration-150 ${
+                previewMode === "dark" ? "text-primary dark:text-white" : "text-gray-500 dark:text-gray-400"
+              }`}
+            >
+              <Moon size={13} /> Dark
+            </button>
+          </div>
+        </div>
+
+        {displayTheme ? (
+          <div
+            className="p-5 rounded-xl border grid grid-cols-1 sm:grid-cols-2 gap-4 items-center transition-colors duration-200"
+            style={{ backgroundColor: previewSurface.page, borderColor: previewSurface.border }}
+          >
             {/* Sample Card */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden dark:bg-gray-900 dark:border-gray-700">
+            <div
+              className="rounded-lg shadow-sm border overflow-hidden"
+              style={{ backgroundColor: previewSurface.card, borderColor: previewSurface.border }}
+            >
               <div
-                className="px-4 py-3 text-white flex items-center justify-between"
-                style={{ backgroundColor: displayTheme.primary }}
+                className="px-4 py-3 flex items-center justify-between"
+                style={{ backgroundColor: previewColor("primary"), color: previewTextOn("primary") }}
               >
                 <div className="font-semibold text-sm">School Dashboard Card</div>
                 <span
                   className="px-2 py-0.5 rounded text-[10px] font-bold"
-                  style={{
-                    backgroundColor: displayTheme.accent,
-                    color: displayTheme.primaryDark,
-                  }}
+                  style={{ backgroundColor: previewColor("accent"), color: previewTextOn("accent") }}
                 >
                   Active SF9
                 </span>
               </div>
               <div className="p-4 space-y-3">
-                <p className="text-xs text-gray-600 dark:text-gray-300">
+                <p className="text-xs" style={{ color: previewSurface.subtext }}>
                   Learner records and attendance will automatically adopt your custom school colors.
                 </p>
                 <div className="flex items-center gap-2">
                   <span
-                    className="px-2 py-1 rounded-full text-xs font-semibold text-white"
-                    style={{ backgroundColor: displayTheme.leaf }}
+                    className="px-2 py-1 rounded-full text-xs font-semibold"
+                    style={{ backgroundColor: previewColor("leaf"), color: previewTextOn("leaf") }}
                   >
                     Enrolled: 1,240
                   </span>
                   <button
                     type="button"
-                    className="px-3 py-1 rounded text-xs font-semibold text-white"
-                    style={{ backgroundColor: displayTheme.primary }}
+                    className="px-3 py-1 rounded text-xs font-semibold"
+                    style={{ backgroundColor: previewColor("primary"), color: previewTextOn("primary") }}
                   >
                     Action
                   </button>
@@ -431,18 +483,15 @@ export default function BrandingSettings({ goBack, embedded = false }) {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm"
-                  style={{ backgroundColor: displayTheme.primary }}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold shadow-sm"
+                  style={{ backgroundColor: previewColor("primary"), color: previewTextOn("primary") }}
                 >
                   Primary Action
                 </button>
                 <button
                   type="button"
                   className="px-4 py-2 rounded-lg text-sm font-semibold shadow-sm"
-                  style={{
-                    backgroundColor: displayTheme.accent,
-                    color: displayTheme.primaryDark,
-                  }}
+                  style={{ backgroundColor: previewColor("accent"), color: previewTextOn("accent") }}
                 >
                   Accent Action
                 </button>
@@ -451,26 +500,31 @@ export default function BrandingSettings({ goBack, embedded = false }) {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-sm"
-                  style={{ backgroundColor: displayTheme.leaf }}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold shadow-sm"
+                  style={{ backgroundColor: previewColor("leaf"), color: previewTextOn("leaf") }}
                 >
                   Leaf / Success
                 </button>
                 <button
                   type="button"
                   className="px-4 py-2 rounded-lg text-sm font-semibold border"
-                  style={{
-                    borderColor: displayTheme.primary,
-                    color: displayTheme.primary,
-                  }}
+                  style={{ borderColor: previewColor("primary"), color: previewColor("primary") }}
                 >
                   Outline Primary
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div
+            className="p-8 rounded-xl border border-dashed text-center text-xs"
+            style={{ borderColor: previewSurface.border, color: previewSurface.subtext }}
+          >
+            Generate or select a theme to preview it here in both modes.
+          </div>
+        )}
+      </div>
+      </div>
 
       {/* Action Footer */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">

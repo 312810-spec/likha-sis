@@ -3,18 +3,57 @@
 @tailwind utilities;
 
 :root {
-  /* Brand tokens — default palette; useBrandTheme() overrides these live per school.
-     Values are pre-passed through ensureReadableContrast() (WCAG AA, luminance <= 0.18)
-     so bg-primary/accent/leaf + text-white always meets 4.5:1, same as an extracted logo theme. */
-  --color-primary: 31 111 92;
-  --color-primary-light: 48 171 142;
-  --color-primary-dark: 14 51 42;
-  --color-accent: 150 97 34;
-  --color-accent-light: 209 137 52;
-  --color-accent-dark: 88 57 20;
-  --color-leaf: 42 123 69;
-  --color-leaf-light: 61 180 101;
-  --color-leaf-dark: 23 66 37;
+  /* Dual-mode brand tokens — useBrandTheme() overrides these live per
+     school (see src/hooks/useBrandTheme.js). --lm-* is passed through
+     ensureReadableContrast() (WCAG AA, luminance <= 0.18) for legibility
+     on light surfaces; --dm-* is passed through deriveDarkSurfaceVariant()
+     (luminance window 0.12-0.18 + saturation cap) so the same brand hue
+     reads clearly -- without muddying, blooming, or breaking existing
+     text-white pairings -- on a near-black surface instead. For Tingub's
+     default green the window leaves --dm-* == --lm-*, since #1F6F5C
+     already sits inside it; a brighter or more saturated logo color will
+     genuinely differ between the two. --color-* is what Tailwind's
+     bg-primary/accent/leaf utilities actually consume; it simply points at
+     whichever pair is active below, the same indirection
+     --color-paper/--color-ink already use. */
+  --lm-primary: 31 111 92;
+  --lm-primary-light: 48 171 142;
+  --lm-primary-dark: 14 51 42;
+  --lm-accent: 150 97 34;
+  --lm-accent-light: 209 137 52;
+  --lm-accent-dark: 88 57 20;
+  --lm-leaf: 42 123 69;
+  --lm-leaf-light: 61 180 101;
+  --lm-leaf-dark: 23 66 37;
+  --lm-text-on-primary: 255 255 255;
+  --lm-text-on-accent: 255 255 255;
+  --lm-text-on-leaf: 255 255 255;
+
+  --dm-primary: 31 111 92;
+  --dm-primary-light: 42 151 125;
+  --dm-primary-dark: 20 71 59;
+  --dm-accent: 149 97 35;
+  --dm-accent-light: 190 124 45;
+  --dm-accent-dark: 108 70 25;
+  --dm-leaf: 42 123 69;
+  --dm-leaf-light: 55 161 90;
+  --dm-leaf-dark: 29 85 48;
+  --dm-text-on-primary: 255 255 255;
+  --dm-text-on-accent: 255 255 255;
+  --dm-text-on-leaf: 255 255 255;
+
+  --color-primary: var(--lm-primary);
+  --color-primary-light: var(--lm-primary-light);
+  --color-primary-dark: var(--lm-primary-dark);
+  --color-accent: var(--lm-accent);
+  --color-accent-light: var(--lm-accent-light);
+  --color-accent-dark: var(--lm-accent-dark);
+  --color-leaf: var(--lm-leaf);
+  --color-leaf-light: var(--lm-leaf-light);
+  --color-leaf-dark: var(--lm-leaf-dark);
+  --text-on-primary: var(--lm-text-on-primary);
+  --text-on-accent: var(--lm-text-on-accent);
+  --text-on-leaf: var(--lm-text-on-leaf);
 
   /* Neutral surface tokens — warm paper, not glass. */
   --color-paper: 246 244 238;
@@ -24,6 +63,19 @@
 }
 
 .dark {
+  --color-primary: var(--dm-primary);
+  --color-primary-light: var(--dm-primary-light);
+  --color-primary-dark: var(--dm-primary-dark);
+  --color-accent: var(--dm-accent);
+  --color-accent-light: var(--dm-accent-light);
+  --color-accent-dark: var(--dm-accent-dark);
+  --color-leaf: var(--dm-leaf);
+  --color-leaf-light: var(--dm-leaf-light);
+  --color-leaf-dark: var(--dm-leaf-dark);
+  --text-on-primary: var(--dm-text-on-primary);
+  --text-on-accent: var(--dm-text-on-accent);
+  --text-on-leaf: var(--dm-text-on-leaf);
+
   --color-paper: 24 28 22;
   --color-paper-raised: 32 37 29;
   --color-ink: 238 238 226;
@@ -51,6 +103,40 @@ body {
 }
 .sidebar-scroll::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* Printable components (ReportCard, CertificateGenerator, IDGenerator, ...)
+   use bg-primary/text-primary/border-primary, which now resolve to
+   whichever light-mode or dark-mode brand variable is active. Printing from
+   dark mode must not pull the brighter dark-surface variant onto paper --
+   force --color-* back to the light-mode values for the print job,
+   regardless of the .dark class. */
+@media print {
+  :root,
+  .dark {
+    --color-primary: var(--lm-primary);
+    --color-primary-light: var(--lm-primary-light);
+    --color-primary-dark: var(--lm-primary-dark);
+    --color-accent: var(--lm-accent);
+    --color-accent-light: var(--lm-accent-light);
+    --color-accent-dark: var(--lm-accent-dark);
+    --color-leaf: var(--lm-leaf);
+    --color-leaf-light: var(--lm-leaf-light);
+    --color-leaf-dark: var(--lm-leaf-dark);
+    --text-on-primary: var(--lm-text-on-primary);
+    --text-on-accent: var(--lm-text-on-accent);
+    --text-on-leaf: var(--lm-text-on-leaf);
+  }
+}
+
+/* Briefly applied to <html> by useDarkMode() around a theme switch so every
+   surface crossfades together, instead of every dark: class flipping instantly.
+   Scoped to the moment of the switch (not left on permanently) so it can't
+   interfere with unrelated hover/press transitions elsewhere. */
+.theme-transition,
+.theme-transition * {
+  transition: background-color 200ms ease-out, border-color 200ms ease-out,
+    color 200ms ease-out, fill 200ms ease-out !important;
 }
 
 @media print {

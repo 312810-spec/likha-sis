@@ -3,36 +3,86 @@
 import { useState, useEffect } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
-import { hexToRgbTriplet } from "../utils/colorTheory.js";
+import { hexToRgbTriplet, getReadableTextColor } from "../utils/colorTheory.js";
+import { deriveDarkThemeFromLight } from "../utils/extractTheme.js";
+
+// Each role gets a light-mode var (--lm-*) and a dark-mode var (--dm-*),
+// set as an RGB triplet. index.css maps the Tailwind-consumed --color-*
+// tokens to whichever pair is active via plain :root / .dark selectors
+// (the same pattern already used for --color-paper/--color-ink), so a
+// theme switch is a stylesheet lookup, not a JS re-render, and never has
+// to fight the specificity of these inline styles.
+const ROLE_VAR_SUFFIX = {
+  primary: "primary",
+  primaryLight: "primary-light",
+  primaryDark: "primary-dark",
+  accent: "accent",
+  accentLight: "accent-light",
+  accentDark: "accent-dark",
+  leaf: "leaf",
+  leafLight: "leaf-light",
+  leafDark: "leaf-dark",
+};
+
+const TEXT_ON_ROLES = ["primary", "accent", "leaf"];
 
 export const THEME_CSS_VARS = [
-  { varName: "--color-primary", key: "primary" },
-  { varName: "--color-primary-light", key: "primaryLight" },
-  { varName: "--color-primary-dark", key: "primaryDark" },
-  { varName: "--color-accent", key: "accent" },
-  { varName: "--color-accent-light", key: "accentLight" },
-  { varName: "--color-accent-dark", key: "accentDark" },
-  { varName: "--color-leaf", key: "leaf" },
-  { varName: "--color-leaf-light", key: "leafLight" },
-  { varName: "--color-leaf-dark", key: "leafDark" },
+  ...Object.entries(ROLE_VAR_SUFFIX).flatMap(([key, suffix]) => [
+    { varName: `--lm-${suffix}`, key, mode: "light" },
+    { varName: `--dm-${suffix}`, key, mode: "dark" },
+  ]),
+  ...TEXT_ON_ROLES.flatMap((role) => [
+    { varName: `--lm-text-on-${role}`, key: role, mode: "light", textOn: true },
+    { varName: `--dm-text-on-${role}`, key: role, mode: "dark", textOn: true },
+  ]),
 ];
 
+function computeTextOnRoles(lightTheme, darkTheme) {
+  return {
+    light: {
+      primary: getReadableTextColor(lightTheme.primary),
+      accent: getReadableTextColor(lightTheme.accent),
+      leaf: getReadableTextColor(lightTheme.leaf),
+    },
+    dark: {
+      primary: getReadableTextColor(darkTheme.primary),
+      accent: getReadableTextColor(darkTheme.accent),
+      leaf: getReadableTextColor(darkTheme.leaf),
+    },
+  };
+}
+
 /**
- * Applies a theme object to document.documentElement.style.
- * If theme is null or missing, removes the style properties to fallback to :root defaults.
+ * Applies a theme object to document.documentElement.style as paired
+ * light-mode/dark-mode CSS variables. If theme is null or missing, removes
+ * the style properties so the app falls back to the :root/.dark defaults.
+ *
+ * Accepts both the current dual-mode theme shape (with a `.dark` and
+ * `.textOn` sub-object, as produced by extractTheme.js) and a theme saved
+ * before dual-mode support existed (flat `{primary, accent, leaf, ...}`
+ * only) -- the dark variant and text-on colors are derived on the fly for
+ * the latter so older saved themes keep working without a data migration.
  */
 export function applyThemeToDocument(theme) {
   if (typeof document === "undefined" || !document.documentElement) return;
+  const root = document.documentElement.style;
 
   if (theme && typeof theme === "object" && theme.primary) {
-    THEME_CSS_VARS.forEach(({ varName, key }) => {
-      if (theme[key]) {
-        document.documentElement.style.setProperty(varName, hexToRgbTriplet(theme[key]));
-      }
+    const darkTheme = theme.dark || deriveDarkThemeFromLight(theme);
+    const textOn = theme.textOn || computeTextOnRoles(theme, darkTheme);
+
+    Object.entries(ROLE_VAR_SUFFIX).forEach(([key, suffix]) => {
+      if (theme[key]) root.setProperty(`--lm-${suffix}`, hexToRgbTriplet(theme[key]));
+      if (darkTheme?.[key]) root.setProperty(`--dm-${suffix}`, hexToRgbTriplet(darkTheme[key]));
+    });
+
+    TEXT_ON_ROLES.forEach((role) => {
+      if (textOn?.light?.[role]) root.setProperty(`--lm-text-on-${role}`, hexToRgbTriplet(textOn.light[role]));
+      if (textOn?.dark?.[role]) root.setProperty(`--dm-text-on-${role}`, hexToRgbTriplet(textOn.dark[role]));
     });
   } else {
     THEME_CSS_VARS.forEach(({ varName }) => {
-      document.documentElement.style.removeProperty(varName);
+      root.removeProperty(varName);
     });
   }
 }

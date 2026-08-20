@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { canAccessPage } from '../pageAccess.js';
+import Tooltip from './Tooltip.jsx';
 import {
   LayoutDashboard,
   FileText,
@@ -166,7 +167,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
       <button
         type="button"
         title={collapsed ? label : undefined}
-        className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
+        className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 active:scale-[0.97] ${
           active
             ? 'bg-white/15 text-white font-semibold shadow-sm dark:bg-white/10'
             : 'text-white/75 hover:bg-white/10 hover:text-white dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white'
@@ -178,8 +179,16 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
             active ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
           }`}
         />
-        <NavIcon label={label} />
-        {!collapsed && <span className="truncate">{label}</span>}
+        <span className={`flex-shrink-0 transition-transform duration-150 ease-out ${active ? 'scale-110' : ''}`}>
+          <NavIcon label={label} />
+        </span>
+        <span
+          className={`truncate overflow-hidden whitespace-nowrap transition-all duration-200 ease-out ${
+            collapsed ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100 delay-75'
+          }`}
+        >
+          {label}
+        </span>
       </button>
     );
   }
@@ -191,30 +200,59 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     >
       <div className="flex items-center justify-between gap-2 px-4 py-4 border-b border-white/10 dark:border-white/10">
         <div className="flex items-center gap-3 min-w-0">
-          <img
-            src={'/Tingub%20National%20High%20School%28clear%29.png'}
-            alt="Tingub National High School"
-            width={38}
-            height={38}
-            className="rounded-full bg-white ring-2 ring-white/20 flex-shrink-0"
-          />
-          {!collapsed && (
-            <div className="min-w-0">
-              <div className="text-sm font-semibold text-white dark:text-gray-100 leading-tight">Tingub National High School</div>
-              <div className="text-[11px] font-medium tracking-wide text-accent-light dark:text-accent-light">LIKHA-SIS</div>
-            </div>
+          {collapsed ? (
+            <Tooltip label="Expand sidebar" position="right" className="hidden md:inline-flex">
+              <button
+                type="button"
+                onClick={toggleCollapsed}
+                aria-expanded={false}
+                aria-label="Expand sidebar"
+                className="group/logo relative flex-shrink-0 w-[38px] h-[38px] rounded-full transition-transform duration-150 ease-out hover:scale-105 active:scale-95"
+              >
+                <img
+                  src={'/Tingub%20National%20High%20School%28clear%29.png'}
+                  alt="Tingub National High School"
+                  width={38}
+                  height={38}
+                  className="absolute inset-0 rounded-full bg-white ring-2 ring-white/20 transition-opacity duration-150 group-hover/logo:opacity-0"
+                />
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-white/10 ring-2 ring-white/20 text-white opacity-0 scale-75 transition-all duration-150 ease-out group-hover/logo:opacity-100 group-hover/logo:scale-100">
+                  <ChevronRight size={18} />
+                </span>
+              </button>
+            </Tooltip>
+          ) : (
+            <img
+              src={'/Tingub%20National%20High%20School%28clear%29.png'}
+              alt="Tingub National High School"
+              width={38}
+              height={38}
+              className="rounded-full bg-white ring-2 ring-white/20 flex-shrink-0"
+            />
           )}
+          <div
+            className={`min-w-0 overflow-hidden transition-all duration-200 ease-out ${
+              collapsed ? 'max-w-0 opacity-0' : 'max-w-[180px] opacity-100 delay-75'
+            }`}
+          >
+            <div className="text-sm font-semibold text-white dark:text-gray-100 leading-tight truncate">Tingub National High School</div>
+            <div className="text-[11px] font-medium tracking-wide text-accent-light dark:text-accent-light truncate">LIKHA-SIS</div>
+          </div>
         </div>
 
-        <button
-          className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors dark:text-gray-300 dark:hover:text-white"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          onClick={toggleCollapsed}
-          type="button"
-        >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-        </button>
+        {!collapsed && (
+          <Tooltip label="Collapse sidebar" position="right" className="hidden md:inline-flex animate-fade-in">
+            <button
+              className="group flex items-center justify-center w-7 h-7 rounded-lg text-white/70 hover:text-white hover:bg-white/10 active:scale-90 transition-all duration-150 dark:text-gray-300 dark:hover:text-white"
+              aria-expanded={true}
+              aria-label="Collapse sidebar"
+              onClick={toggleCollapsed}
+              type="button"
+            >
+              <ChevronLeft size={16} className="transition-transform duration-150 group-hover:-translate-x-0.5" />
+            </button>
+          </Tooltip>
+        )}
 
         <button
           className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors dark:text-gray-300 dark:hover:text-white"

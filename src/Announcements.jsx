@@ -21,6 +21,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import Tooltip from "./components/Tooltip.jsx";
 import {
   ANNOUNCEMENT_TYPES,
   ANNOUNCEMENT_TYPE_MAP,
@@ -512,14 +513,16 @@ export default function Announcements({ user, userRoles, goBack }) {
                   </div>
 
                   {canPost && (
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(a)}
-                      className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                      aria-label={`Delete announcement: ${a.title}`}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <Tooltip label="Delete announcement">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(a)}
+                        className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                        aria-label={`Delete announcement: ${a.title}`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </Tooltip>
                   )}
                 </div>
               </li>
