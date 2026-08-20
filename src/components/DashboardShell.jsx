@@ -107,32 +107,38 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
               <div className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{timeStr}</div>
             </div>
 
-            <div role="toolbar" aria-label={`Theme (resolved ${resolvedIsDark ? 'dark' : 'light'})`} className="inline-flex items-center rounded-full p-0.5 bg-gray-100 dark:bg-gray-800">
+            <div role="toolbar" aria-label={`Theme (resolved ${resolvedIsDark ? 'dark' : 'light'})`} className="relative inline-flex items-center rounded-full p-0.5 bg-gray-100 dark:bg-gray-800">
+              <span
+                aria-hidden="true"
+                className="absolute top-0.5 left-0.5 w-8 h-8 rounded-full bg-white shadow-sm dark:bg-gray-700 transition-transform duration-200 ease-out"
+                style={{ transform: `translateX(${['light', 'system', 'dark'].indexOf(mode) * 32}px)` }}
+              />
+
               <button
                 type="button"
                 aria-label="Set light mode"
                 onClick={() => setMode('light')}
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 ${mode === 'light' ? 'bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                className={`relative z-10 w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 active:scale-90 ${mode === 'light' ? 'text-primary dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
               >
-                <Sun size={15} />
+                <Sun size={15} className={`transition-transform duration-200 ease-out ${mode === 'light' ? 'scale-110 rotate-0' : 'rotate-[-20deg]'}`} />
               </button>
 
               <button
                 type="button"
                 aria-label="Set system mode"
                 onClick={() => setMode('system')}
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 ${mode === 'system' ? 'bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                className={`relative z-10 w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 active:scale-90 ${mode === 'system' ? 'text-primary dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
               >
-                <Monitor size={15} />
+                <Monitor size={15} className={`transition-transform duration-200 ease-out ${mode === 'system' ? 'scale-110' : ''}`} />
               </button>
 
               <button
                 type="button"
                 aria-label="Set dark mode"
                 onClick={() => setMode('dark')}
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 ${mode === 'dark' ? 'bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                className={`relative z-10 w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 active:scale-90 ${mode === 'dark' ? 'text-primary dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
               >
-                <Moon size={15} />
+                <Moon size={15} className={`transition-transform duration-200 ease-out ${mode === 'dark' ? 'scale-110 rotate-0' : 'rotate-[20deg]'}`} />
               </button>
             </div>
 

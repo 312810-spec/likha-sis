@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-20T00:00:00.000Z",
+  "title": "Design System: LIKHA-SIS",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Deep Institutional Teal-Green",
+        "canonical": "rgb(31 111 92)",
+        "tonalRamp": ["#0A1F1A", "#0E332A", "#164A3D", "#1F6F5C", "#30AB8E", "#5CC4AC", "#96D9C8", "#D6F0E9"]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Ledger Gold",
+        "canonical": "rgb(150 97 34)",
+        "tonalRamp": ["#2E1D0A", "#583914", "#7A4E1C", "#966122", "#D18934", "#E0A85E", "#EDC896", "#F8E6D2"]
+      },
+      "leaf": {
+        "role": "secondary",
+        "displayName": "Working Leaf Green",
+        "canonical": "rgb(42 123 69)",
+        "tonalRamp": ["#0D2415", "#174225", "#205C33", "#2A7B45", "#3DB465", "#6BC989", "#9EDDB2", "#D2F0DC"]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "canonical": "rgb(246 244 238)",
+        "tonalRamp": ["#14170F", "#181C16", "#202519", "#34392C", "#6B7060", "#A9AC9E", "#DAD8CD", "#F6F4EE"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "rgb(36 41 31)",
+        "tonalRamp": ["#24291F", "#3A4132", "#565C4D", "#7A8070", "#A6AB99", "#C9CCC0", "#E4E6DC", "#EEEEE2"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (Fraunces)", "purpose": "Page-level h1/h2 titles only. Never body copy, labels, or buttons." },
+      "body": { "displayName": "Body (Public Sans)", "purpose": "All working UI text: labels, tables, forms, buttons, nav." },
+      "mono": { "displayName": "Tabular (IBM Plex Mono)", "purpose": "Numerals that must align in columns: clock, counts, dates." }
+    },
+    "shadows": [
+      { "name": "card", "value": "0 1px 2px rgba(36,41,31,.06), 0 1px 1px rgba(36,41,31,.04)", "purpose": "Resting shadow for stat tiles and content cards." },
+      { "name": "card-hover", "value": "0 4px 14px rgba(36,41,31,.10), 0 1px 3px rgba(36,41,31,.06)", "purpose": "Hover/focus shadow, paired with a -2px translateY lift." }
+    ],
+    "motion": [
+      { "name": "press", "value": "150ms ease-out, scale to 0.97-0.99", "purpose": "Active/press feedback on all interactive buttons (active:scale-*)." },
+      { "name": "theme-crossfade", "value": "200ms ease-out on background-color, border-color, color, fill", "purpose": "Briefly applied to <html> during a dark/light/brand theme switch so surfaces crossfade together instead of snapping." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The canonical solid-fill call-to-action button, repeated verbatim across nearly every screen.",
+      "html": "<button class=\"ds-btn-primary\">Save Changes</button>",
+      "css": ".ds-btn-primary { background: #1F6F5C; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; font-family: \"Public Sans\", \"Segoe UI\", ui-sans-serif, system-ui, sans-serif; border: none; box-shadow: 0 1px 2px rgba(36,41,31,.06); transition: background-color 150ms ease-out, transform 150ms ease-out; cursor: pointer; } .ds-btn-primary:hover { background: #30AB8E; } .ds-btn-primary:focus-visible { outline: 2px solid #1F6F5C; outline-offset: 2px; } .ds-btn-primary:active { transform: scale(0.97); } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-button",
+      "description": "Ghost-style navigation button used inside the primary-green sidebar, with an accent edge indicator for the active item.",
+      "html": "<button class=\"ds-nav-item ds-nav-item--active\"><span class=\"ds-nav-item__indicator\"></span>Class Record</button>",
+      "css": ".ds-nav-item { position: relative; width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; font-size: 14px; color: rgba(255,255,255,0.75); background: transparent; border: none; text-align: left; font-family: \"Public Sans\", sans-serif; transition: background-color 150ms, color 150ms; cursor: pointer; } .ds-nav-item:hover { background: rgba(255,255,255,0.1); color: #fff; } .ds-nav-item--active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 600; } .ds-nav-item__indicator { position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 20px; width: 4px; border-radius: 9999px; background: #966122; opacity: 0; } .ds-nav-item--active .ds-nav-item__indicator { opacity: 1; }"
+    },
+    {
+      "name": "Stat Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Compact raised-paper tile with a soft ambient shadow that lifts slightly on hover, used for dashboard/summary metrics.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card__label\">Total Enrolled</div><div class=\"ds-card__value\">312</div></div>",
+      "css": ".ds-card { min-width: 140px; background: #FFFEFB; border: 1px solid #E5E7EB; border-radius: 12px; padding: 12px; box-shadow: 0 1px 2px rgba(36,41,31,.06), 0 1px 1px rgba(36,41,31,.04); transition: box-shadow 200ms, transform 200ms; font-family: \"Public Sans\", sans-serif; } .ds-card:hover { box-shadow: 0 4px 14px rgba(36,41,31,.10), 0 1px 3px rgba(36,41,31,.06); transform: translateY(-2px); } .ds-card__label { font-size: 12px; color: #6B7280; } .ds-card__value { margin-top: 4px; font-size: 20px; font-weight: 600; color: #111827; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Recessed-tone text field that brightens and gains a soft primary ring on focus.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Search learners...\" />",
+      "css": ".ds-input { width: 100%; padding: 8px 12px; font-size: 14px; font-family: \"Public Sans\", sans-serif; color: #111827; background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; outline: none; transition: background-color 150ms, border-color 150ms, box-shadow 150ms; } .ds-input:focus { background: #fff; border-color: #1F6F5C; box-shadow: 0 0 0 3px rgba(31,111,92,0.2); }"
+    },
+    {
+      "name": "Tooltip",
+      "kind": "custom",
+      "refersTo": "tooltip",
+      "description": "Dependency-free hover/focus tooltip: a small dark pill above the trigger element.",
+      "html": "<span class=\"ds-tooltip-wrap\">Hover me<span class=\"ds-tooltip\" role=\"tooltip\">Collapse sidebar</span></span>",
+      "css": ".ds-tooltip-wrap { position: relative; display: inline-flex; } .ds-tooltip { pointer-events: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 6px; white-space: nowrap; border-radius: 6px; background: #111827; color: #fff; padding: 4px 8px; font-size: 11px; font-weight: 500; opacity: 0; box-shadow: 0 4px 14px rgba(0,0,0,0.15); transition: opacity 150ms; } .ds-tooltip-wrap:hover .ds-tooltip, .ds-tooltip-wrap:focus-within .ds-tooltip { opacity: 1; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The School Ledger",
+    "overview": "LIKHA-SIS reads as a well-kept official record book, not a SaaS dashboard: warm paper surfaces, an editorial serif for headings, and a deep institutional green that carries the same trust a school seal carries on a printed certificate. The mood is warm and official — approachable enough for daily use by teachers and coordinators, but never playful; every screen should feel like it belongs in the same binder as a report card or SF9 form. Density stays moderate: enough breathing room to scan a table of learners at a glance, without the whitespace of a marketing site. Each deploying school can recolor the system through its own logo, but the structure — warm paper base, serif display headings, confident solid-fill primary actions, soft-lift cards — is the fixed identity beneath every school's palette. Tingub National High School's teal-green is the reference/default instance of that identity, not a hardcoded constant. Elevation and shadow treatment is not yet locked as an invariant — the current soft-shadow-on-cards-only pattern is a reasonable default but open to a bolder pass.",
+    "keyCharacteristics": [
+      "Warm paper base (never pure white or cool gray) with a deep green institutional accent",
+      "Serif display headings (Fraunces) paired with a clean grotesque body face (Public Sans)",
+      "Confident, solid-fill buttons with tactile press feedback (active:scale-[0.97-0.99])",
+      "Per-school brand recoloring underneath a fixed structural identity",
+      "Strict print/screen separation: printed DepEd forms always render in the light-mode palette regardless of on-screen theme"
+    ],
+    "rules": [
+      { "name": "The Paper, Not Glass Rule", "body": "Every neutral surface token is warm and slightly desaturated — never a cool gray, never pure white, never a translucent/glass effect on a base surface. Paper (light) and near-black-green paper (dark) are the two allowed grounds.", "section": "colors" },
+      { "name": "The Print-Light Rule", "body": "Printable documents force --color-* back to the light-mode values under @media print, regardless of the active on-screen theme. A printed page must never carry the brighter dark-mode brand variant onto paper.", "section": "colors" },
+      { "name": "The One-School, One-Palette Rule", "body": "--lm-*/--dm-* are derived per-school from an uploaded logo, contrast-checked to WCAG AA. Never hardcode a hex brand color into a component; always consume it through the --color-* / Tailwind primary/accent/leaf tokens.", "section": "colors" },
+      { "name": "The One Serif Rule", "body": "Fraunces appears only on page-level h1/h2 titles (font-display). Every other piece of type stays in Public Sans.", "section": "typography" }
+    ],
+    "dos": [
+      "Do consume brand color exclusively through the --color-* custom properties / Tailwind primary/accent/leaf classes, never a hardcoded hex.",
+      "Do reuse the exact primary-button recipe (bg-primary text-white rounded-lg text-sm font-semibold shadow-sm active:scale-[0.97-0.99]) for new primary actions.",
+      "Do keep font-display (Fraunces) reserved for page-level h1/h2 titles only.",
+      "Do force printable components back to the light-mode brand variables under @media print, independent of the on-screen theme."
+    ],
+    "donts": [
+      "Don't use cool grays or pure white as a base surface — Warm Paper / Raised Paper are the only grounds.",
+      "Don't apply the serif display font to body text, table data, labels, or buttons.",
+      "Don't let dark-mode or brand-theme styling leak into printed output.",
+      "Don't treat the current flat-plus-card-shadow elevation model as fixed doctrine — it's confirmed as the present baseline only, open to revision in a future bolder/polish pass."
+    ]
+  }
+}

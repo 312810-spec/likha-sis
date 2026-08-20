@@ -12,6 +12,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import Tooltip from "./components/Tooltip.jsx";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
 import useMyAdvisorySection from "./hooks/useMyAdvisorySection";
@@ -760,8 +761,12 @@ export default function ClassRecord({ user, goBack }) {
                         </div>
                       </th>
                     ))}
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">WW PS</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">WW WS</th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Written Work Percentage Score">WW PS</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Written Work Weighted Score">WW WS</Tooltip>
+                    </th>
 
                     {/* PT sub-headers */}
                     {ptItems.map((item, idx) => (
@@ -779,19 +784,37 @@ export default function ClassRecord({ user, goBack }) {
                         </div>
                       </th>
                     ))}
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">PT PS</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">PT WS</th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Performance Task Percentage Score">PT PS</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Performance Task Weighted Score">PT WS</Tooltip>
+                    </th>
 
                     {/* EX sub-headers */}
-                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">ST1</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">ST2</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">TE</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">EX PS</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">EX WS</th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">
+                      <Tooltip position="bottom" label="Summative Test 1 — 30% of the Exam component">ST1</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">
+                      <Tooltip position="bottom" label="Summative Test 2 — 30% of the Exam component">ST2</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">
+                      <Tooltip position="bottom" label="Term Exam — 40% of the Exam component">TE</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Exam Percentage Score">EX PS</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Exam Weighted Score">EX WS</Tooltip>
+                    </th>
 
                     {/* Summary sub-headers */}
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-accent-dark/80 min-w-[70px]">Init Grade</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-accent-dark/90 min-w-[70px]">Term Grade</th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-accent-dark/80 min-w-[70px]">
+                      <Tooltip position="bottom" label="Raw computed grade before DO 15 transmutation">Init Grade</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-accent-dark/90 min-w-[70px]">
+                      <Tooltip position="bottom" label="Final grade after transmutation table">Term Grade</Tooltip>
+                    </th>
                     <th className="px-2 py-1 text-center min-w-[130px]">Description</th>
                   </tr>
                 </thead>

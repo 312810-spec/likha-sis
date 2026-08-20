@@ -3,7 +3,8 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
-import { extractThemeFromImage } from "./utils/extractTheme.js";
+import { extractThemeSuggestionsFromImage } from "./utils/extractTheme.js";
+import ThemeSuggestionPicker from "./components/ThemeSuggestionPicker.jsx";
 import {
   KEY_STAGE_OPTIONS,
   getGradeLevelsFromStages,
@@ -136,7 +137,8 @@ function SetupWizard({ onComplete }) {
 
   // Step 3: Branding State
   const [uploadedLogoUrl, setUploadedLogoUrl] = useState(null);
-  const [extractedTheme, setExtractedTheme] = useState(null);
+  const [themeSuggestions, setThemeSuggestions] = useState([]);
+  const [selectedThemeIndex, setSelectedThemeIndex] = useState(0);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
   const [brandingError, setBrandingError] = useState("");
@@ -390,8 +392,9 @@ function SetupWizard({ onComplete }) {
         img.src = uploadedLogoUrl;
       });
 
-      const theme = await extractThemeFromImage(img);
-      setExtractedTheme(theme);
+      const suggestions = await extractThemeSuggestionsFromImage(img);
+      setThemeSuggestions(suggestions);
+      setSelectedThemeIndex(0);
     } catch (err) {
       console.error("Failed to extract theme from logo:", err);
       setBrandingError("Failed to extract colors from the image. Please try again or use another image.");
@@ -399,6 +402,8 @@ function SetupWizard({ onComplete }) {
       setIsExtracting(false);
     }
   }
+
+  const extractedTheme = themeSuggestions[selectedThemeIndex]?.theme || null;
 
   async function handleSaveBranding() {
     if (!uploadedLogoUrl && !extractedTheme) {
@@ -979,78 +984,14 @@ function SetupWizard({ onComplete }) {
                   {isExtracting ? "Extracting Colors..." : "Generate Theme from Logo"}
                 </button>
 
-                {extractedTheme ? (
-                  <div className="space-y-2 pt-1">
-                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                      Extracted Palette
-                    </h4>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {/* Primary Swatch */}
-                      <div className="p-2 rounded-lg border border-gray-200 bg-white text-center space-y-1">
-                        <div
-                          className="w-full h-7 rounded shadow-inner"
-                          style={{ backgroundColor: extractedTheme.primary }}
-                        />
-                        <div className="text-[11px] font-bold text-gray-800">Primary</div>
-                        <div className="text-[9px] text-gray-500 font-mono">{extractedTheme.primary}</div>
-                        <div className="flex gap-1 justify-center pt-0.5">
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Light: ${extractedTheme.primaryLight}`}
-                            style={{ backgroundColor: extractedTheme.primaryLight }}
-                          />
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Dark: ${extractedTheme.primaryDark}`}
-                            style={{ backgroundColor: extractedTheme.primaryDark }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Accent Swatch */}
-                      <div className="p-2 rounded-lg border border-gray-200 bg-white text-center space-y-1">
-                        <div
-                          className="w-full h-7 rounded shadow-inner"
-                          style={{ backgroundColor: extractedTheme.accent }}
-                        />
-                        <div className="text-[11px] font-bold text-gray-800">Accent</div>
-                        <div className="text-[9px] text-gray-500 font-mono">{extractedTheme.accent}</div>
-                        <div className="flex gap-1 justify-center pt-0.5">
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Light: ${extractedTheme.accentLight}`}
-                            style={{ backgroundColor: extractedTheme.accentLight }}
-                          />
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Dark: ${extractedTheme.accentDark}`}
-                            style={{ backgroundColor: extractedTheme.accentDark }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Leaf Swatch */}
-                      <div className="p-2 rounded-lg border border-gray-200 bg-white text-center space-y-1">
-                        <div
-                          className="w-full h-7 rounded shadow-inner"
-                          style={{ backgroundColor: extractedTheme.leaf }}
-                        />
-                        <div className="text-[11px] font-bold text-gray-800">Leaf</div>
-                        <div className="text-[9px] text-gray-500 font-mono">{extractedTheme.leaf}</div>
-                        <div className="flex gap-1 justify-center pt-0.5">
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Light: ${extractedTheme.leafLight}`}
-                            style={{ backgroundColor: extractedTheme.leafLight }}
-                          />
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Dark: ${extractedTheme.leafDark}`}
-                            style={{ backgroundColor: extractedTheme.leafDark }}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                {themeSuggestions.length > 0 ? (
+                  <div className="pt-1">
+                    <ThemeSuggestionPicker
+                      suggestions={themeSuggestions}
+                      selectedIndex={selectedThemeIndex}
+                      onSelect={setSelectedThemeIndex}
+                      compact
+                    />
                   </div>
                 ) : (
                   <div className="text-center py-4 text-[11px] text-gray-400 border border-dashed rounded-lg bg-white">

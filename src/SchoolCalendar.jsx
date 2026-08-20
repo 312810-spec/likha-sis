@@ -19,6 +19,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import Tooltip from "./components/Tooltip.jsx";
 import {
   EVENT_CATEGORIES,
   EVENT_CATEGORY_MAP,
@@ -455,14 +456,16 @@ export default function SchoolCalendar({ user, userRoles, goBack }) {
                         </p>
                       </div>
                       {canManage && entry.kind === "event" && entry.id && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteEvent(entry.id)}
-                          className="flex-shrink-0 p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                          aria-label={`Delete event: ${entry.title}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <Tooltip label="Delete event">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEvent(entry.id)}
+                            className="flex-shrink-0 p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                            aria-label={`Delete event: ${entry.title}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </Tooltip>
                       )}
                     </div>
                   </li>
