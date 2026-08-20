@@ -165,7 +165,19 @@ function SF1({ user }) {
   const gradeOptions =
     config?.gradeLevelsOffered ||
     ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
-  const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "");
+  const [gradeLevelChoice, setGradeLevel] = useState(gradeOptions[0] || "");
+  // useSchoolConfig() resolves asynchronously, so gradeLevelChoice above is
+  // seeded from the fallback grade list before the real (possibly narrower)
+  // gradeLevelsOffered loads. Once it loads, gradeOptions can narrow (e.g. to
+  // Grade 7-10 only) and the <select> visually falls back to displaying its
+  // new first option -- but the stale choice is now absent from gradeOptions,
+  // so useAvailableSections would keep querying a grade with no sections
+  // until the user manually touched the dropdown. Deriving the effective
+  // value at render time (rather than syncing it back via an effect) keeps
+  // it always valid without an extra render pass.
+  const gradeLevel = gradeOptions.includes(gradeLevelChoice)
+    ? gradeLevelChoice
+    : gradeOptions[0] || "";
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
   // DO 017 SHS: one SF1 sheet is one grade+section, so track/cluster are

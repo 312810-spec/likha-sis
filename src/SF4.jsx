@@ -93,7 +93,16 @@ function SF4({ user, goBack }) {
   const schoolYearOptions = schoolYears.includes(schoolYear)
     ? schoolYears
     : [schoolYear, ...schoolYears];
-  const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "");
+  const [gradeLevelChoice, setGradeLevel] = useState(gradeOptions[0] || "");
+  // useSchoolConfig() resolves asynchronously, so gradeLevelChoice above is
+  // seeded from the fallback grade list before the real (possibly narrower)
+  // gradeLevelsOffered loads. Deriving the effective value at render time
+  // (rather than syncing it back via an effect) keeps it always valid --
+  // otherwise the section list would silently query a grade with none until
+  // the user manually touched the dropdown.
+  const gradeLevel = gradeOptions.includes(gradeLevelChoice)
+    ? gradeLevelChoice
+    : gradeOptions[0] || "";
   // monthValue: the raw "YYYY-MM" string from the month input, same pattern as SF2.
   const [monthValue, setMonthValue] = useState(() => {
     const now = new Date();
