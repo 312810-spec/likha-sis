@@ -963,6 +963,7 @@ function SF2({ user, userRoles }) {
       <div className="no-print">
         <PageHeader description="Daily Attendance">
           <select
+            aria-label="Select class"
             value={filterValue}
             onChange={(e) => setFilterValue(e.target.value)}
             className={inputClass}
@@ -973,6 +974,7 @@ function SF2({ user, userRoles }) {
             ))}
           </select>
           <input
+            aria-label="Select month"
             type="month"
             value={monthValue}
             onChange={(e) => {

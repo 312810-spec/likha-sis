@@ -154,6 +154,7 @@ export default function AcademicHub() {
       >
         <form id="academicHubFilters" onSubmit={handleLoad} className="flex flex-wrap items-end gap-2">
           <select
+            aria-label="Select grade level"
             value={gradeLevel}
             onChange={(e) => {
               setGradeLevel(e.target.value);
@@ -167,6 +168,7 @@ export default function AcademicHub() {
             ))}
           </select>
           <select
+            aria-label="Select section"
             value={section}
             onChange={(e) => {
               setSection(e.target.value);
