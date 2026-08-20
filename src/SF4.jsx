@@ -402,9 +402,9 @@ function SF4({ user, goBack }) {
               ← Back to Dashboard
             </button>
           )}
-          <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
             School Form 4 — Monthly Learner Movement and Attendance Report
-          </h1>
+          </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user?.email || ""}</strong>
           </p>

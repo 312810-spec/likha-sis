@@ -93,7 +93,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
               <Menu size={20} />
             </button>
             <div className="min-w-0">
-              <h2 className="font-display text-lg sm:text-xl font-semibold text-primary tracking-tight truncate">{pageTitle}</h2>
+              <h1 className="font-display text-lg sm:text-xl font-semibold text-primary tracking-tight truncate">{pageTitle}</h1>
               <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-300 truncate">
                 Welcome, <span className="font-medium text-gray-700 dark:text-gray-100">{user?.displayName || user?.email || 'Teacher'}</span>
                 <span className="hidden sm:inline"> — LIKHA-SIS, Tingub National High School</span>
