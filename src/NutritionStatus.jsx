@@ -548,18 +548,14 @@ export default function NutritionStatus({ user }) {
         </div>
 
         <div>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm"
-          >
+          <Button type="submit" disabled={isLoading} className="w-full justify-center">
             {isLoading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <Users className="w-4 h-4" />
             )}
             {isLoading ? "Loading..." : "Load Class"}
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -587,7 +583,8 @@ export default function NutritionStatus({ user }) {
             <div className="text-xs mt-0.5">Flag {c.learner.lastName}, {c.learner.firstName} for monitoring?</div>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              size="small"
               onClick={async () => {
                 try {
                   const nowIso = new Date().toISOString();
@@ -627,16 +624,16 @@ export default function NutritionStatus({ user }) {
                   setErrorMessage("Failed to create LARDO record. Please try again.");
                 }
               }}
-              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
             >
               Confirm
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="small"
               onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
             >
               Dismiss
-            </button>
+            </Button>
           </div>
         </div>
       ))}
