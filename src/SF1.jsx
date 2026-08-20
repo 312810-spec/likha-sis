@@ -380,7 +380,7 @@ function SF1({ user }) {
   }
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto animate-slide-up">
+    <div className="space-y-6 max-w-none w-full">
       {/* Print CSS — every piece of LIKHA-SIS screen chrome is hidden so only the
           SF1 replica reaches the printer. The sheet's own styling lives in
           components/SF1PrintView.jsx. */}

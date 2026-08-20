@@ -350,7 +350,7 @@ function SF4({ user, goBack }) {
     (Number(mortalityInputs.previousMonths) || 0) + (Number(mortalityInputs.forTheMonth) || 0);
 
   return (
-    <div className="space-y-5 animate-slide-up">
+    <div className="space-y-5">
       {/* Print CSS — screen chrome hides, the printable table stays plain. */}
       <style>{`
         @media print {

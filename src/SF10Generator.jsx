@@ -262,7 +262,7 @@ export default function SF10Generator() {
   }, [selectedLearner, classRecords, academicRecords, getSHSAwareWeights]);
 
   return (
-    <div className="font-sans text-gray-900 dark:text-gray-100 space-y-6 max-w-6xl mx-auto pb-12 animate-slide-up">
+    <div className="font-sans text-gray-900 dark:text-gray-100 space-y-6 max-w-3xl mx-auto w-full pb-12">
       <style>{`
         @media print {
           .no-print { display: none !important; }

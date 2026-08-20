@@ -39,6 +39,7 @@ import Announcements from "./Announcements";
 import SchoolCalendar from "./SchoolCalendar";
 import { canAccessPage, PARENT_ONLY_ROLES } from "./pageAccess.js";
 import { useUserProfile } from "./hooks/useUserProfile.js";
+import useSchoolConfig from "./hooks/useSchoolConfig";
 import SyncStatusBanner from "./components/SyncStatusBanner";
 import ParentPortal from "./pages/ParentPortal";
 import ParentLogin from "./pages/ParentLogin";

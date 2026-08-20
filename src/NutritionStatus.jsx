@@ -392,7 +392,7 @@ export default function NutritionStatus({ user }) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
+    <div className="space-y-6 max-w-none w-full">
       {/* Print CSS — screen chrome hides, the printable SF8 report stays plain. */}
       <style>{`
         @media print {

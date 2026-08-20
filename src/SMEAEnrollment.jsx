@@ -88,7 +88,7 @@ function SMEAEnrollment() {
   // ---------- Loading state -------------------------------------------------
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto animate-slide-up">
+      <div className="max-w-none w-full">
         <div className="flex flex-col items-center justify-center gap-3 py-24 text-gray-400 dark:text-gray-500">
           <div className="w-8 h-8 border-2 border-gray-200 dark:border-gray-700 border-t-primary rounded-full animate-spin" />
           <p className="text-sm">Loading enrollment data...</p>
@@ -100,7 +100,7 @@ function SMEAEnrollment() {
   // ---------- Error state ---------------------------------------------------
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto animate-slide-up">
+      <div className="max-w-none w-full">
         <div className="flex items-start gap-2 p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-sm dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300 animate-fade-in">
           <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
           <span>Unable to load enrollment data. Please try again.</span>
@@ -112,7 +112,7 @@ function SMEAEnrollment() {
   // ---------- Empty state ---------------------------------------------------
   if (report.inSYCount === 0) {
     return (
-      <div className="max-w-6xl mx-auto space-y-4 animate-slide-up">
+      <div className="max-w-none w-full space-y-4">
         <ReportControls
           selectedSY={selectedSY}
           setSelectedSY={setSelectedSY}
@@ -129,7 +129,7 @@ function SMEAEnrollment() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-4 animate-slide-up">
+    <div className="max-w-none w-full space-y-4">
       <ReportControls
         selectedSY={selectedSY}
         setSelectedSY={setSelectedSY}
