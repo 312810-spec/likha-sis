@@ -14,9 +14,12 @@ import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { computeLearnerTermGrade } from "./utils/gradeComputations";
 import { schoolYearFromMonth } from "./utils/attendanceDates";
 import buildAttendanceYearOverview from "./utils/attendanceYearOverview";
-import { ArrowLeft, LayoutDashboard, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
+import { inputClass } from "./components/settings/settingsStyles.js";
 
-export default function AcademicHub({ goBack }) {
+export default function AcademicHub() {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 
@@ -139,27 +142,17 @@ export default function AcademicHub({ goBack }) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 sm:p-6">
-      <button
-        type="button"
-        onClick={goBack}
-        className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4"
+    <div className="max-w-none w-full space-y-6">
+      <PageHeader
+        description="General Average and year-long attendance rate, side by side, for a section — read-only rollup over Class Record and Attendance data already on file."
+        actions={
+          <Button type="submit" form="academicHubFilters" disabled={isLoading || !section}>
+            <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+            {isLoading ? "Loading…" : "Load"}
+          </Button>
+        }
       >
-        <ArrowLeft size={16} /> Back to Dashboard
-      </button>
-
-      <div className="flex items-center gap-2 mb-1">
-        <LayoutDashboard size={22} className="text-primary" />
-        <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-white">Academic Hub</h1>
-      </div>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        General Average and year-long attendance rate, side by side, for a section — read-only rollup over
-        Class Record and Attendance data already on file.
-      </p>
-
-      <form onSubmit={handleLoad} className="flex flex-wrap items-end gap-3 mb-6">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Grade Level</label>
+        <form id="academicHubFilters" onSubmit={handleLoad} className="flex flex-wrap items-end gap-2">
           <select
             value={gradeLevel}
             onChange={(e) => {
@@ -167,15 +160,12 @@ export default function AcademicHub({ goBack }) {
               setSection("");
               setIsLoaded(false);
             }}
-            className="text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 outline-none"
+            className={inputClass}
           >
             {gradeOptions.map((g) => (
               <option key={g} value={g}>{g}</option>
             ))}
           </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Section</label>
           <select
             value={section}
             onChange={(e) => {
@@ -183,16 +173,13 @@ export default function AcademicHub({ goBack }) {
               setIsLoaded(false);
             }}
             disabled={loadingSections}
-            className="text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 outline-none min-w-[10rem]"
+            className={`${inputClass} min-w-[10rem]`}
           >
             <option value="">Select section…</option>
             {availableSections.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">School Year</label>
           <input
             type="text"
             value={schoolYear}
@@ -200,21 +187,13 @@ export default function AcademicHub({ goBack }) {
               setSchoolYear(e.target.value);
               setIsLoaded(false);
             }}
-            className="text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 outline-none w-32"
+            className={`${inputClass} w-32`}
           />
-        </div>
-        <button
-          type="submit"
-          disabled={isLoading || !section}
-          className="flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-4 py-2 rounded-lg disabled:opacity-50"
-        >
-          <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
-          {isLoading ? "Loading…" : "Load"}
-        </button>
-      </form>
+        </form>
+      </PageHeader>
 
       {errorMessage && (
-        <div className="mb-4 text-sm text-red-600 dark:text-red-400">{errorMessage}</div>
+        <div className="text-sm text-red-600 dark:text-red-400">{errorMessage}</div>
       )}
 
       {isLoaded && rows.length === 0 && (
@@ -226,17 +205,17 @@ export default function AcademicHub({ goBack }) {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="text-left px-4 py-2 font-semibold text-gray-700 dark:text-gray-300">Learner</th>
-                <th className="text-right px-4 py-2 font-semibold text-gray-700 dark:text-gray-300">General Average</th>
-                <th className="text-right px-4 py-2 font-semibold text-gray-700 dark:text-gray-300">Attendance Rate (Year)</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wide">Learner</th>
+                <th className="text-right px-4 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wide">General Average</th>
+                <th className="text-right px-4 py-2.5 font-semibold text-gray-700 dark:text-gray-300 text-xs uppercase tracking-wide">Attendance Rate (Year)</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id} className="border-t border-gray-100 dark:border-gray-800">
-                  <td className="px-4 py-2 text-gray-900 dark:text-gray-100">{r.name}</td>
+                  <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{r.name}</td>
                   <td
-                    className={`px-4 py-2 text-right ${
+                    className={`px-4 py-3 text-right ${
                       r.gradeFlag ? "text-red-600 dark:text-red-400 font-semibold" : "text-gray-900 dark:text-gray-100"
                     }`}
                     title={r.gradeFlag ? "Below 70.00 — DO 15 academic intervention trigger" : undefined}
@@ -244,7 +223,7 @@ export default function AcademicHub({ goBack }) {
                     {typeof r.genAvg === "number" ? r.genAvg.toFixed(2) : "—"}
                   </td>
                   <td
-                    className={`px-4 py-2 text-right ${
+                    className={`px-4 py-3 text-right ${
                       r.attendanceFlag ? "text-red-600 dark:text-red-400 font-semibold" : "text-gray-900 dark:text-gray-100"
                     }`}
                     title={r.attendanceFlag ? "Below 80% — LARDO risk trigger" : undefined}
