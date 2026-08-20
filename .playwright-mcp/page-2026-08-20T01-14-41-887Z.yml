@@ -1,0 +1,29 @@
+- generic [ref=e1]:
+  - paragraph [ref=e3]: Loading...
+  - generic [ref=e4]:
+    - img "Impeccable live mode - agent not polling" [ref=e5]
+    - generic [ref=e10]:
+      - button "Pick element" [ref=e11] [cursor=pointer]:
+        - generic: Pick
+      - button "Insert new element" [ref=e14] [cursor=pointer]:
+        - generic: Insert
+      - button "Detect anti-patterns" [ref=e16] [cursor=pointer]:
+        - generic: Detect
+      - button "Toggle DESIGN.md panel" [ref=e20] [cursor=pointer]:
+        - generic: DESIGN.md
+      - generic "Steer the page" [ref=e26] [cursor=pointer]:
+        - textbox "Steer the page" [active] [ref=e27]:
+          - /placeholder: Steer…
+        - button "Voice input" [ref=e28]
+        - button "Send steer message" [disabled] [ref=e32]
+      - button "Exit live mode" [ref=e36] [cursor=pointer]
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - generic: DESIGN.md
+          - generic:
+            - button "Visual"
+            - button "Raw"
+          - button "Close panel": ✕
+        - generic: No design system data available.

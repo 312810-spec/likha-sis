@@ -1,0 +1,209 @@
+- generic [ref=e1]:
+  - generic [ref=e41]:
+    - generic [ref=e42]:
+      - generic [ref=e43]:
+        - img "Tingub National High School" [ref=e44]
+        - img "LIKHA-SIS" [ref=e45]
+      - heading "LIKHA-SIS" [level=1] [ref=e46]
+      - paragraph [ref=e47]: Tingub National High School
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]: Email
+        - textbox "teacher@tinguibnhs.edu.ph" [ref=e55]
+      - generic [ref=e56]:
+        - generic [ref=e57]: Password
+        - textbox "Enter your password" [ref=e62]
+      - button "Log In" [ref=e63] [cursor=pointer]
+    - paragraph [ref=e68]:
+      - text: Parent or Guardian?
+      - button "Parent Portal Login →" [ref=e69] [cursor=pointer]
+  - generic [ref=e4]:
+    - img "Impeccable live mode - agent not polling" [ref=e5]
+    - generic [ref=e10]:
+      - button "Pick element" [ref=e11] [cursor=pointer]:
+        - generic: Pick
+      - button "Insert new element" [ref=e14] [cursor=pointer]:
+        - generic: Insert
+      - button "Detect anti-patterns" [active] [ref=e16] [cursor=pointer]:
+        - generic: Detect
+      - button "Toggle DESIGN.md panel" [ref=e20] [cursor=pointer]:
+        - generic: DESIGN.md
+      - generic "Processing steer request" [ref=e74]:
+        - textbox "Steer the page" [disabled]:
+          - /placeholder: Steer the page…
+          - text: check detected and fix it
+      - button "Exit live mode" [ref=e36] [cursor=pointer]
+  - generic:
+    - generic:
+      - complementary:
+        - generic:
+          - generic: DESIGN.md
+          - generic:
+            - button "Visual"
+            - button "Raw"
+          - button "Close panel": ✕
+        - generic:
+          - generic "Click to copy":
+            - generic:
+              - generic: Deep Institutional Teal-Green
+              - generic: rgb(31 111 92)
+            - generic: "the school's brand color. Sidebar background, primary buttons, active nav indicators, primary headings (`text-primary`). Carries the same weight an institution's seal color would."
+          - generic "Click to copy":
+            - generic:
+              - generic: Primary Light
+              - generic: rgb(48 171 142)
+          - generic "Click to copy":
+            - generic:
+              - generic: Primary Dark
+              - generic: rgb(14 51 42)
+          - generic "Click to copy":
+            - generic:
+              - generic: Ledger Gold
+              - generic: rgb(150 97 34)
+            - generic: the accent. Used sparingly — section-group labels in the sidebar, small highlight text, the accent-light variant on hover states. Never a large fill; it marks, it doesn't dominate.
+          - generic "Click to copy":
+            - generic:
+              - generic: Accent Light
+              - generic: rgb(209 137 52)
+          - generic "Click to copy":
+            - generic:
+              - generic: Accent Dark
+              - generic: rgb(88 57 20)
+          - generic "Click to copy":
+            - generic:
+              - generic: Working Leaf Green
+              - generic: rgb(42 123 69)
+            - generic: "a distinct secondary green reserved for its own semantic role (currently scheduling/palette use in `schedulePalette.js`) — kept separate from Primary so it never gets read as \"the brand color at a different shade.\""
+          - generic "Click to copy":
+            - generic:
+              - generic: Leaf Light
+              - generic: rgb(61 180 101)
+          - generic "Click to copy":
+            - generic:
+              - generic: Leaf Dark
+              - generic: rgb(23 66 37)
+          - generic "Click to copy":
+            - generic:
+              - generic: Warm Paper
+              - generic: rgb(246 244 238)
+          - generic "Click to copy":
+            - generic:
+              - generic: Paper Raised
+              - generic: rgb(255 254 251)
+          - generic "Click to copy":
+            - generic:
+              - generic: Ink
+              - generic: rgb(36 41 31)
+          - generic "Click to copy":
+            - generic:
+              - generic: Ink Soft
+              - generic: rgb(86 92 77)
+          - generic:
+            - generic:
+              - generic: display
+              - generic: "600"
+            - generic: Aa
+            - generic: 1rem
+            - generic: Fraunces
+            - generic: Page-level h1/h2 titles only. Never body copy, labels, or buttons.
+          - generic:
+            - generic:
+              - generic: body
+              - generic: "400"
+            - generic: Aa
+            - generic: 1rem
+            - generic: Public Sans
+            - generic: "All working UI text: labels, tables, forms, buttons, nav."
+          - generic:
+            - generic:
+              - generic: mono
+              - generic: "400"
+            - generic: Aa
+            - generic: 1rem
+            - generic: IBM Plex Mono
+            - generic: "Numerals that must align in columns: clock, counts, dates."
+          - generic:
+            - generic:
+              - generic: Corner Radii
+              - generic: "3"
+            - generic:
+              - generic:
+                - generic: sm
+                - generic: 8px
+              - generic:
+                - generic: md
+                - generic: 12px
+              - generic:
+                - generic: full
+                - generic: 9999px
+          - generic:
+            - generic:
+              - generic: card
+              - generic: Elevation
+            - generic: 0 1px 2px rgba(36,41,31,.06), 0 1px 1px rgba(36,41,31,.04)
+            - generic: Resting shadow for stat tiles and content cards.
+          - generic:
+            - generic:
+              - generic: card-hover
+              - generic: Elevation
+            - generic: 0 4px 14px rgba(36,41,31,.10), 0 1px 3px rgba(36,41,31,.06)
+            - generic: Hover/focus shadow, paired with a -2px translateY lift.
+          - generic:
+            - generic:
+              - generic: Primary Button
+              - generic: button
+            - generic:
+              - generic:
+                - generic:
+                  - button "Save Changes"
+            - generic: The canonical solid-fill call-to-action button, repeated verbatim across nearly every screen.
+          - generic:
+            - generic:
+              - generic: Sidebar Nav Item
+              - generic: nav
+            - generic:
+              - generic:
+                - generic:
+                  - button "Class Record"
+            - generic: Ghost-style navigation button used inside the primary-green sidebar, with an accent edge indicator for the active item.
+          - generic:
+            - generic:
+              - generic: Stat Card
+              - generic: card
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: Total Enrolled
+                    - generic: "312"
+            - generic: Compact raised-paper tile with a soft ambient shadow that lifts slightly on hover, used for dashboard/summary metrics.
+          - generic:
+            - generic:
+              - generic: Text Input
+              - generic: input
+            - generic:
+              - generic:
+                - generic:
+                  - textbox "Search learners..."
+            - generic: Recessed-tone text field that brightens and gains a soft primary ring on focus.
+          - generic:
+            - generic:
+              - generic: Tooltip
+              - generic: custom
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - text: Hover me
+                    - tooltip "Collapse sidebar"
+            - generic: "Dependency-free hover/focus tooltip: a small dark pill above the trigger element."
+          - generic:
+            - button "Named Rules 4":
+              - generic: Named Rules
+              - generic: "4"
+          - generic:
+            - button "Do's and Don'ts 8":
+              - generic: Do's and Don'ts
+              - generic: "8"
+          - generic:
+            - button "Overview"

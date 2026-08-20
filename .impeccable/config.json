@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-radius",
+        "value": "4px",
+        "createdAt": "2026-08-20T01:33:16.106Z",
+        "reason": "global :focus-visible outline-radius softening, not a component radius (button/card/input tokens unaffected)"
+      }
+    ]
+  }
+}

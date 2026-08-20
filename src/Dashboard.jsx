@@ -62,7 +62,7 @@ function StatSkeleton() {
 
 function TileEmptyState({ icon: Icon = Inbox, text }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 dark:text-gray-500">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
       <Icon size={13} className="flex-shrink-0" />
       <span className="truncate">{text}</span>
     </span>
@@ -73,7 +73,7 @@ function EmptyState({ icon: Icon = Inbox, text }) {
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-8 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
       <Icon size={22} className="text-gray-300 dark:text-gray-600" />
-      <p className="text-sm text-gray-400 dark:text-gray-500">{text}</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{text}</p>
     </div>
   );
 }
@@ -339,7 +339,7 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, goToSchoolSe
                         <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
                           Added {learner.lastName}, {learner.firstName}
                         </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           {[learner.gradeLevel, learner.section].filter(Boolean).join(' · ')}
                           {learner.createdAt ? ` · ${formatActivityDate(learner.createdAt)}` : ''}
                         </p>
