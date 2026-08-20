@@ -18,7 +18,7 @@ export default function FileSummaryCard({ file, onSelect, selected }) {
     >
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{file.filename}</div>
+          <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 break-all">{file.filename}</div>
           <div className="text-xs text-gray-400 dark:text-gray-500">
             {file.sheetName || "Sheet"} · {learnerCount} learner{learnerCount === 1 ? "" : "s"}
           </div>
@@ -46,7 +46,7 @@ function Info({ label, value }) {
   return (
     <div className="flex justify-between gap-2">
       <span className="text-gray-400 dark:text-gray-500">{label}</span>
-      <span className="font-medium text-gray-700 dark:text-gray-200 text-right truncate">{value || "—"}</span>
+      <span className="font-medium text-gray-700 dark:text-gray-200 text-right break-words">{value || "—"}</span>
     </div>
   );
 }

@@ -287,7 +287,7 @@ function SelectFilesStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) 
                 key={`${f.name}-${i}`}
                 className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm"
               >
-                <span className="truncate text-gray-700 dark:text-gray-200">{f.name}</span>
+                <span className="min-w-0 break-all text-gray-700 dark:text-gray-200">{f.name}</span>
                 <button
                   type="button"
                   onClick={() => onRemove(i)}

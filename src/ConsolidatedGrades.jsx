@@ -464,7 +464,7 @@ export default function ConsolidatedGrades({ user }) {
                         key={learner.id}
                         className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150 bg-white dark:bg-gray-900"
                       >
-                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 sticky left-0 z-10 bg-white dark:bg-gray-900 group-hover:bg-inherit truncate max-w-[240px]">
+                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 sticky left-0 z-10 bg-white dark:bg-gray-900 group-hover:bg-inherit truncate max-w-[240px]" title={learner.name}>
                           <span className="text-gray-400 dark:text-gray-500 font-normal mr-2">{idx + 1}.</span>
                           {learner.name}
                         </td>

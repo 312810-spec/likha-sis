@@ -325,10 +325,10 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, goToSchoolSe
                         <UserPlus size={14} />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-200 break-words">
                           Added {learner.lastName}, {learner.firstName}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 break-words">
                           {[learner.gradeLevel, learner.section].filter(Boolean).join(' · ')}
                           {learner.createdAt ? ` · ${formatActivityDate(learner.createdAt)}` : ''}
                         </p>

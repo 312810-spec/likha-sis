@@ -746,7 +746,7 @@ export default function UserManagement({ user }) {
                           ) : (
                             <div className="space-y-1">
                               {assignmentList.map((a, i) => (
-                                <div key={i} className="truncate max-w-xs">
+                                <div key={i} className="break-words max-w-xs">
                                   <span className="font-semibold">
                                     {ROLE_LABELS[a.role] || a.role}:
                                   </span>{" "}
