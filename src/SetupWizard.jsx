@@ -911,9 +911,9 @@ function SetupWizard({ onComplete }) {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 divide-y md:divide-y-0 md:divide-x divide-gray-100">
               {/* Logo Upload */}
-              <div className="bg-gray-50/70 p-5 rounded-xl border border-gray-200 space-y-3">
+              <div className="space-y-3 md:pr-6">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
                     1
@@ -963,7 +963,7 @@ function SetupWizard({ onComplete }) {
               </div>
 
               {/* Theme Generation */}
-              <div className="bg-gray-50/70 p-5 rounded-xl border border-gray-200 space-y-3">
+              <div className="space-y-3 pt-6 md:pt-0 md:pl-6">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
                     2
