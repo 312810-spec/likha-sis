@@ -10,7 +10,8 @@ import { updateProfile, reauthenticateWithCredential, updatePassword, EmailAuthP
 import { db, auth } from "./firebase";
 import { ROLE_OPTIONS, ROLE_LABELS } from "./utils/roles.js";
 import { validateSelfRoleEdit } from "./utils/userAccountManagement.js";
-import { ArrowLeft, UserCircle, Save, KeyRound, CheckCircle2, AlertCircle } from "lucide-react";
+import { Save, KeyRound, CheckCircle2, AlertCircle } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
 
 const inputClass = "w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors";
 const labelClass = "flex flex-col gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300";
@@ -29,7 +30,7 @@ function friendlyPasswordError(err) {
   }
 }
 
-export default function AccountSettings({ user, goBack }) {
+export default function AccountSettings({ user }) {
   const [profile, setProfile] = useState(null);
   const [fullName, setFullName] = useState("");
   const [editableRoles, setEditableRoles] = useState([]);
@@ -161,8 +162,8 @@ export default function AccountSettings({ user, goBack }) {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto animate-slide-up">
-        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="max-w-3xl mx-auto w-full">
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
           <div className="h-6 w-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
         </div>
@@ -171,28 +172,8 @@ export default function AccountSettings({ user, goBack }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-12 animate-slide-up">
-      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
-        {goBack && (
-          <button
-            type="button"
-            onClick={goBack}
-            className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-            aria-label="Back to dashboard"
-          >
-            <ArrowLeft size={18} />
-          </button>
-        )}
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <UserCircle className="text-primary" size={24} />
-            Account Settings
-          </h1>
-          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-            Manage your own name and password.
-          </p>
-        </div>
-      </div>
+    <div className="max-w-3xl mx-auto w-full space-y-6 pb-12">
+      <PageHeader description="Manage your own name and password." />
 
       {/* Profile */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
