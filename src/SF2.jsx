@@ -18,6 +18,8 @@ import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import { Info } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
+import { inputClass } from "./components/settings/settingsStyles.js";
 
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import { getWeekdays, makeAttendanceDocId, schoolYearFromMonth } from "./utils/attendanceDates";
@@ -94,7 +96,7 @@ function formatMonthLabel(monthValue) {
 
 // ---- Component -------------------------------------------------------------
 
-function SF2({ user, userRoles, goBack }) {
+function SF2({ user, userRoles }) {
   const { config } = useSchoolConfig();
   const currentSchool = { ...schoolConfig, ...config };
   // Only the adviser marks attendance; other roles granted sf2 access
@@ -892,7 +894,7 @@ function SF2({ user, userRoles, goBack }) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
+    <div className="space-y-6 max-w-none w-full">
       {/* Print CSS — screen chrome hides, the printable SF2 report stays plain. */}
       <style>{`
         @media print {
@@ -956,54 +958,29 @@ function SF2({ user, userRoles, goBack }) {
         .sf2-sig-head-label { margin-bottom: 18px; margin-top: 0; }
       `}</style>
 
-      {/* Header Bar */}
-      <div className="no-print bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        {goBack && (
-          <button
-            onClick={goBack}
-            className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
-            type="button"
+      {/* Header + class/month pickers */}
+      <div className="no-print">
+        <PageHeader description="Daily Attendance">
+          <select
+            value={filterValue}
+            onChange={(e) => setFilterValue(e.target.value)}
+            className={inputClass}
           >
-            ← Back to Dashboard
-          </button>
-        )}
-        <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
-          School Form 2 — Daily Attendance
-        </h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user?.email || ""}</strong>
-        </p>
-      </div>
-
-      {/* Class + month pickers */}
-      <div className="no-print bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Class</label>
-            <select
-              value={filterValue}
-              onChange={(e) => setFilterValue(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
-            >
-              <option value="">-- Select Class --</option>
-              {gradeSectionOptions.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Month</label>
-            <input
-              type="month"
-              value={monthValue}
-              onChange={(e) => {
-                setMonthValue(e.target.value);
-                setStatusMessage("");
-              }}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
-            />
-          </div>
-        </div>
+            <option value="">-- Select Class --</option>
+            {gradeSectionOptions.map((opt) => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+          <input
+            type="month"
+            value={monthValue}
+            onChange={(e) => {
+              setMonthValue(e.target.value);
+              setStatusMessage("");
+            }}
+            className={inputClass}
+          />
+        </PageHeader>
       </div>
 
       {/* Tab bar — adviser can switch between marking attendance and the
