@@ -20,6 +20,7 @@ import StepIndicator from "../components/import/StepIndicator";
 import StatCard from "../components/import/StatCard";
 import FileSummaryCard from "../components/import/FileSummaryCard";
 import PreviewTable from "../components/import/PreviewTable";
+import Button from "../components/Button.jsx";
 
 const STEPS = ["Select Files", "Analyze", "Review", "Import", "Summary"];
 
@@ -335,13 +336,9 @@ function SF10ReviewStep({ batch, fileModels, onConfirm, onBack, busy, priorImpor
       </div>
 
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        >
+        <Button type="button" variant="secondary" onClick={onBack}>
           ← Back to file selection
-        </button>
+        </Button>
         <div className="flex items-center gap-3">
           {batch.blockingErrors && (
             <span className="text-xs text-red-600 dark:text-red-400">Fix blocking errors before importing.</span>
