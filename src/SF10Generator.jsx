@@ -18,7 +18,8 @@ import { getSubjectWeights } from "./utils/subjectWeights.js";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights.js";
 import { buildLearnerAcademicHistory } from "./utils/sf10Records.js";
 import { getSubjectRows, PRE_MATATAG_MAPEH_ROWS } from "./utils/subjectRows.js";
-import { ArrowLeft, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
 
 function fullName(learner) {
   if (!learner) return "";
@@ -172,7 +173,7 @@ function SF10Document({ learner, history, shsConfig, school }) {
   );
 }
 
-export default function SF10Generator({ goBack }) {
+export default function SF10Generator() {
   const { config } = useSchoolConfig();
   const school = { ...schoolConfig, ...config };
 
@@ -281,13 +282,8 @@ export default function SF10Generator({ goBack }) {
         }
       `}</style>
 
-      <div className="no-print flex items-center gap-3">
-        {goBack && (
-          <button type="button" onClick={goBack} className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <ArrowLeft size={18} />
-          </button>
-        )}
-        <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100">SF10 Generator</h1>
+      <div className="no-print">
+        <PageHeader description="Learner's Permanent Academic Record (SF10) generator." />
       </div>
 
       <div className="no-print inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
