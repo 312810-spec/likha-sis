@@ -12,6 +12,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <title>LIKHA-SIS</title>
     <link rel="manifest" href="/manifest.json" />
+    <script>
+      // Apply the last-known school brand theme before first paint, so a
+      // refresh doesn't flash the default colors while useBrandTheme's
+      // Firestore onSnapshot is still resolving. useBrandTheme.js mirrors
+      // the resolved CSS vars into this same localStorage key every time
+      // the theme is applied; this script only ever replays them.
+      (function () {
+        try {
+          var cached = localStorage.getItem("likha-theme-vars");
+          if (!cached) return;
+          var vars = JSON.parse(cached);
+          var root = document.documentElement.style;
+          for (var key in vars) {
+            if (Object.prototype.hasOwnProperty.call(vars, key)) {
+              root.setProperty(key, vars[key]);
+            }
+          }
+        } catch (e) {
+          // Malformed cache or localStorage unavailable -- fall back to
+          // the default :root theme, same as before this cache existed.
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
