@@ -125,8 +125,10 @@ export async function findPriorImport(db, fingerprints) {
 
 /**
  * Execute an approved import batch into Firestore.
- * Safety: blocks when any record has a blocking error; only creates NEW learners
- * (existing matching LRNs are skipped to preserve history); chunks writes.
+ * Safety: blocks when any record has a blocking error; creates new learners for
+ * brand-new LRNs, updates the existing document in place for a matching-identity
+ * LRN with a new enrollment context (re-enrollment), and skips only exact
+ * duplicate enrollments; chunks writes.
  */
 export async function executeImport(db, opts = {}) {
   const {
@@ -154,14 +156,25 @@ export async function executeImport(db, opts = {}) {
 
   // Records are shaped { learner: { lrn, ... }, issues, severity, ... }.
   // The LRN lives on r.learner.lrn, NOT at r.lrn directly.
-  const toWrite = records.filter(
+  // - Brand new LRN                          -> create a new learner document.
+  // - Existing LRN, matching identity, but a
+  //   different school year/grade/section    -> re-enrollment: update the
+  //   existing document's enrollment fields in place, rather than skipping it.
+  // - Existing LRN with the exact same
+  //   enrollment already recorded            -> true duplicate, skip.
+  const toCreate = records.filter(
     (r) => r.learner?.lrn && !(r.duplicate && r.duplicate.inFirestore)
   );
-  const skippedCount = records.filter(
-    (r) => !r.learner?.lrn || (r.duplicate && r.duplicate.inFirestore)
-  ).length;
+  const toUpdate = records.filter(
+    (r) =>
+      r.learner?.lrn &&
+      r.duplicate?.inFirestore &&
+      r.duplicate?.existingId &&
+      !r.duplicate?.enrollment
+  );
+  const skippedCount = records.length - toCreate.length - toUpdate.length;
 
-  const docs = toWrite.map((r) => {
+  const createDocs = toCreate.map((r) => {
     const fp =
       r.sourceFileFingerprint ||
       (fileFingerprints[r.fileIndex] ? fileFingerprints[r.fileIndex] : "");
@@ -179,10 +192,35 @@ export async function executeImport(db, opts = {}) {
     };
   });
 
-  for (let i = 0; i < docs.length; i += BATCH_LIMIT) {
-    const chunk = docs.slice(i, i + BATCH_LIMIT);
+  const updateDocs = toUpdate.map((r) => {
+    const fp =
+      r.sourceFileFingerprint ||
+      (fileFingerprints[r.fileIndex] ? fileFingerprints[r.fileIndex] : "");
+    return {
+      ref: doc(db, "learners", r.duplicate.existingId),
+      data: {
+        ...toFirestoreLearner(r.learner, {
+          importId,
+          sourceFileFingerprint: fp,
+          userEmail: importedByEmail,
+        }),
+        updatedAt: serverTimestamp(),
+        importBatchId: importId,
+      },
+    };
+  });
+
+  for (let i = 0; i < createDocs.length; i += BATCH_LIMIT) {
+    const chunk = createDocs.slice(i, i + BATCH_LIMIT);
     const batch = writeBatch(db);
     chunk.forEach((d) => batch.set(d.ref, d.data));
+    await batch.commit();
+  }
+
+  for (let i = 0; i < updateDocs.length; i += BATCH_LIMIT) {
+    const chunk = updateDocs.slice(i, i + BATCH_LIMIT);
+    const batch = writeBatch(db);
+    chunk.forEach((d) => batch.update(d.ref, d.data));
     await batch.commit();
   }
 
@@ -194,7 +232,7 @@ export async function executeImport(db, opts = {}) {
     filenames,
     fileFingerprints,
     learnerCount: records.length,
-    successfulRecords: docs.length,
+    successfulRecords: createDocs.length + updateDocs.length,
     skippedRecords: skippedCount,
     errors: records.reduce((n, r) => n + (r.summary?.errors || 0), 0),
     warnings: records.reduce((n, r) => n + (r.summary?.warnings || 0), 0),
@@ -206,7 +244,14 @@ export async function executeImport(db, opts = {}) {
     createdAt: serverTimestamp(),
   });
 
-  return { importId, status: "success", written: docs.length, skipped: skippedCount, blockedCount: 0 };
+  return {
+    importId,
+    status: "success",
+    written: createDocs.length,
+    updated: updateDocs.length,
+    skipped: skippedCount,
+    blockedCount: 0,
+  };
 }
 
 /**

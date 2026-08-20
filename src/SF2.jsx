@@ -23,6 +23,14 @@ import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import { getWeekdays, makeAttendanceDocId, schoolYearFromMonth } from "./utils/attendanceDates";
 import buildAttendanceYearOverview from "./utils/attendanceYearOverview";
 
+// The importer stores sex as "Male"/"Female"; the roster below groups by M/F.
+function sexLetter(sex) {
+  const s = String(sex || "").trim().toUpperCase();
+  if (s.startsWith("M")) return "M";
+  if (s.startsWith("F")) return "F";
+  return "";
+}
+
 // Dropout reason codes (a1–f) per the DepEd NLS legend. Used both for the
 // "Legend & Guidelines" section and the per-learner Remarks dropdown options.
 const DROPOUT_REASONS = [
@@ -171,8 +179,8 @@ function SF2({ user, userRoles, goBack }) {
   const filteredLearners = filterValue
     ? learners.filter((l) => `${l.gradeLevel} - ${l.section}` === filterValue)
     : [];
-  const maleLearners = filteredLearners.filter((l) => l.sex === "M").sort(byName);
-  const femaleLearners = filteredLearners.filter((l) => l.sex === "F").sort(byName);
+  const maleLearners = filteredLearners.filter((l) => sexLetter(l.sex) === "M").sort(byName);
+  const femaleLearners = filteredLearners.filter((l) => sexLetter(l.sex) === "F").sort(byName);
 
   // All weekday dates within the selected month.
   const weekdays = getWeekdays(monthValue);
