@@ -90,7 +90,7 @@ function AnnouncementRow({ announcement, onOpen }) {
           <p className="text-xs font-medium text-gray-800 dark:text-gray-100 line-clamp-2">
             {announcement.title}
           </p>
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 break-words">
             {type?.label || 'Announcement'}
             {announcement.referenceNo ? ` — ${announcement.referenceNo}` : ''}
           </p>

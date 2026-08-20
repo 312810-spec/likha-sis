@@ -369,7 +369,7 @@ export default function SchoolCalendar({ user, userRoles }) {
                     <div
                       key={`${entry.kind}-${entry.id || entry.title}-${i}`}
                       title={entry.subtitle ? `${entry.title} — ${entry.subtitle}` : entry.title}
-                      className={`px-1 py-0.5 rounded text-[10px] leading-tight truncate ${
+                      className={`px-1 py-0.5 rounded text-[10px] leading-tight line-clamp-2 break-words ${
                         ENTRY_TONES[entry.tone] || ENTRY_TONES.blue
                       }`}
                     >

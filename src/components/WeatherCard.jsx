@@ -143,7 +143,7 @@ export default function WeatherCard({ onOpenSettings }) {
           <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 leading-none tabular-nums">
             {round(weather.temperature, "°")}
           </p>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate">{label}</p>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 break-words">{label}</p>
         </div>
       </div>
 
