@@ -10,11 +10,13 @@ import useAvailableSections from "./hooks/useAvailableSections";
 import { getSubjectWeights } from "./utils/subjectWeights";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { computeLearnerTermGrade } from "./utils/gradeComputations";
-import { ArrowLeft, Award, RefreshCw, Info } from "lucide-react";
+import { RefreshCw, Info } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 
-export default function ConsolidatedGrades({ goBack, user }) {
+export default function ConsolidatedGrades({ user }) {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 
@@ -245,42 +247,19 @@ export default function ConsolidatedGrades({ goBack, user }) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
+    <div className="space-y-6 max-w-none w-full">
       {/* Top Banner / Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 active:scale-[0.98]"
-              title="Back to Dashboard"
-              type="button"
-            >
-              <ArrowLeft size={20} />
-            </button>
-          )}
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Award className="text-primary" size={26} />
-              Consolidated Grades
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Consolidated Final Grades and General Average per DO 15, s.2026.
-            </p>
-          </div>
-        </div>
-
-        {isLoaded && (
-          <button
-            onClick={() => setIsLoaded(false)}
-            className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 active:scale-[0.98] flex items-center gap-2"
-            type="button"
-          >
-            <RefreshCw size={16} />
-            Change Setup
-          </button>
-        )}
-      </div>
+      <PageHeader
+        description="Consolidated Final Grades and General Average per DO 15, s.2026."
+        actions={
+          isLoaded && (
+            <Button variant="secondary" size="small" onClick={() => setIsLoaded(false)}>
+              <RefreshCw size={16} />
+              Change Setup
+            </Button>
+          )
+        }
+      />
 
       {/* Error Banner */}
       {errorMessage && (
@@ -347,7 +326,7 @@ export default function ConsolidatedGrades({ goBack, user }) {
       {!isLoaded ? (
         <form
           onSubmit={handleLoad}
-          className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-xl space-y-4"
+          className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-card border border-gray-200 dark:border-gray-700 max-w-xl space-y-4"
         >
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Select Section Setup</h2>
 
@@ -438,7 +417,7 @@ export default function ConsolidatedGrades({ goBack, user }) {
           </div>
 
           {/* Consolidated Table Container */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-card border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-card border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
               <div>
                 <h2 className="font-display text-lg font-semibold text-gray-900 dark:text-gray-100">
