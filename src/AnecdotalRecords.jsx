@@ -25,7 +25,6 @@ import {
   NotebookPen,
   Calendar,
   Clock,
-  ArrowLeft,
   CheckCircle2,
   MessageSquare,
   ChevronDown,
@@ -36,8 +35,10 @@ import {
   ANECDOTAL_INCIDENT_TYPES,
   ANECDOTAL_STATUS_OPTIONS,
 } from "./anecdotalConstants.js";
+import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 
-export default function AnecdotalRecords({ user, goBack }) {
+export default function AnecdotalRecords({ user }) {
   const { config } = useSchoolConfig();
   const gradeOptions = [
     "All",
@@ -337,41 +338,16 @@ export default function AnecdotalRecords({ user, goBack }) {
   }, [records, historyLearner]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
+    <div className="space-y-6 max-w-3xl mx-auto w-full">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors"
-              type="button"
-            >
-              <ArrowLeft size={14} /> Back to Dashboard
-            </button>
-          )}
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary dark:bg-primary/20 flex items-center justify-center shrink-0">
-              <NotebookPen size={18} />
-            </div>
-            <div>
-              <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
-                Anecdotal Records
-              </h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                DepEd Behavioral, Counseling &amp; Intervention Log Tracking
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={handleOpenForm}
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-primary-dark shadow-sm active:scale-[0.98] transition-all"
-        >
-          <Plus size={16} /> Log Anecdotal Record
-        </button>
-      </div>
+      <PageHeader
+        description="DepEd Behavioral, Counseling & Intervention Log Tracking"
+        actions={
+          <Button onClick={handleOpenForm}>
+            <Plus size={16} /> Log Anecdotal Record
+          </Button>
+        }
+      />
 
       {/* Filter Bar */}
       <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3">
