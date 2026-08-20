@@ -54,6 +54,18 @@ function App() {
   const { profile, loading: profileLoading } = useUserProfile(user);
   const [showDeactivatedNotice, setShowDeactivatedNotice] = useState(false);
   const [showParentLogin, setShowParentLogin] = useState(false);
+  const { config: schoolConfig } = useSchoolConfig();
+
+  // Browser tab title: "LIKHA-SIS: [School ID] [School Name]" once the
+  // school's identity is known, falling back to the bare app name before
+  // that (first-run setup, or a school that hasn't filled in Step 1 yet).
+  useEffect(() => {
+    const schoolId = schoolConfig?.schoolId?.trim();
+    const schoolName = schoolConfig?.schoolName?.trim();
+    document.title = schoolName
+      ? `LIKHA-SIS: ${[schoolId, schoolName].filter(Boolean).join(" ")}`
+      : "LIKHA-SIS";
+  }, [schoolConfig?.schoolId, schoolConfig?.schoolName]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
