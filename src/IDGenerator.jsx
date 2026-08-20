@@ -275,7 +275,7 @@ function IDGenerator({ user, goBack }) {
 
   if (loading) {
     return (
-      <div className="space-y-6 max-w-4xl mx-auto my-8 px-4 animate-slide-up">
+      <div className="space-y-6 max-w-4xl mx-auto my-8 px-4">
         {goBack && (
           <button
             onClick={goBack}
@@ -296,7 +296,7 @@ function IDGenerator({ user, goBack }) {
   return (
     <div className="space-y-6 max-w-5xl mx-auto my-8 px-4">
       {/* ---- Controls (no-print) ---- */}
-      <div className="no-print space-y-4 animate-slide-up">
+      <div className="no-print space-y-4">
         <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
           {goBack && (
             <button

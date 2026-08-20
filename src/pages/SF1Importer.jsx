@@ -161,7 +161,7 @@ export default function SF1Importer({ user }) {
 
   // ---- Render -------------------------------------------------------------
   return (
-    <div className="max-w-6xl mx-auto space-y-5 animate-slide-up">
+    <div className="max-w-none w-full space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SF1 Bulk Import</h2>

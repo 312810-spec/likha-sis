@@ -135,7 +135,7 @@ export default function NutritionConsolidator({ goBack }) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
+    <div className="space-y-6 max-w-none w-full">
       <style>{`
         @media print {
           .no-print { display: none !important; }

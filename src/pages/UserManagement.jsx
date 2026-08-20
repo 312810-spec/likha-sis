@@ -422,7 +422,7 @@ export default function UserManagement({ user }) {
     selectedRoles.includes("adviser") || selectedRoles.includes("subjectTeacher");
 
   return (
-    <div className="font-sans text-gray-900 dark:text-gray-100 space-y-6 max-w-6xl mx-auto pb-12 animate-slide-up">
+    <div className="font-sans text-gray-900 dark:text-gray-100 space-y-6 max-w-none w-full pb-12">
       {/* Header Banner */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm flex items-center justify-between">
         <div>

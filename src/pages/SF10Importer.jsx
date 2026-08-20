@@ -136,7 +136,7 @@ export default function SF10Importer({ user }) {
 
   // ---- Render -------------------------------------------------------------
   return (
-    <div className="max-w-6xl mx-auto space-y-5 animate-slide-up">
+    <div className="max-w-none w-full space-y-5">
       <div>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SF10 Import</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">

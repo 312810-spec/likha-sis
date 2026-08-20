@@ -311,7 +311,7 @@ export default function ReportCard({ goBack }) {
       `}</style>
 
       {/* ---- Filter / Controls (no-print) ---- */}
-      <div className="no-print space-y-4 animate-slide-up">
+      <div className="no-print space-y-4">
         <div className="flex items-center gap-3">
           {goBack && (
             <button
