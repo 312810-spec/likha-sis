@@ -10,7 +10,7 @@ export default function FileSummaryCard({ file, onSelect, selected }) {
     <button
       type="button"
       onClick={onSelect}
-      className={`w-full text-left bg-white dark:bg-gray-900 border rounded-xl shadow-sm p-4 transition-colors ${
+      className={`w-full text-left bg-white dark:bg-gray-900 border rounded-lg shadow-sm p-4 transition-colors ${
         selected
           ? "border-primary ring-1 ring-primary dark:border-primary-light dark:ring-primary-light"
           : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
