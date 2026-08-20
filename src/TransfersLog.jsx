@@ -19,13 +19,14 @@ import {
   X,
   Search,
   Filter,
-  ArrowLeft,
   ArrowLeftRight,
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 
-export default function TransfersLog({ user, goBack }) {
+export default function TransfersLog({ user }) {
   const { config } = useSchoolConfig();
   const gradeOptions = ["All", ...(config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"])];
   const GRADE_OPTIONS = gradeOptions;
@@ -259,40 +260,15 @@ export default function TransfersLog({ user, goBack }) {
     });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        <div>
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98] transition-transform"
-              type="button"
-            >
-              <ArrowLeft size={14} /> Back to Dashboard
-            </button>
-          )}
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-leaf/10 dark:bg-leaf/20 rounded-lg text-leaf-dark dark:text-leaf-light border border-leaf/20">
-              <ArrowLeftRight size={22} />
-            </div>
-            <div>
-              <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">Transfers Tracking</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Record and manage learner transfers in and out of the school
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={handleOpenForm}
-          className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform text-sm"
-          type="button"
-        >
-          <Plus size={16} /> Record a Transfer
-        </button>
-      </div>
+    <div className="space-y-6 max-w-none w-full">
+      <PageHeader
+        description="Record and manage learner transfers in and out of the school"
+        actions={
+          <Button onClick={handleOpenForm}>
+            <Plus size={16} /> Record a Transfer
+          </Button>
+        }
+      />
 
       {/* Global Status Message */}
       {statusMessage && (
