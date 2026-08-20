@@ -246,7 +246,7 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, goToSchoolSe
   }, []);
 
   return (
-    <div className="font-sans text-gray-900 dark:text-gray-100 animate-slide-up">
+    <div className="font-sans text-gray-900 dark:text-gray-100">
       <div className="flex flex-wrap gap-3 mt-4">
         <StatTile icon={Users} tint="bg-primary/10 text-primary dark:bg-primary/20" label="Total Learners">
           {statsLoading ? <StatSkeleton /> : statsError ? <TileEmptyState text="Stats unavailable" /> : learnerStats.total === 0 ? <TileEmptyState text="No learners yet." /> : formatCount(learnerStats.total)}
@@ -356,29 +356,6 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, goToSchoolSe
           <WeatherCard onOpenSettings={canEditSchoolSettings ? goToSchoolSettings : undefined} />
 
           {canSeeLardo && <LardoRiskSummary goToLardo={goToLardo} />}
-
-          <SectionCard title="Quick Actions">
-            <div className="flex flex-col gap-2 mt-3">
-              <button
-                onClick={goToSF1}
-                className="bg-primary text-white px-3 py-2.5 rounded-lg text-sm font-medium text-left shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all duration-150"
-              >
-                Add Learner → SF1
-              </button>
-              <button
-                onClick={goToViewLearners}
-                className="bg-white text-primary border border-gray-200 px-3 py-2.5 rounded-lg text-sm font-medium text-left hover:bg-gray-50 active:scale-[0.99] transition-all duration-150 dark:bg-gray-800 dark:text-primary-light dark:border-gray-700 dark:hover:bg-gray-700"
-              >
-                View Learners
-              </button>
-              <button
-                onClick={goToSF2}
-                className="bg-white text-primary border border-gray-200 px-3 py-2.5 rounded-lg text-sm font-medium text-left hover:bg-gray-50 active:scale-[0.99] transition-all duration-150 dark:bg-gray-800 dark:text-primary-light dark:border-gray-700 dark:hover:bg-gray-700"
-              >
-                School Form 2 → SF2
-              </button>
-            </div>
-          </SectionCard>
 
           <SectionCard>
             <div className="flex items-center gap-2.5">
