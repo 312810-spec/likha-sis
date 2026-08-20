@@ -26,9 +26,11 @@ import {
   computeInitialGrade,
 } from "./utils/gradeComputations";
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
-import { Plus, X, Save, ArrowLeft, RefreshCw, BookOpen, Info } from "lucide-react";
+import { Plus, X, Save, RefreshCw, Info } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 
-export default function ClassRecord({ user, goBack }) {
+export default function ClassRecord({ user }) {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 
@@ -402,53 +404,25 @@ export default function ClassRecord({ user, goBack }) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
+    <div className="space-y-6 max-w-none w-full">
       {/* Top Banner / Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
-        <div className="flex items-center gap-3">
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 active:scale-[0.98] transition-transform"
-              title="Back to Dashboard"
-              type="button"
-            >
-              <ArrowLeft size={20} />
-            </button>
-          )}
-          <div>
-            <h1 className="font-display text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
-              <BookOpen className="text-primary" size={26} />
-              Class Record
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              Enter scores and calculate DepEd grades live based on subject weights.
-            </p>
-          </div>
-        </div>
-
-        {isLoaded && (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsLoaded(false)}
-              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 active:scale-[0.98] transition-transform flex items-center gap-2 shadow-2xs"
-              type="button"
-            >
-              <RefreshCw size={16} />
-              Change Setup
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary-dark rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform flex items-center gap-2 disabled:opacity-50"
-              type="button"
-            >
-              <Save size={18} />
-              {isSaving ? "Saving..." : "Save Class Record"}
-            </button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        description="Enter scores and calculate DepEd grades live based on subject weights."
+        actions={
+          isLoaded && (
+            <>
+              <Button variant="secondary" size="small" onClick={() => setIsLoaded(false)}>
+                <RefreshCw size={16} />
+                Change Setup
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                <Save size={18} />
+                {isSaving ? "Saving..." : "Save Class Record"}
+              </Button>
+            </>
+          )
+        }
+      />
 
       {/* Global Status Banner */}
       {statusMessage && (
@@ -523,7 +497,7 @@ export default function ClassRecord({ user, goBack }) {
 
       {/* SETUP PANEL */}
       {!isLoaded ? (
-        <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-card p-6 space-y-6">
+        <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 space-y-6">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-3">
             Select Class &amp; Subject Parameters
           </h2>
