@@ -31,7 +31,6 @@ import {
   ChevronUp,
   Search,
   Filter,
-  ArrowLeft,
   MessageSquare,
   Send,
   ShieldAlert,
@@ -39,6 +38,8 @@ import {
   Gavel,
   AlertOctagon,
 } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 
 const FIXED_RISK_FACTORS = [
   "Financial difficulty",
@@ -71,7 +72,7 @@ const DISCIPLINE_LEVELS = {
   },
 };
 
-export default function LardoTracking({ user, userRoles, goBack }) {
+export default function LardoTracking({ user, userRoles }) {
   const canSeeDiscipline = canAccessDisciplineRecords(userRoles);
   const [activeTab, setActiveTab] = useState("dropoutRisk");
   const { config } = useSchoolConfig();
@@ -744,50 +745,21 @@ export default function LardoTracking({ user, userRoles, goBack }) {
     });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
-        <div>
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98] transition-transform"
-              type="button"
-            >
-              <ArrowLeft size={14} /> Back to Dashboard
-            </button>
-          )}
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-accent/10 dark:bg-accent/20 rounded-lg text-accent-dark dark:text-accent-light border border-accent/20">
-              <ShieldAlert size={22} />
-            </div>
-            <div>
-              <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">LARDO Tracking</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Learners At Risk of Dropping Out — Monitoring &amp; Intervention System
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {activeTab === "discipline" ? (
-          <button
-            onClick={handleOpenIncidentForm}
-            className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform text-sm"
-            type="button"
-          >
-            <Plus size={16} /> Report Incident
-          </button>
-        ) : (
-          <button
-            onClick={handleOpenForm}
-            className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform text-sm"
-            type="button"
-          >
-            <Plus size={16} /> Flag a Learner
-          </button>
-        )}
-      </div>
+    <div className="space-y-6 max-w-none w-full">
+      <PageHeader
+        description="Learners At Risk of Dropping Out — Monitoring &amp; Intervention System"
+        actions={
+          activeTab === "discipline" ? (
+            <Button onClick={handleOpenIncidentForm}>
+              <Plus size={16} /> Report Incident
+            </Button>
+          ) : (
+            <Button onClick={handleOpenForm}>
+              <Plus size={16} /> Flag a Learner
+            </Button>
+          )
+        }
+      />
 
       {/* Tabs */}
       {canSeeDiscipline && (
