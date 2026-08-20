@@ -35,7 +35,16 @@ export default function ClassRecord({ user }) {
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 
   // Setup Panel state
-  const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
+  const [gradeLevelChoice, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
+  // useSchoolConfig() resolves asynchronously, so gradeLevelChoice above is
+  // seeded from the fallback grade list before the real (possibly narrower)
+  // gradeLevelsOffered loads. Deriving the effective value at render time
+  // (rather than syncing it back via an effect) keeps it always valid --
+  // otherwise the section list would silently query a grade with none until
+  // the user manually touched the dropdown.
+  const gradeLevel = gradeOptions.includes(gradeLevelChoice)
+    ? gradeLevelChoice
+    : gradeOptions[0] || "Grade 4";
   const [section, setSection] = useState("");
   const [subject, setSubject] = useState(Object.keys(SUBJECT_WEIGHTS)[0] || "FILIPINO");
   const [term, setTerm] = useState("Term 1");

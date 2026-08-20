@@ -53,7 +53,16 @@ export default function NutritionStatus({ user }) {
   const GRADE_OPTIONS = gradeOptions;
 
   // Filter state
-  const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
+  const [gradeLevelChoice, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
+  // useSchoolConfig() resolves asynchronously, so gradeLevelChoice above is
+  // seeded from the fallback grade list before the real (possibly narrower)
+  // gradeLevelsOffered loads. Deriving the effective value at render time
+  // (rather than syncing it back via an effect) keeps it always valid --
+  // otherwise the section list would silently query a grade with none until
+  // the user manually touched the dropdown.
+  const gradeLevel = gradeOptions.includes(gradeLevelChoice)
+    ? gradeLevelChoice
+    : gradeOptions[0] || "Grade 4";
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
   const [period, setPeriod] = useState("Baseline");
