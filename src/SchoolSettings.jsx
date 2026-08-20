@@ -10,7 +10,8 @@
 // these values re-shape every school form, report card and SF10 in the system.
 
 import { useState } from "react";
-import { ArrowLeft, Settings, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
 import SettingsLockScreen from "./components/settings/SettingsLockScreen.jsx";
 import SchoolIdentityTab from "./components/settings/SchoolIdentityTab.jsx";
 import GradeLevelsShsTab from "./components/settings/GradeLevelsShsTab.jsx";
@@ -28,47 +29,27 @@ const TABS = [
   { key: "security", label: "Security" },
 ];
 
-export default function SchoolSettings({ user, goBack }) {
+export default function SchoolSettings({ user }) {
   const [unlocked, setUnlocked] = useState(false);
   const [activeTab, setActiveTab] = useState("identity");
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-slide-up">
-      <div className="flex items-start justify-between gap-3 border-b border-gray-200 dark:border-gray-700 pb-4">
-        <div className="flex items-center gap-2">
-          {goBack && (
+    <div className="max-w-3xl mx-auto w-full space-y-6 pb-12">
+      <PageHeader
+        description="School identity, grade levels, sections, shifts, branding and the academic calendar — everything first-time Setup asked for, editable any time."
+        actions={
+          unlocked && (
             <button
               type="button"
-              onClick={goBack}
-              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-              aria-label="Back to dashboard"
+              onClick={() => setUnlocked(false)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0"
             >
-              <ArrowLeft size={18} />
+              <Lock size={14} />
+              Lock
             </button>
-          )}
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Settings className="text-primary" size={24} />
-              School Settings
-            </h1>
-            <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-              School identity, grade levels, sections, shifts, branding and the academic calendar —
-              everything first-time Setup asked for, editable any time.
-            </p>
-          </div>
-        </div>
-
-        {unlocked && (
-          <button
-            type="button"
-            onClick={() => setUnlocked(false)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0"
-          >
-            <Lock size={14} />
-            Lock
-          </button>
-        )}
-      </div>
+          )
+        }
+      />
 
       {!unlocked ? (
         <SettingsLockScreen user={user} onUnlocked={() => setUnlocked(true)} />
