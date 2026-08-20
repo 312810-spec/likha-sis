@@ -18,6 +18,7 @@ import { db } from './firebase';
 import { canAccessPage } from './pageAccess.js';
 import WeatherCard from './components/WeatherCard.jsx';
 import useAcademicCalendar from './hooks/useAcademicCalendar';
+import Button from './components/Button.jsx';
 
 function formatCount(n) {
   return Number(n || 0).toLocaleString('en-US');
@@ -162,12 +163,9 @@ function LardoRiskSummary({ goToLardo }) {
         </>
       )}
 
-      <button
-        onClick={goToLardo}
-        className="mt-4 w-full bg-primary text-white px-3 py-2.5 rounded-lg text-sm font-medium shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all duration-150"
-      >
+      <Button onClick={goToLardo} className="mt-4 w-full justify-center">
         Open LARDO Tracking
-      </button>
+      </Button>
     </SectionCard>
   );
 }
@@ -287,24 +285,15 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, goToSchoolSe
             <div className="mt-4">
               <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Quick access</div>
               <div className="flex flex-wrap gap-2 mt-2">
-                <button
-                  onClick={goToSF1}
-                  className="flex items-center gap-2 bg-primary text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all duration-150"
-                >
+                <Button onClick={goToSF1} size="small">
                   <Plus size={16} /> Add Learner — SF1
-                </button>
-                <button
-                  onClick={goToViewLearners}
-                  className="flex items-center gap-2 bg-white text-primary border border-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 active:scale-[0.99] transition-all duration-150 dark:bg-gray-800 dark:text-primary-light dark:border-gray-700 dark:hover:bg-gray-700"
-                >
+                </Button>
+                <Button onClick={goToViewLearners} variant="secondary" size="small">
                   <ClipboardList size={16} /> View Learners
-                </button>
-                <button
-                  onClick={goToSF2}
-                  className="flex items-center gap-2 bg-white text-primary border border-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 active:scale-[0.99] transition-all duration-150 dark:bg-gray-800 dark:text-primary-light dark:border-gray-700 dark:hover:bg-gray-700"
-                >
+                </Button>
+                <Button onClick={goToSF2} variant="secondary" size="small">
                   <FilePlus2 size={16} /> School Form 2
-                </button>
+                </Button>
               </div>
             </div>
           </SectionCard>

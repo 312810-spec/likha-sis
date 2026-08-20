@@ -19,6 +19,7 @@ import schoolConfig from "./schoolConfig";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import { Info } from "lucide-react";
 import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 import { inputClass } from "./components/settings/settingsStyles.js";
 
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
@@ -1086,14 +1087,9 @@ function SF2({ user, userRoles }) {
 
       {/* Save button, Print Report & Status */}
       <div className="no-print flex flex-wrap items-center gap-3">
-        <button
-          onClick={handleSave}
-          disabled={isSaving || !hasSelection}
-          className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
-          type="button"
-        >
+        <Button onClick={handleSave} disabled={isSaving || !hasSelection}>
           {isSaving ? "Saving..." : "Save Month"}
-        </button>
+        </Button>
         {hasSelection && (
           <button
             onClick={() => {
@@ -1128,7 +1124,8 @@ function SF2({ user, userRoles }) {
             <div className="text-xs mt-0.5">Flag {c.learner.lastName || ""}, {c.learner.firstName || ""} for monitoring?</div>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              size="small"
               onClick={async () => {
                 try {
                   const nowIso = new Date().toISOString();
@@ -1166,16 +1163,16 @@ function SF2({ user, userRoles }) {
                   setStatusMessage("Failed to create LARDO record. Please try again.");
                 }
               }}
-              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
             >
               Flag for monitoring
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="small"
               onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
             >
               Dismiss
-            </button>
+            </Button>
           </div>
         </div>
       ))}
