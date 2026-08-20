@@ -29,9 +29,9 @@ import {
 } from "./utils/schoolCalendar.js";
 import { toDateKey, daysUntil } from "./utils/philippineHolidays.js";
 import { canManageSchoolEvents } from "./pageAccess.js";
+import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 import {
-  ArrowLeft,
-  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -72,7 +72,7 @@ function relativeLabel(dateKey) {
   return `in ${days} days`;
 }
 
-export default function SchoolCalendar({ user, userRoles, goBack }) {
+export default function SchoolCalendar({ user, userRoles }) {
   const today = useMemo(() => new Date(), []);
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -190,40 +190,17 @@ export default function SchoolCalendar({ user, userRoles, goBack }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12 animate-slide-up">
-      <div className="flex items-start justify-between gap-3 border-b border-gray-200 dark:border-gray-700 pb-4">
-        <div className="flex items-center gap-2">
-          {goBack && (
-            <button
-              type="button"
-              onClick={goBack}
-              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-              aria-label="Back to dashboard"
-            >
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <CalendarDays className="text-primary" size={24} />
-              School Calendar
-            </h1>
-            <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-              Terms, holidays, class suspensions, and school events.
-            </p>
-          </div>
-        </div>
-
-        {canManage && !composing && (
-          <button
-            type="button"
-            onClick={() => setComposing(true)}
-            className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all flex-shrink-0"
-          >
-            <Plus size={16} /> Add Event
-          </button>
-        )}
-      </div>
+    <div className="max-w-none w-full space-y-6 pb-12">
+      <PageHeader
+        description="Terms, holidays, class suspensions, and school events."
+        actions={
+          canManage && !composing && (
+            <Button onClick={() => setComposing(true)}>
+              <Plus size={16} /> Add Event
+            </Button>
+          )
+        }
+      />
 
       {loadError && (
         <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 flex items-start gap-3 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300 animate-fade-in">
