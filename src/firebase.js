@@ -4,7 +4,11 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
+} from "firebase/firestore";
 
 // Your project's unique connection details (safe to be public — see note below)
 const firebaseConfig = {
@@ -23,7 +27,13 @@ const app = initializeApp(firebaseConfig);
 // 'auth' handles teacher login/logout
 // 'db' handles reading/writing data (forms, records, grades)
 const auth = getAuth(app);
-const db = getFirestore(app);
+// initializeFirestore with persistentLocalCache explicitly enables IndexedDB offline
+// persistence. persistentMultipleTabManager coordinates cache ownership across browser
+// tabs so teachers can work with the app open in more than one tab simultaneously.
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  })
+});
 
-// We export these so other files (like our future Login page) can use them
 export { auth, db };

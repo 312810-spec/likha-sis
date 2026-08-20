@@ -108,10 +108,15 @@ function buildImportedRows(lrn, academicRecordsList) {
     (Array.isArray(doc.learningAreas) ? doc.learningAreas : []).forEach((area) => {
       const rawName = String(area?.name ?? "").trim();
       const grades = Array.isArray(area?.grades) ? area.grades : [];
-      if (!rawName || grades.length === 0) return;
+      // The importer records the FINAL RATING column explicitly. Older documents
+      // predate that field and stored the final rating as the last element of
+      // `grades`, so fall back to it for records already in Firestore.
+      const finalRating =
+        Number.isFinite(area?.finalRating) ? area.finalRating : grades[grades.length - 1];
+      if (!rawName || finalRating === undefined || finalRating === null) return;
       const canonicalKey = findCanonicalKey(rawName, matchRows);
       const finalKey = canonicalKey || rawName.toUpperCase();
-      subjects[finalKey] = grades[grades.length - 1];
+      subjects[finalKey] = finalRating;
     });
     const parsedAverage = Number(doc.generalAverage);
     rows.set(key, {

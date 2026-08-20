@@ -5,14 +5,13 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
-import { Mail, Lock, LogIn } from "lucide-react";
-import Button from "./components/ui/Button";
-import Alert from "./components/ui/Alert";
+import { Mail, Lock, LogIn, AlertCircle, ShieldAlert, Eye, EyeOff } from "lucide-react";
 
-function Login({ deactivated = false }) {
+function Login({ deactivated = false, onSwitchToParent }) {
   // "State" is like a sticky note React watches — whenever it changes, the screen re-draws automatically.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -53,21 +52,29 @@ function Login({ deactivated = false }) {
       <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-accent/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-leaf/20 blur-3xl" />
 
-      <div className="relative w-full max-w-sm bg-white rounded-lg shadow-lg shadow-black/20 p-8 dark:bg-gray-900 dark:shadow-black/50 animate-slide-up">
+      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl shadow-black/20 p-8 dark:bg-gray-900 dark:shadow-black/50 animate-slide-up">
         <div className="flex flex-col items-center mb-6">
-          <img
-            src="/Tingub%20National%20High%20School%28clear%29.png"
-            alt="Tingub National High School"
-            className="w-16 h-16 mb-3 rounded-full ring-4 ring-primary/10 dark:ring-primary-light/20"
-          />
-          <h1 className="text-xl font-bold text-primary tracking-tight dark:text-primary-light">LIKHA-SIS</h1>
+          <div className="relative mb-3">
+            <img
+              src="/Tingub%20National%20High%20School%28clear%29.png"
+              alt="Tingub National High School"
+              className="w-16 h-16 rounded-full ring-4 ring-primary/10 dark:ring-primary-light/20"
+            />
+            <img
+              src="/LIKHA-SIS.png"
+              alt="LIKHA-SIS"
+              className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white ring-2 ring-white dark:ring-gray-900 shadow-sm object-cover"
+            />
+          </div>
+          <h1 className="font-display text-xl font-semibold text-primary tracking-tight dark:text-primary-light">LIKHA-SIS</h1>
           <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">Tingub National High School</p>
         </div>
 
         {deactivated && (
-          <Alert variant="warning" className="mb-4">
-            Your account has been deactivated. Contact your ICT Coordinator if you believe this is a mistake.
-          </Alert>
+          <div className="mb-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm dark:bg-amber-950/30 dark:border-amber-900/50 dark:text-amber-400 animate-fade-in">
+            <ShieldAlert size={16} className="flex-shrink-0 mt-0.5" />
+            <span>Your account has been deactivated. Contact your ICT Coordinator if you believe this is a mistake.</span>
+          </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -79,7 +86,7 @@ function Login({ deactivated = false }) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors dark:placeholder-gray-500"
+                className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white transition-colors text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:bg-gray-800"
                 placeholder="teacher@tinguibnhs.edu.ph"
               />
             </div>
@@ -90,22 +97,57 @@ function Login({ deactivated = false }) {
             <div className="relative">
               <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors dark:placeholder-gray-500"
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white transition-colors text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:bg-gray-800"
                 placeholder="Enter your password"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 
-          {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
+          {errorMessage && (
+            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400 animate-fade-in">
+              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
-          <Button type="submit" variant="primary" disabled={isLoading} className="w-full">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold text-white shadow-sm transition-all duration-150 active:scale-[0.99] ${
+              isLoading ? "bg-primary-light cursor-not-allowed opacity-80" : "bg-primary hover:bg-primary-light hover:shadow-md"
+            }`}
+          >
             <LogIn size={18} />
             {isLoading ? "Logging in..." : "Log In"}
-          </Button>
+          </button>
         </form>
+
+        {onSwitchToParent && (
+          <div style={{ textAlign: "center", marginTop: "16px" }}>
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Parent or Guardian?{" "}
+              <button
+                type="button"
+                onClick={onSwitchToParent}
+                className="text-primary dark:text-primary-light font-semibold underline cursor-pointer bg-transparent border-none p-0 text-xs"
+              >
+                Parent Portal Login →
+              </button>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

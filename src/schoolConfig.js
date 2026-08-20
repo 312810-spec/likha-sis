@@ -4,15 +4,23 @@
 // real school information before generating certificates in production.
 
 const schoolConfig = {
+  schoolId: "302975",
   schoolName: "Tingub National High School",
-  schoolAddress: "Tingub, [City/Municipality], Cebu",
-  divisionName: "Department of Education - Division of [Division Name]",
+  schoolAddress: "Tingub, Mandaue City, Cebu",
   principalName: "[Principal Full Name]",
   principalPosition: "School Principal",
-  region: "[Region]",
-  divisionOffice: "[Division Office Name]",
-  district: "[District]",
-  municipalityCityProvince: "[Municipality/City], [Province]",
+  divisionSuperintendent: "[Schools Division Superintendent]",
+  divisionSuperintendentPosition: "Schools Division Superintendent",
+  region: "Region VII",
+  divisionOffice: "Division of Mandaue City",
+  district: "Mandaue City District III",
+  municipalityCityProvince: "Mandaue City, Cebu",
+  // Coordinates drive the local weather card and the "earthquake near your
+  // school" radius. Approximate values for Tingub, Mandaue City -- the school
+  // should refine these in School Settings. Weather simply doesn't render when
+  // both are absent, rather than guessing a location.
+  latitude: 10.3554,
+  longitude: 123.935,
   gradeLevelsOffered: [
     "Grade 4",
     "Grade 5",

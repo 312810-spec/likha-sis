@@ -6,7 +6,7 @@
 **Location:** Philippines  
 **Current School Year:** 2026–2027  
 **Document Status:** Living Specification  
-**Last Updated:** August 11, 2026
+**Last Updated:** August 19, 2026
 
 ---
 
@@ -64,17 +64,36 @@ The administrator should eventually be able to:
 
 ## 2.3 Parents
 
-Parent access is planned for a later phase.
+Parent access shipped in Phase 5.8 (`src/pages/ParentPortal.jsx`, `pageAccess.js`'s `parent` role) — read-only, gated to verified parent-learner relationships, with a separate parent login flow.
 
-Potential capabilities include:
+Status of the potential capabilities below:
 
-- Viewing learner information
-- Viewing grades
-- Viewing attendance
-- Viewing selected school announcements/reports
+- Viewing learner information — implemented
+- Viewing grades — placeholder in the UI, pending the academic/grade-data domain
+- Viewing attendance — placeholder in the UI, pending wiring to the new attendance domain (Section 22)
+- Viewing selected school announcements/reports — not yet implemented
 - Other parent-facing services
 
 Parent access must use strict authorization and must never expose unrelated learner records.
+
+## 2.4 Actual Role System
+
+The three broad categories above (Teachers / Administrator / Parents) predate the role-based access control that actually shipped. The real, canonical role list — defined once in `src/utils/roles.js` and consumed by `pageAccess.js`, `firestore.rules`, `UserManagement.jsx`, and `AccountSettings.jsx` — is:
+
+| Role id | Label | Roughly maps to |
+|---|---|---|
+| `principal` | Principal | 2.2 Administrator |
+| `masterTeacher` | Master Teacher | 2.2 Administrator (academic oversight) |
+| `adviser` | Adviser | 2.1 Teacher (section-owning) |
+| `subjectTeacher` | Subject Teacher | 2.1 Teacher (grading-only) |
+| `stakeholder` | Stakeholder | read-only external viewer, not in the original 2.1–2.3 list |
+| `ictCoordinator` | ICT Coordinator | system/settings owner (Section 4D of `CLAUDE.md`), not in the original list |
+| `smeaCoordinator` | SMEA Coordinator | 2.2 Administrator (SMEA/LRP focus) |
+| `guidance` | Guidance Counselor | 2.2 Administrator (DO 006 discipline records) |
+| `clinicTeacher` | Clinic Teacher | 2.1 Teacher (nutrition/clinic focus) |
+| `parent` | Parent | 2.3 Parents |
+
+A user account can hold more than one role simultaneously (e.g., an ICT Coordinator who is also an adviser). Access decisions everywhere in the app go through `canAccessPage()`/`pageAccess.js` on the client and matching role checks in `firestore.rules` on the server — never through the three-category framing in 2.1–2.3, which remains useful only as a plain-language summary of intent.
 
 ---
 
@@ -607,22 +626,17 @@ SMEA should aggregate these domains rather than duplicate them.
 
 # 19. Anecdotal Records
 
-Anecdotal Records are part of Phase 5.
+**Status: Implemented.** `src/AnecdotalRecords.jsx`, field constants in `src/anecdotalConstants.js`, stored in the `anecdotalRecords` Firestore collection with a role-gated rule block.
 
-They are considered a good candidate for digitization because they have a defined structure.
+Implemented functionality:
 
-Expected future functionality:
+- Create anecdotal record, associated with a learner from the `learners` collection
+- Incident type (`ANECDOTAL_INCIDENT_TYPES`) and status (`ANECDOTAL_STATUS_OPTIONS`) drawn from `src/anecdotalConstants.js`
+- Date, observation/event narrative, action/intervention, follow-up fields
+- View learner history, search/filter records
+- Page access restricted to `adviser`, `guidance`, `principal`, `masterTeacher` (`pageAccess.js`)
 
-- Create anecdotal record
-- Associate record with learner
-- Record date
-- Record observation/event
-- Record action/intervention
-- Record follow-up
-- View learner history
-- Search/filter records
-
-The exact fields must be based on the official/reference DepEd format rather than invented fields.
+The original placeholder fields below were superseded once the official DepEd format was confirmed; this section documents what actually shipped rather than the original expectation.
 
 ---
 
@@ -682,25 +696,22 @@ Do not simply copy an old four-quarter ECR structure into the new application.
 
 # 22. Attendance
 
-Attendance should eventually become a dedicated domain or integrated learner-record domain.
+**Status: Partially implemented.** Attendance lives in SF2 (`src/SF2.jsx`) and the `attendance` Firestore collection, keyed by school year, learner, grade/section — not yet a fully separate top-level domain. SF2 also has a Year Overview tab (per-learner and class-wide monthly attendance-rate trend across the school year), readable by `principal`, `masterTeacher`, `smeaCoordinator`, `guidance`, `ictCoordinator` in addition to the owning `adviser`.
 
-Potential information:
+Attendance data currently feeds:
 
-- School Year
-- Term
-- Learner
-- Days present
-- Days absent
-- Tardy/other required attendance information
+- LARDO risk flags (attendance < 80% auto-triggers a risk flag per `src/utils/autoFlagTriggers.js`)
+- SF2's own Year Overview trend
 
-Attendance data may eventually feed:
-
-- SMEA
-- learner profiles
-- school reports
-- intervention monitoring
+**Still pending:** a consolidated "Academic hub" rollup view that presents Grades (from `classRecords`/Consolidated Grades) and Attendance (from SF2/`attendance`) together in one place — this is the last disabled "(Soon)" stub in the sidebar (`src/components/Sidebar.jsx`, `const future`). See `roadmap.md` for the current scope decision on this.
 
 Exact fields must follow applicable DepEd requirements.
+
+---
+
+## 22a. Class Program & Teacher's Load
+
+**Status: Implemented**, not originally scoped in this spec. `src/ClassProgramGenerator.jsx` builds section timetables via a paintable schedule grid (`src/components/schedule/ScheduleGrid.jsx`) with conflict detection (`src/utils/scheduleConflicts.js`). Per-teacher load is derived automatically from the same schedule data (`src/utils/teacherLoadDerivation.js`) — including advisory and ancillary-duty assignments, per the project's weekly-load-hours rule — and both a printable Class Program sheet and a printable Teacher's Load sheet (`src/components/schedule/ClassProgramSheet.jsx`, `TeacherLoadSheet.jsx`) are generated from it. This is a schedule-authoring domain, not attendance tracking; it doesn't feed the Attendance rollup above.
 
 ---
 
@@ -831,44 +842,36 @@ However, historical enrollment snapshots may be appropriate when needed for accu
 
 # 28. Offline-First Requirement
 
-Because the system is intended for actual school use, unreliable internet connectivity must be considered.
+**Status: Implemented.** `src/firebase.js` calls `initializeFirestore` with `persistentLocalCache({ tabManager: persistentMultipleTabManager() })`, backing Firestore's offline cache with IndexedDB (instead of memory-only) and coordinating cache ownership across browser tabs.
 
-Firebase Firestore's offline capabilities should be used where appropriate.
+- Cache relevant records — implemented (IndexedDB via `persistentLocalCache`)
+- Allow supported data entry while offline — implemented: Firestore's SDK queues writes locally against the persistent cache and replays them on reconnect, which is what `persistentLocalCache` (vs. the in-memory default) is for
+- Synchronize when connectivity returns — implemented, handled by the Firestore SDK itself once `persistentLocalCache` is active
+- Clearly communicate synchronization status — implemented via `src/components/SyncStatusBanner.jsx`
 
-The application should eventually:
-
-- Cache relevant records
-- Allow supported data entry while offline
-- Synchronize when connectivity returns
-- Clearly communicate synchronization status
-
-Offline conflict handling must be considered before implementing highly collaborative workflows.
+Offline conflict handling must still be considered before implementing highly collaborative workflows (e.g., two advisers editing the same section's roster while both offline) — this has not been specifically exercised yet.
 
 ---
 
 # 29. PWA Roadmap
 
-PWA packaging is planned for a later phase.
+PWA packaging shipped (`vite-plugin-pwa` in `vite.config.js`; manifest + service worker generated on every build).
 
-Expected capabilities:
+Status of the expected capabilities below:
 
-- Installable application
-- Mobile-friendly interface
-- Desktop-friendly interface
-- Offline support
-- Application icon
-- Service worker
-- Cached application shell
-
-Do not prioritize PWA packaging before core data and reporting workflows are stable.
+- Installable application — implemented
+- Mobile-friendly interface — implemented
+- Desktop-friendly interface — implemented
+- Offline support — implemented: the app shell/static assets are precached by the service worker, and offline data entry with deferred sync is handled by Firestore's `persistentLocalCache` (see Section 28); `SyncStatusBanner.jsx` surfaces connection state
+- Application icon — implemented
+- Service worker — implemented
+- Cached application shell — implemented
 
 ---
 
 # 30. Parent Portal
 
-Parent access is planned for Phase 7.
-
-It should be implemented only after the core teacher/admin workflows are stable.
+Parent access shipped in Phase 5.8, after the core teacher/admin workflows stabilized (see Section 2.3 for capability status).
 
 Parent access must use strong authorization.
 
@@ -1293,36 +1296,66 @@ Every implementation should be understandable and maintainable by the developer.
 | Saved Learners | ✅ Complete |
 | Grade/Section Filtering | ✅ Complete |
 | Delete Learner | ✅ Complete |
+| Edit Learner | ✅ Complete |
 | Firestore Authentication Rules | ✅ Complete |
 | Git Checkpoints | ✅ Complete |
-| Edit Learner | ⏳ Planned |
-| Enrollment Report | 🔜 Next |
-| Anecdotal Records | 🔜 Planned |
-| SF2 | 🔜 Planned |
-| Academic/Grade Data | 🔜 Planned |
-| Attendance | 🔜 Planned |
-| Nutrition/LPN | 🔜 Planned |
-| Additional SMEA Indicators | 🔜 Planned |
-| PWA Packaging | 🔜 Later |
-| Parent Portal | 🔜 Phase 7 |
+| SF2 Daily Attendance Grid | ✅ Complete |
+| SF4 Monthly Learner Movement Report | ✅ Complete |
+| SF10 Generator (Permanent Record) | ✅ Complete |
+| SF1 Bulk Importer | ✅ Complete |
+| SF10 Bulk Importer | ✅ Complete |
+| Import Center | ✅ Complete |
+| SMEA — Enrollment Report (3-term) | ✅ Complete |
+| Anecdotal Records | ✅ Complete |
+| LARDO Tracking | ✅ Complete |
+| Nutrition Status (BMI-for-Age, HFA) | ✅ Complete |
+| Nutrition Status Consolidator (SF8-style) | ✅ Complete |
+| Class Record (ECR) | ✅ Complete |
+| Consolidated Grades | ✅ Complete |
+| Report Card (SF9) | ✅ Complete |
+| Transfers Log | ✅ Complete |
+| Certificate Generator | ✅ Complete |
+| ID Generator | ✅ Complete |
+| User Management (RBAC) | ✅ Complete |
+| Role-Based Page Access (pageAccess.js) | ✅ Complete |
+| School Settings (setup wizard, branding) | ✅ Complete |
+| Account Settings | ✅ Complete |
+| Dark Mode | ✅ Complete |
+| Branding / Theme Engine | ✅ Complete |
+| PWA Support (manifest, service worker) | ✅ Complete |
+| Offline / Sync Status Banner | ✅ Complete |
+| Parent Portal (read-only, linked learners) | ✅ Complete |
+| Parent Login (separate flow) | ✅ Complete |
+| Academic Calendar (3-term, configurable) | ✅ Complete |
+| Settings Lock (school year lock) | ✅ Complete |
+| Transmutation Table | ✅ Complete |
+| SHS Subject Weights | ✅ Complete |
+| Key Stages Config | ✅ Complete |
+| Additional SMEA Indicators | ✅ Complete (attendance/nutrition/LARDO; academic performance deferred) |
+| Attendance (dedicated domain) | ✅ Complete (SF2 Year Overview tab) |
+| Class Program & Teacher's Load | ✅ Complete (Section 22a) |
+| Offline-First Firestore Persistence | ✅ Complete (Section 28) |
+| Academic Hub (combined Grades + Attendance rollup) | 🔜 Sidebar "Soon" stub — see `roadmap.md` |
 
 ---
 
-# 47. Immediate Next Action
+# 47. Immediate Next Action (historical — superseded)
 
-The next development action is **NOT yet to code the Enrollment Report**.
+This section originally preceded the SMEA Enrollment Report build; that work is long since complete (see Section 46's feature table). Kept for history rather than deleted.
 
-First:
+As of this update, Phase 7 (Attendance dedicated domain, Additional SMEA Indicators) is also complete:
 
-> Inspect the existing learner database and application structure.
+- Attendance: SF2 gained a Year Overview tab (per-learner and class-wide monthly attendance-rate trend across the school year), and `sf2` page access opened to principal/masterTeacher/smeaCoordinator/guidance/ictCoordinator as read-only viewers.
+- Additional SMEA Indicators: the Enrollment Report gained an "Other SMEA Indicators" table aggregating attendance rate, nutrition status distribution, and LARDO monitoring count per grade. Academic performance (MPS/passing rate) remains deferred — it needs the full per-subject/term grade transmutation that `ConsolidatedGrades` resolves per-class, not a cheap school-wide aggregate.
 
-Confirm that the current SF1 implementation contains the required fields for automatic enrollment reporting.
+**Important distinction:** "Attendance (dedicated domain) complete" above means SF2 gained its own Year Overview trend tab — it does **not** mean the sidebar's "Academic" hub (`src/components/Sidebar.jsx`, `const future`, children "Grades" and "Attendance") is built. That sidebar entry is a *combined* Grades+Attendance rollup view and is still a disabled "(Soon)" stub — see `roadmap.md` for its current status and the scope decision it's blocked on.
 
-After confirmation:
+Remaining known gaps, not yet scheduled:
+- Parent Portal's grades/attendance/nutrition panels are still UI placeholders (Section 2.3).
+- Academic hub (combined Grades + Attendance rollup) — sidebar stub, see above.
+- SMEA academic performance indicator (above).
 
-> Implement the Enrollment Report using the current **three-term academic structure**.
-
-The report must derive its data from existing learner records.
+Offline data entry with deferred sync (Section 28) is implemented via Firestore's `persistentLocalCache` — no longer a gap.
 
 ---
 
@@ -1379,6 +1412,47 @@ The AI assistant should first understand:
 12. Every stable feature must be tested and committed to Git.
 
 Before making architectural changes, inspect the current codebase and compare proposed changes against this specification.
+
+---
+
+# 50. Phase 6 — System Audit & Documentation Sync (August 19, 2026)
+
+## Regression Test Results
+
+Performed a full regression pass using Vitest across all implemented modules.
+
+```
+Test Files: 38 passed (38)
+Tests:      382 passed (382)
+Duration:   ~5s
+```
+
+All 382 unit and integration tests passed with zero failures.
+
+## Code Hygiene Fixes Applied
+
+| File | Issue | Fix |
+|---|---|---|
+| `src/App.jsx` | Duplicate `PARENT_ONLY_ROLES` import from `pageAccess.js` | Consolidated into single named import |
+| `src/pages/ParentPortal.jsx` | `linkDoc` state assigned but never consumed in JSX | Removed dead state variable |
+| `src/components/SyncStatusBanner.jsx` | Synchronous `setState` inside `useEffect` (lint violation) | Replaced with `useRef` + async `setTimeout` pattern |
+
+## Implementation Phase Summary
+
+| Phase | Description | Status |
+|---|---|---|
+| Phase 1 | Authentication + Dashboard | ✅ Complete |
+| Phase 2 | SF1 Learner Management | ✅ Complete |
+| Phase 3 | Academic Data (ECR, Grades, SF4, SF9, SF10) | ✅ Complete |
+| Phase 4 | Nutrition, LARDO, Transfers, Certificates, IDs | ✅ Complete |
+| Phase 5 | SMEA Enrollment, Anecdotal Records, SF2 | ✅ Complete |
+| Phase 5.5 | Import Center (SF1/SF10), User Management, RBAC | ✅ Complete |
+| Phase 5.6 | School Settings, Branding, Dark Mode, Setup Wizard | ✅ Complete |
+| Phase 5.7 | PWA Support, Offline Banner, Sync Status | ✅ Complete |
+| Phase 5.8 | Parent Portal + Parent Login | ✅ Complete |
+| Phase 6 | Full System Audit, Regression Pass, Documentation Sync | ✅ Complete |
+| Phase 7 | Attendance (dedicated domain), Additional SMEA Indicators | ✅ Complete |
+| Phase 8 | Academic Hub (combined Grades + Attendance rollup) | 🔜 Pending — see `roadmap.md` |
 
 ---
 

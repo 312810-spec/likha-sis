@@ -1,0 +1,9 @@
+  --color-primary: 26 47 160;
+  --color-primary-light: 46 69 199;
+  --color-primary-dark: 16 29 107;
+  --color-accent: 242 169 59;
+  --color-accent-light: 245 193 104;
+  --color-accent-dark: 212 140 31;
+  --color-leaf: 30 92 41;
+  --color-leaf-light: 46 125 58;
+  --color-leaf-dark: 18 61 26;

@@ -12,11 +12,8 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
-import { User, IdCard } from "lucide-react";
-import PageHeader from "./components/ui/PageHeader";
-import Card from "./components/ui/Card";
-import Alert from "./components/ui/Alert";
-import Button from "./components/ui/Button";
+import useSchoolConfig from "./hooks/useSchoolConfig";
+import { User } from "lucide-react";
 
 const CARD_W = 204; // px == 2.125in — standard CR80 ID card width, portrait
 const CARD_H = 324; // px == 3.375in — standard CR80 ID card height, portrait
@@ -101,7 +98,8 @@ function CardBackground() {
   );
 }
 
-function IDCardFront({ learner, adviserName }) {
+function IDCardFront({ learner, adviserName, school = schoolConfig }) {
+  const currentSchool = { ...schoolConfig, ...school };
   return (
     <div className="id-card" style={cardStyle}>
       <CardBackground />
@@ -115,13 +113,13 @@ function IDCardFront({ learner, adviserName }) {
           />
           <div style={{ fontSize: "5.6px", fontWeight: "bold" }}>Republic of the Philippines</div>
           <div style={{ fontSize: "5.6px" }}>Department of Education</div>
-          <div style={{ fontSize: "5px", color: "#555" }}>{schoolConfig.region}</div>
-          <div style={{ fontSize: "5px", color: "#555" }}>{schoolConfig.divisionOffice}</div>
-          <div style={{ fontSize: "5px", color: "#555" }}>{schoolConfig.district}</div>
+          <div style={{ fontSize: "5px", color: "#555" }}>{currentSchool.region}</div>
+          <div style={{ fontSize: "5px", color: "#555" }}>{currentSchool.divisionOffice}</div>
+          <div style={{ fontSize: "5px", color: "#555" }}>{currentSchool.district}</div>
         </div>
 
         {/* School name band */}
-        <div style={nameBandStyle}>{schoolConfig.schoolName}</div>
+        <div style={nameBandStyle}>{currentSchool.schoolName}</div>
 
         {/* Photo and QR, matched in size and placed side by side so the QR
             stays large enough to scan reliably */}
@@ -220,6 +218,8 @@ function IDCardBack({ learner, principalName, principalPosition }) {
 
 // ---------------------------------------------------------------------------
 function IDGenerator({ user, goBack }) {
+  const { config } = useSchoolConfig();
+  const school = { ...schoolConfig, ...config };
   const [learners, setLearners] = useState([]);
   const [advisers, setAdvisers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -279,13 +279,13 @@ function IDGenerator({ user, goBack }) {
         {goBack && (
           <button
             onClick={goBack}
-            className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
+            className="no-print inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
             type="button"
           >
             ← Back to Dashboard
           </button>
         )}
-        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="h-6 w-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
         </div>
@@ -297,16 +297,31 @@ function IDGenerator({ user, goBack }) {
     <div className="space-y-6 max-w-5xl mx-auto my-8 px-4">
       {/* ---- Controls (no-print) ---- */}
       <div className="no-print space-y-4 animate-slide-up">
-        <PageHeader
-          icon={IdCard}
-          title="School ID Generator"
-          description={`Logged in as: ${user?.email || "Unknown user"}`}
-          onBack={goBack}
-        />
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          {goBack && (
+            <button
+              onClick={goBack}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
+              type="button"
+            >
+              ← Back to Dashboard
+            </button>
+          )}
+          <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+            School ID Generator
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user?.email || "Unknown user"}</strong>
+          </p>
+        </div>
 
-        {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
+        {errorMessage && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-medium animate-fade-in">
+            {errorMessage}
+          </div>
+        )}
 
-        <Card className="space-y-4">
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
           {/* Mode tabs */}
           <div className="inline-flex items-center rounded-full p-0.5 bg-gray-100 dark:bg-gray-800">
             <button
@@ -351,9 +366,14 @@ function IDGenerator({ user, goBack }) {
               </select>
 
               <div className="flex flex-wrap items-center gap-3 pt-4">
-                <Button onClick={() => window.print()} disabled={!selectedLearner}>
+                <button
+                  onClick={() => window.print()}
+                  disabled={!selectedLearner}
+                  className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
+                  type="button"
+                >
                   Print ID (Front + Back)
-                </Button>
+                </button>
                 {!selectedLearner && (
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Select a learner to enable printing.
@@ -405,9 +425,14 @@ function IDGenerator({ user, goBack }) {
                       </button>
                     </div>
 
-                    <Button onClick={() => window.print()} disabled={sectionLearners.length === 0}>
+                    <button
+                      onClick={() => window.print()}
+                      disabled={sectionLearners.length === 0}
+                      className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
+                      type="button"
+                    >
                       Print {side === "front" ? "Fronts" : "Backs"} ({sectionLearners.length})
-                    </Button>
+                    </button>
                   </div>
 
                   <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/60 rounded-lg px-3 py-2">
@@ -419,7 +444,7 @@ function IDGenerator({ user, goBack }) {
               )}
             </div>
           )}
-        </Card>
+        </div>
       </div>
 
       {/* ---- Preview / print area ---- */}
@@ -427,11 +452,11 @@ function IDGenerator({ user, goBack }) {
         <div className="id-print-area" style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
           {selectedLearner ? (
             <>
-              <IDCardFront learner={selectedLearner} adviserName={adviserNameFor(selectedLearner, advisers)} />
+              <IDCardFront learner={selectedLearner} adviserName={adviserNameFor(selectedLearner, advisers)} school={school} />
               <IDCardBack
                 learner={selectedLearner}
-                principalName={schoolConfig.principalName}
-                principalPosition={schoolConfig.principalPosition}
+                principalName={school.principalName}
+                principalPosition={school.principalPosition}
               />
             </>
           ) : (
@@ -463,13 +488,13 @@ function IDGenerator({ user, goBack }) {
           )}
           {sectionLearners.map((learner) =>
             side === "front" ? (
-              <IDCardFront key={learner.id} learner={learner} adviserName={adviserNameFor(learner, advisers)} />
+              <IDCardFront key={learner.id} learner={learner} adviserName={adviserNameFor(learner, advisers)} school={school} />
             ) : (
               <IDCardBack
                 key={learner.id}
                 learner={learner}
-                principalName={schoolConfig.principalName}
-                principalPosition={schoolConfig.principalPosition}
+                principalName={school.principalName}
+                principalPosition={school.principalPosition}
               />
             )
           )}

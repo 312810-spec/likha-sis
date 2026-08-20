@@ -1,0 +1,19 @@
+# Dependencies & Builds
+node_modules/
+dist/
+build/
+.next/
+vendor/
+
+# Lockfiles & Logs
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+*.log
+*.svg
+*.map
+
+# Coverage & Cache
+coverage/
+.cache/
+.turbo/

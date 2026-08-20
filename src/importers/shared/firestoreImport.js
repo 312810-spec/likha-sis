@@ -57,17 +57,20 @@ export function toFirestoreLearner(learner, { importId, sourceFileFingerprint, u
     sex: learner.sex,
     birthDate: learner.birthDate,
     age: learner.age || calculateAge(learner.birthDate),
+    motherTongue: learner.motherTongue || "",
+    ipEthnicGroup: learner.ipEthnicGroup || "",
     religion: learner.religion || "",
     address: learner.address || "",
-    // legacy address fields (importer keeps them empty; populated via Edit modal)
-    houseStreetSitio: "",
-    barangay: "",
-    municipalityCity: "",
-    province: "",
+    // SF1 records the address in four parts; keep them so the register can be
+    // reprinted exactly and the Edit modal has something to edit.
+    houseStreetSitio: learner.houseStreetSitio || "",
+    barangay: learner.barangay || "",
+    municipalityCity: learner.municipalityCity || "",
+    province: learner.province || "",
     fathersName: learner.fathersName || "",
-    mothersMaidenName: learner.mothersName || "",
-    guardianName: learner.guardian || "",
-    guardianRelationship: "",
+    mothersMaidenName: learner.mothersMaidenName || learner.mothersName || "",
+    guardianName: learner.guardianName || learner.guardian || "",
+    guardianRelationship: learner.guardianRelationship || "",
     contactNumber: learner.contactNumber || "",
     learningModality: learner.learningModality || "",
     remarks: learner.remarks || "",
@@ -75,6 +78,7 @@ export function toFirestoreLearner(learner, { importId, sourceFileFingerprint, u
     // enrollment context (from the workbook)
     schoolId: learner.schoolId || "",
     schoolName: learner.schoolName || "",
+    region: learner.region || "",
     division: learner.division || "",
     district: learner.district || "",
     schoolYear: learner.schoolYear || "",
@@ -148,9 +152,13 @@ export async function executeImport(db, opts = {}) {
     };
   }
 
-  const toWrite = records.filter((r) => r.lrn && !(r.duplicate && r.duplicate.inFirestore));
+  // Records are shaped { learner: { lrn, ... }, issues, severity, ... }.
+  // The LRN lives on r.learner.lrn, NOT at r.lrn directly.
+  const toWrite = records.filter(
+    (r) => r.learner?.lrn && !(r.duplicate && r.duplicate.inFirestore)
+  );
   const skippedCount = records.filter(
-    (r) => !r.lrn || (r.duplicate && r.duplicate.inFirestore)
+    (r) => !r.learner?.lrn || (r.duplicate && r.duplicate.inFirestore)
   ).length;
 
   const docs = toWrite.map((r) => {

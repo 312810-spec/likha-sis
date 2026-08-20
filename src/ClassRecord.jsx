@@ -2,7 +2,7 @@
 // Class Record page for LIKHA-SIS.
 // Subject teachers enter scores and view live computed grades (PS, WS, Initial Grade, Term Grade, Description).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   collection,
   getDocs,
@@ -12,8 +12,10 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import Tooltip from "./components/Tooltip.jsx";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
+import useMyAdvisorySection from "./hooks/useMyAdvisorySection";
 import { SUBJECT_WEIGHTS, getSubjectWeights } from "./utils/subjectWeights";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { transmuteGrade, getGradeDescription } from "./utils/transmutationTable";
@@ -24,11 +26,7 @@ import {
   computeInitialGrade,
 } from "./utils/gradeComputations";
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
-import { Plus, X, Save, RefreshCw, BookOpen } from "lucide-react";
-import PageHeader from "./components/ui/PageHeader";
-import Card from "./components/ui/Card";
-import Alert from "./components/ui/Alert";
-import Button from "./components/ui/Button";
+import { Plus, X, Save, ArrowLeft, RefreshCw, BookOpen, Info } from "lucide-react";
 
 export default function ClassRecord({ user, goBack }) {
   const { config } = useSchoolConfig();
@@ -41,6 +39,22 @@ export default function ClassRecord({ user, goBack }) {
   const [term, setTerm] = useState("Term 1");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
   const { sections: availableSections, loading } = useAvailableSections(gradeLevel, schoolYear);
+  const { advisorySection } = useMyAdvisorySection(user?.uid, schoolYear);
+  const [advisoryApplied, setAdvisoryApplied] = useState(false);
+
+  // A teacher assigned as a section's adviser (School Settings > Sections &
+  // Shifts, then Class Program Generator) shouldn't have to re-pick their own
+  // grade level and section every visit -- pre-fill it once, but only before
+  // they've touched the dropdowns themselves. This mirrors an external async
+  // source (Firestore) into local editable state exactly once, guarded by
+  // advisoryApplied, so it can't cascade.
+  useEffect(() => {
+    if (advisoryApplied || !advisorySection || section) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGradeLevel(advisorySection.gradeLevel);
+    setSection(advisorySection.name);
+    setAdvisoryApplied(true);
+  }, [advisorySection, advisoryApplied, section]);
 
   // Grid / Data state
   const [isLoaded, setIsLoaded] = useState(false);
@@ -389,93 +403,137 @@ export default function ClassRecord({ user, goBack }) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
-      <PageHeader
-        icon={BookOpen}
-        title="Class Record"
-        description="Enter scores and calculate DepEd grades live based on subject weights."
-        onBack={goBack}
-        actions={
-          isLoaded && (
-            <>
-              <Button variant="secondary" onClick={() => setIsLoaded(false)}>
-                <RefreshCw size={16} />
-                Change Setup
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                <Save size={18} />
-                {isSaving ? "Saving..." : "Save Class Record"}
-              </Button>
-            </>
-          )
-        }
-      />
+      {/* Top Banner / Navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
+        <div className="flex items-center gap-3">
+          {goBack && (
+            <button
+              onClick={goBack}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 active:scale-[0.98] transition-transform"
+              title="Back to Dashboard"
+              type="button"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
+          <div>
+            <h1 className="font-display text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
+              <BookOpen className="text-primary" size={26} />
+              Class Record
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              Enter scores and calculate DepEd grades live based on subject weights.
+            </p>
+          </div>
+        </div>
+
+        {isLoaded && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsLoaded(false)}
+              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 active:scale-[0.98] transition-transform flex items-center gap-2 shadow-2xs"
+              type="button"
+            >
+              <RefreshCw size={16} />
+              Change Setup
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary-dark rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform flex items-center gap-2 disabled:opacity-50"
+              type="button"
+            >
+              <Save size={18} />
+              {isSaving ? "Saving..." : "Save Class Record"}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Global Status Banner */}
-      {statusMessage && <Alert variant="success">{statusMessage}</Alert>}
-      {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
+      {statusMessage && (
+        <div className="animate-fade-in p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-xl text-sm font-medium">
+          {statusMessage}
+        </div>
+      )}
+      {errorMessage && (
+        <div className="animate-fade-in p-4 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-xl text-sm font-medium">
+          {errorMessage}
+        </div>
+      )}
 
       {/* Auto-flag confirmation banners (Initial Grade below 70) */}
       {pendingFlagCandidates.map((c) => (
-        <Alert key={c.docId} variant="warning" className="animate-fade-in">
-          <div className="flex flex-1 flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex-1">
-              <div className="font-medium">This learner's Initial Grade suggests a LARDO risk flag.</div>
-              <div className="text-xs mt-0.5">Flag {c.learnerName || "this learner"} for monitoring?</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                size="compact"
-                onClick={async () => {
-                  try {
-                    const nowIso = new Date().toISOString();
-                    const newRecordData = {
-                      learnerId: c.learnerId,
-                      learnerLRN: c.learner.lrn || c.learner.learnerLRN || "",
-                      learnerName: c.learnerName || "Unknown Learner",
-                      gradeLevel,
-                      section: section.trim(),
-                      schoolYear: schoolYear.trim(),
-                      riskFactors: c.trigger.riskFactors,
-                      status: "monitoring",
-                      interventions: [
-                        {
-                          date: nowIso,
-                          note: c.trigger.suggestedNote,
-                        },
-                      ],
-                      flaggedDate: nowIso,
-                      flaggedByEmail: user?.email || "",
-                      updatedAt: serverTimestamp(),
-                    };
-
-                    await setDoc(doc(db, "lardoRecords", c.docId), newRecordData, { merge: true });
-                    setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId));
-                  } catch (err) {
-                    console.error("Failed to create LARDO record:", err);
-                    setErrorMessage("Failed to create LARDO record. Please try again.");
-                  }
-                }}
-              >
-                Confirm
-              </Button>
-              <Button
-                variant="secondary"
-                size="compact"
-                onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
-              >
-                Dismiss
-              </Button>
-            </div>
+        <div
+          key={c.docId}
+          className="animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4"
+        >
+          <Info className="w-4 h-4 shrink-0 text-yellow-700" />
+          <div className="flex-1">
+            <div className="font-medium">This learner's Initial Grade suggests a LARDO risk flag.</div>
+            <div className="text-xs mt-0.5">Flag {c.learnerName || "this learner"} for monitoring?</div>
           </div>
-        </Alert>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const nowIso = new Date().toISOString();
+                  const newRecordData = {
+                    learnerId: c.learnerId,
+                    learnerLRN: c.learner.lrn || c.learner.learnerLRN || "",
+                    learnerName: c.learnerName || "Unknown Learner",
+                    gradeLevel,
+                    section: section.trim(),
+                    schoolYear: schoolYear.trim(),
+                    riskFactors: c.trigger.riskFactors,
+                    status: "monitoring",
+                    interventions: [
+                      {
+                        date: nowIso,
+                        note: c.trigger.suggestedNote,
+                      },
+                    ],
+                    flaggedDate: nowIso,
+                    flaggedByEmail: user?.email || "",
+                    updatedAt: serverTimestamp(),
+                  };
+
+                  await setDoc(doc(db, "lardoRecords", c.docId), newRecordData, { merge: true });
+                  setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId));
+                } catch (err) {
+                  console.error("Failed to create LARDO record:", err);
+                  setErrorMessage("Failed to create LARDO record. Please try again.");
+                }
+              }}
+              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
+            >
+              Confirm
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
       ))}
 
       {/* SETUP PANEL */}
       {!isLoaded ? (
-        <Card className="max-w-2xl space-y-6">
+        <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-card p-6 space-y-6">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-3">
             Select Class &amp; Subject Parameters
           </h2>
+
+          {advisorySection && (
+            <p className="text-xs text-primary dark:text-primary-light bg-primary/10 dark:bg-primary/20 rounded-lg px-3 py-2 -mt-2">
+              Your advisory: {advisorySection.gradeLevel} — {advisorySection.name} (pre-filled below, still
+              changeable)
+            </p>
+          )}
 
           <form onSubmit={handleLoadClassRecord} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -499,7 +557,7 @@ export default function ClassRecord({ user, goBack }) {
                       setSubject(nextOptions[0] || "");
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
                 >
                   {GRADE_OPTIONS.map((g) => (
                     <option key={g} value={g}>
@@ -516,7 +574,7 @@ export default function ClassRecord({ user, goBack }) {
                 <select
                   value={section}
                   onChange={(e) => setSection(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
                   required
                 >
                   <option value="">Select a section</option>
@@ -538,7 +596,7 @@ export default function ClassRecord({ user, goBack }) {
                 <select
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
                 >
                   {SUBJECT_OPTIONS.map((s) => (
                     <option key={s} value={s}>
@@ -555,7 +613,7 @@ export default function ClassRecord({ user, goBack }) {
                 <select
                   value={term}
                   onChange={(e) => setTerm(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
                 >
                   {TERM_OPTIONS.map((t) => (
                     <option key={t} value={t}>
@@ -573,7 +631,7 @@ export default function ClassRecord({ user, goBack }) {
                   type="text"
                   value={schoolYear}
                   onChange={(e) => setSchoolYear(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
                   required
                 />
               </div>
@@ -587,7 +645,11 @@ export default function ClassRecord({ user, goBack }) {
             )}
 
             <div className="pt-2">
-              <Button type="submit" disabled={isLoading} className="w-full">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-2.5 px-4 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+              >
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
@@ -596,15 +658,15 @@ export default function ClassRecord({ user, goBack }) {
                 ) : (
                   "Load Class Record"
                 )}
-              </Button>
+              </button>
             </div>
           </form>
-        </Card>
+        </div>
       ) : (
         /* SCORE GRID VIEW */
         <div className="space-y-4">
           {/* Info Summary Strip */}
-          <Card className="flex flex-wrap items-center justify-between gap-4 text-sm">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 text-sm shadow-sm">
             <div className="flex flex-wrap items-center gap-6">
               <div>
                 <span className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold">Class</span>
@@ -628,10 +690,10 @@ export default function ClassRecord({ user, goBack }) {
             <div className="text-gray-500 dark:text-gray-400 text-xs">
               Learners: <span className="font-bold text-gray-800 dark:text-gray-100">{learners.length}</span>
             </div>
-          </Card>
+          </div>
 
           {/* Grid Container */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card overflow-hidden">
             <div className="overflow-x-auto max-h-[70vh]">
               <table className="w-full border-collapse text-xs text-left">
                 {/* Header Group 1: Category Sections */}
@@ -699,8 +761,12 @@ export default function ClassRecord({ user, goBack }) {
                         </div>
                       </th>
                     ))}
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">WW PS</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">WW WS</th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Written Work Percentage Score">WW PS</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Written Work Weighted Score">WW WS</Tooltip>
+                    </th>
 
                     {/* PT sub-headers */}
                     {ptItems.map((item, idx) => (
@@ -718,19 +784,37 @@ export default function ClassRecord({ user, goBack }) {
                         </div>
                       </th>
                     ))}
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">PT PS</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">PT WS</th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Performance Task Percentage Score">PT PS</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Performance Task Weighted Score">PT WS</Tooltip>
+                    </th>
 
                     {/* EX sub-headers */}
-                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">ST1</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">ST2</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">TE</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">EX PS</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">EX WS</th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">
+                      <Tooltip position="bottom" label="Summative Test 1 — 30% of the Exam component">ST1</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">
+                      <Tooltip position="bottom" label="Summative Test 2 — 30% of the Exam component">ST2</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">
+                      <Tooltip position="bottom" label="Term Exam — 40% of the Exam component">TE</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Exam Percentage Score">EX PS</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                      <Tooltip position="bottom" label="Exam Weighted Score">EX WS</Tooltip>
+                    </th>
 
                     {/* Summary sub-headers */}
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-accent-dark/80 min-w-[70px]">Init Grade</th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-accent-dark/90 min-w-[70px]">Term Grade</th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-accent-dark/80 min-w-[70px]">
+                      <Tooltip position="bottom" label="Raw computed grade before DO 15 transmutation">Init Grade</Tooltip>
+                    </th>
+                    <th className="px-2 py-1 text-center border-r border-white/20 bg-accent-dark/90 min-w-[70px]">
+                      <Tooltip position="bottom" label="Final grade after transmutation table">Term Grade</Tooltip>
+                    </th>
                     <th className="px-2 py-1 text-center min-w-[130px]">Description</th>
                   </tr>
                 </thead>

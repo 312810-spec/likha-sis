@@ -9,11 +9,8 @@ import { useState, useEffect } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
-import { Award } from "lucide-react";
-import PageHeader from "./components/ui/PageHeader";
-import Card from "./components/ui/Card";
-import Alert from "./components/ui/Alert";
-import Button from "./components/ui/Button";
+import useSchoolConfig from "./hooks/useSchoolConfig";
+import { formatDivisionHeader } from "./utils/depedHierarchy.js";
 
 // --- Small date helpers (local-timezone safe, matching the use of
 //     "YYYY-MM-DD" date strings used elsewhere in the app) ---------------
@@ -43,6 +40,8 @@ function formatDate(dateString) {
 }
 
 function CertificateGenerator({ user, goBack }) {
+  const { config } = useSchoolConfig();
+  const school = { ...schoolConfig, ...config };
   // learners: all learner documents from Firestore, each with its id included.
   const [learners, setLearners] = useState([]);
   // loading: true while we fetch learner data.
@@ -139,7 +138,7 @@ function CertificateGenerator({ user, goBack }) {
             ← Back to Dashboard
           </button>
         )}
-        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="h-6 w-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
@@ -152,18 +151,33 @@ function CertificateGenerator({ user, goBack }) {
     <div className="space-y-6 max-w-4xl mx-auto my-8 px-4">
       {/* ---- Filter / Form Controls (no-print) ---- */}
       <div className="no-print space-y-4 animate-slide-up">
-        <PageHeader
-          icon={Award}
-          title="Certificate Generator"
-          description={`Logged in as: ${user.email}`}
-          onBack={goBack}
-        />
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          {goBack && (
+            <button
+              onClick={goBack}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
+              type="button"
+            >
+              ← Back to Dashboard
+            </button>
+          )}
+          <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+            Certificate Generator
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user.email}</strong>
+          </p>
+        </div>
 
         {/* Error message if Firestore fetch fails */}
-        {errorMessage && <Alert variant="error" className="animate-fade-in">{errorMessage}</Alert>}
+        {errorMessage && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-medium animate-fade-in">
+            {errorMessage}
+          </div>
+        )}
 
         {/* Form */}
-        <Card className="space-y-4">
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
               Learner
@@ -225,25 +239,32 @@ function CertificateGenerator({ user, goBack }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Button onClick={() => window.print()} disabled={!canPrint}>
+            <button
+              onClick={() => window.print()}
+              disabled={!canPrint}
+              className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
+              type="button"
+            >
               Print Certificate
-            </Button>
+            </button>
             {!canPrint && (
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 Select a learner and enter a purpose to enable printing.
               </span>
             )}
           </div>
-        </Card>
+        </div>
       </div>
 
 
       {/* ---- Live certificate preview ---- */}
       <div className="certificate-preview" style={certificateBorderStyle}>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "20px", fontWeight: "bold" }}>{schoolConfig.schoolName}</div>
-          <div style={{ fontSize: "14px", marginTop: "4px" }}>{schoolConfig.schoolAddress}</div>
-          <div style={{ fontSize: "12px", marginTop: "2px", fontStyle: "italic" }}>{schoolConfig.divisionName}</div>
+          <div style={{ fontSize: "20px", fontWeight: "bold" }}>{school.schoolName}</div>
+          <div style={{ fontSize: "14px", marginTop: "4px" }}>{school.schoolAddress}</div>
+          <div style={{ fontSize: "12px", marginTop: "2px", fontStyle: "italic" }}>
+            {formatDivisionHeader(school.divisionOffice)}
+          </div>
         </div>
 
         <h2 style={{ textAlign: "center", margin: "36px 0 28px", fontWeight: "bold" }}>{heading}</h2>
@@ -254,8 +275,8 @@ function CertificateGenerator({ user, goBack }) {
 
         <div style={{ textAlign: "right", marginTop: "60px", marginRight: "20px" }}>
           <div style={{ fontSize: "15px", marginBottom: "50px" }}>{formatDate(dateIssued)}</div>
-          <div style={{ fontWeight: "bold", fontSize: "17px" }}>{schoolConfig.principalName}</div>
-          <div style={{ fontSize: "14px" }}>{schoolConfig.principalPosition}</div>
+          <div style={{ fontWeight: "bold", fontSize: "17px" }}>{school.principalName}</div>
+          <div style={{ fontSize: "14px" }}>{school.principalPosition}</div>
         </div>
       </div>
 

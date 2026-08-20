@@ -4,36 +4,10 @@ import { auth } from '../firebase';
 import { Bell, LogOut, Settings, Sun, Moon, Monitor, Menu } from 'lucide-react';
 import useDarkMode from '../hooks/useDarkMode';
 import useBrandTheme from '../hooks/useBrandTheme';
+import useNotifications from '../hooks/useNotifications.js';
 import { ROLE_LABELS } from '../utils/roles.js';
 import Sidebar from './Sidebar';
-
-function HeaderClock() {
-  const [now, setNow] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const dateStr = now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-  const timeStr = now.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-
-  return (
-    <div className="text-right hidden lg:block">
-      <div className="text-sm font-medium text-gray-700 dark:text-gray-200">{dateStr}</div>
-      <div className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{timeStr}</div>
-    </div>
-  );
-}
+import NotificationPanel from './NotificationPanel';
 
 function initialsFor(user) {
   const source = user?.displayName || user?.email || '';
@@ -46,12 +20,20 @@ function initialsFor(user) {
 export default function DashboardShell({ children, currentPage, onNavigate, user, pageTitle = 'Dashboard', userRoles }) {
   useBrandTheme();
   const [mode, resolvedIsDark, setMode] = useDarkMode();
+  const [now, setNow] = useState(new Date());
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  const notifications = useNotifications();
+
   const notifRef = useRef(null);
   const profileRef = useRef(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Closes a dropdown when the user clicks anywhere outside of it
   useEffect(() => {
@@ -75,8 +57,21 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
     }
   }
 
+  const dateStr = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const timeStr = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950" role="region" aria-label="Dashboard Shell">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950" role="region" aria-label="Dashboard Shell">
       <Sidebar
         currentPage={currentPage}
         onNavigate={onNavigate}
@@ -86,8 +81,8 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
         onCloseMobile={() => setMobileNavOpen(false)}
       />
 
-      <main className="flex-1 min-w-0 overflow-x-hidden">
-        <div className="sticky top-0 z-30 flex items-start justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 bg-white/90 backdrop-blur-sm border-b border-gray-200 dark:bg-gray-900/90 dark:border-gray-700">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <header className="sticky top-0 z-30 flex-shrink-0 flex items-start justify-between gap-4 px-4 sm:px-6 py-4 sm:py-5 bg-white/90 backdrop-blur-sm border-b border-gray-200 dark:bg-gray-900/90 dark:border-gray-700">
           <div className="flex items-start gap-3 min-w-0">
             <button
               type="button"
@@ -98,7 +93,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
               <Menu size={20} />
             </button>
             <div className="min-w-0">
-              <h2 className="text-lg sm:text-xl font-bold text-primary tracking-tight truncate">{pageTitle}</h2>
+              <h2 className="font-display text-lg sm:text-xl font-semibold text-primary tracking-tight truncate">{pageTitle}</h2>
               <p className="mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-300 truncate">
                 Welcome, <span className="font-medium text-gray-700 dark:text-gray-100">{user?.displayName || user?.email || 'Teacher'}</span>
                 <span className="hidden sm:inline"> — LIKHA-SIS, Tingub National High School</span>
@@ -107,34 +102,43 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-            <HeaderClock />
+            <div className="text-right hidden lg:block">
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-200">{dateStr}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">{timeStr}</div>
+            </div>
 
-            <div role="toolbar" aria-label={`Theme (resolved ${resolvedIsDark ? 'dark' : 'light'})`} className="inline-flex items-center rounded-full p-0.5 bg-gray-100 dark:bg-gray-800">
+            <div role="toolbar" aria-label={`Theme (resolved ${resolvedIsDark ? 'dark' : 'light'})`} className="relative inline-flex items-center rounded-full p-0.5 bg-gray-100 dark:bg-gray-800">
+              <span
+                aria-hidden="true"
+                className="absolute top-0.5 left-0.5 w-8 h-8 rounded-full bg-white shadow-sm dark:bg-gray-700 transition-transform duration-200 ease-out"
+                style={{ transform: `translateX(${['light', 'system', 'dark'].indexOf(mode) * 32}px)` }}
+              />
+
               <button
                 type="button"
                 aria-label="Set light mode"
                 onClick={() => setMode('light')}
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 ${mode === 'light' ? 'bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                className={`relative z-10 w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 active:scale-90 ${mode === 'light' ? 'text-primary dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
               >
-                <Sun size={15} />
+                <Sun size={15} className={`transition-transform duration-200 ease-out ${mode === 'light' ? 'scale-110 rotate-0' : 'rotate-[-20deg]'}`} />
               </button>
 
               <button
                 type="button"
                 aria-label="Set system mode"
                 onClick={() => setMode('system')}
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 ${mode === 'system' ? 'bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                className={`relative z-10 w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 active:scale-90 ${mode === 'system' ? 'text-primary dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
               >
-                <Monitor size={15} />
+                <Monitor size={15} className={`transition-transform duration-200 ease-out ${mode === 'system' ? 'scale-110' : ''}`} />
               </button>
 
               <button
                 type="button"
                 aria-label="Set dark mode"
                 onClick={() => setMode('dark')}
-                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 ${mode === 'dark' ? 'bg-white text-primary shadow-sm dark:bg-gray-700 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                className={`relative z-10 w-8 h-8 flex items-center justify-center rounded-full transition-colors duration-150 active:scale-90 ${mode === 'dark' ? 'text-primary dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
               >
-                <Moon size={15} />
+                <Moon size={15} className={`transition-transform duration-200 ease-out ${mode === 'dark' ? 'scale-110 rotate-0' : 'rotate-[20deg]'}`} />
               </button>
             </div>
 
@@ -142,24 +146,42 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
             <div className="relative" ref={notifRef}>
               <button
                 type="button"
-                aria-label="Notifications"
+                aria-label={
+                  notifications.unreadCount > 0
+                    ? `Notifications (${notifications.unreadCount} new)`
+                    : 'Notifications'
+                }
                 onClick={() => {
-                  setNotifOpen((s) => !s);
+                  const opening = !notifOpen;
+                  setNotifOpen(opening);
                   setProfileOpen(false);
+                  // Opening the panel is what "seeing" means — clear the badge
+                  // then, not on navigation, so an alert raised while the user
+                  // is on another page still announces itself.
+                  if (opening) notifications.markAllSeen();
                 }}
-                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 dark:hover:bg-gray-800 dark:text-gray-300 transition-colors"
+                className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 dark:hover:bg-gray-800 dark:text-gray-300 transition-colors"
               >
                 <Bell size={19} />
+                {notifications.unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-600 text-white text-[10px] font-bold tabular-nums ring-2 ring-white dark:ring-gray-900">
+                    {notifications.unreadCount > 9 ? '9+' : notifications.unreadCount}
+                  </span>
+                )}
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</h4>
                   </div>
-                  <div className="px-4 py-8 text-center text-sm text-gray-400 dark:text-gray-500">
-                    You're all caught up.
-                  </div>
+                  <NotificationPanel
+                    notifications={notifications}
+                    onNavigate={(page) => {
+                      setNotifOpen(false);
+                      onNavigate(page);
+                    }}
+                  />
                 </div>
               )}
             </div>
@@ -179,12 +201,12 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                     <div className="text-sm font-medium text-gray-900 truncate dark:text-gray-100">
                       {user?.email || 'User'}
                     </div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       {(userRoles || []).map((r) => ROLE_LABELS[r] || r).join(', ') || 'No roles assigned'}
                     </div>
                   </div>
@@ -211,12 +233,14 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
               )}
             </div>
           </div>
-        </div>
+        </header>
 
-        <section aria-label="Main" className="p-4 md:p-6">
-          {children ? children : <p className="text-gray-500 dark:text-gray-300">Select a section from the sidebar to begin.</p>}
-        </section>
-      </main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden focus:outline-none">
+          <section aria-label="Main" className="p-4 md:p-6">
+            {children ? children : <p className="text-gray-500 dark:text-gray-300">Select a section from the sidebar to begin.</p>}
+          </section>
+        </main>
+      </div>
     </div>
   );
 }
