@@ -176,7 +176,7 @@ export default function AccountSettings({ user }) {
       <PageHeader description="Manage your own name and password." />
 
       {/* Profile */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Profile</h2>
 
         {profileMessage && (
@@ -293,7 +293,7 @@ export default function AccountSettings({ user }) {
       </div>
 
       {/* Password */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
           <KeyRound size={16} className="text-primary" /> Change Password
         </h2>
