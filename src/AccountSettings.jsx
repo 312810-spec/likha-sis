@@ -10,14 +10,10 @@ import { updateProfile, reauthenticateWithCredential, updatePassword, EmailAuthP
 import { db, auth } from "./firebase";
 import { ROLE_OPTIONS, ROLE_LABELS } from "./utils/roles.js";
 import { validateSelfRoleEdit } from "./utils/userAccountManagement.js";
-import { UserCircle, Save, KeyRound } from "lucide-react";
-import PageHeader from "./components/ui/PageHeader";
-import Card from "./components/ui/Card";
-import Alert from "./components/ui/Alert";
-import Button from "./components/ui/Button";
+import { ArrowLeft, UserCircle, Save, KeyRound, CheckCircle2, AlertCircle } from "lucide-react";
 
-const inputClass = "w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors";
-const labelClass = "flex flex-col gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300";
+const inputClass = "w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors";
+const labelClass = "flex flex-col gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300";
 
 function friendlyPasswordError(err) {
   switch (err?.code) {
@@ -37,6 +33,9 @@ export default function AccountSettings({ user, goBack }) {
   const [profile, setProfile] = useState(null);
   const [fullName, setFullName] = useState("");
   const [editableRoles, setEditableRoles] = useState([]);
+  const [employeeNumber, setEmployeeNumber] = useState("");
+  const [position, setPosition] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
@@ -62,6 +61,9 @@ export default function AccountSettings({ user, goBack }) {
           setProfile(data);
           setFullName(data.fullName || "");
           setEditableRoles(Array.isArray(data.roles) ? [...data.roles] : []);
+          setEmployeeNumber(data.employeeNumber || "");
+          setPosition(data.position || "");
+          setMobileNumber(data.mobileNumber || "");
         }
       } catch (err) {
         console.error("Failed to load account profile:", err);
@@ -100,6 +102,9 @@ export default function AccountSettings({ user, goBack }) {
         return;
       }
       updates.roles = editableRoles;
+      updates.employeeNumber = employeeNumber.trim();
+      updates.position = position.trim();
+      updates.mobileNumber = mobileNumber.trim();
     }
 
     setIsSavingProfile(true);
@@ -157,9 +162,9 @@ export default function AccountSettings({ user, goBack }) {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto animate-slide-up">
-        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
-          <div className="h-6 w-48 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse" />
-          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse" />
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <div className="h-6 w-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
         </div>
       </div>
     );
@@ -167,26 +172,43 @@ export default function AccountSettings({ user, goBack }) {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12 animate-slide-up">
-      <PageHeader
-        icon={UserCircle}
-        title="Account Settings"
-        description="Manage your own name and password."
-        onBack={goBack}
-      />
+      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
+        {goBack && (
+          <button
+            type="button"
+            onClick={goBack}
+            className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+            aria-label="Back to dashboard"
+          >
+            <ArrowLeft size={18} />
+          </button>
+        )}
+        <div>
+          <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <UserCircle className="text-primary" size={24} />
+            Account Settings
+          </h1>
+          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
+            Manage your own name and password.
+          </p>
+        </div>
+      </div>
 
       {/* Profile */}
-      <Card>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">Profile</h2>
 
         {profileMessage && (
-          <Alert variant="success" className="mb-4">
-            {profileMessage}
-          </Alert>
+          <div className="mb-4 flex items-start gap-2 p-3 bg-green-50 border border-green-100 rounded-lg text-green-700 text-sm dark:bg-green-950/30 dark:border-green-900/50 dark:text-green-400 animate-fade-in">
+            <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5" />
+            <span>{profileMessage}</span>
+          </div>
         )}
         {profileError && (
-          <Alert variant="error" className="mb-4">
-            {profileError}
-          </Alert>
+          <div className="mb-4 flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400 animate-fade-in">
+            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+            <span>{profileError}</span>
+          </div>
         )}
 
         <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -221,7 +243,7 @@ export default function AccountSettings({ user, goBack }) {
                     <label
                       key={role.id}
                       title={isLocked ? "You can't remove your own ICT Coordinator role." : undefined}
-                      className={`flex items-center gap-2 p-2.5 rounded-md border text-xs font-medium transition-colors ${
+                      className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium transition-colors ${
                         isLocked ? "cursor-not-allowed opacity-80" : "cursor-pointer"
                       } ${
                         isChecked
@@ -244,30 +266,68 @@ export default function AccountSettings({ user, goBack }) {
             </div>
           )}
 
+          {isIctCoordinator && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <label className={labelClass}>
+                Employee / DepEd ID Number
+                <input
+                  className={inputClass}
+                  value={employeeNumber}
+                  onChange={(e) => setEmployeeNumber(e.target.value)}
+                  placeholder="e.g. 6113070"
+                />
+              </label>
+              <label className={labelClass}>
+                Position / Designation
+                <input
+                  className={inputClass}
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value)}
+                  placeholder="e.g. Teacher I"
+                />
+              </label>
+              <label className={labelClass}>
+                Mobile Number
+                <input
+                  className={inputClass}
+                  value={mobileNumber}
+                  onChange={(e) => setMobileNumber(e.target.value)}
+                  placeholder="e.g. 09171234567"
+                />
+              </label>
+            </div>
+          )}
+
           <div className="flex justify-end">
-            <Button type="submit" variant="primary" disabled={isSavingProfile}>
+            <button
+              type="submit"
+              disabled={isSavingProfile}
+              className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
               <Save size={15} />
               {isSavingProfile ? "Saving..." : "Save Profile"}
-            </Button>
+            </button>
           </div>
         </form>
-      </Card>
+      </div>
 
       {/* Password */}
-      <Card>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
         <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
           <KeyRound size={16} className="text-primary" /> Change Password
         </h2>
 
         {passwordMessage && (
-          <Alert variant="success" className="mb-4">
-            {passwordMessage}
-          </Alert>
+          <div className="mb-4 flex items-start gap-2 p-3 bg-green-50 border border-green-100 rounded-lg text-green-700 text-sm dark:bg-green-950/30 dark:border-green-900/50 dark:text-green-400 animate-fade-in">
+            <CheckCircle2 size={16} className="flex-shrink-0 mt-0.5" />
+            <span>{passwordMessage}</span>
+          </div>
         )}
         {passwordError && (
-          <Alert variant="error" className="mb-4">
-            {passwordError}
-          </Alert>
+          <div className="mb-4 flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400 animate-fade-in">
+            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+            <span>{passwordError}</span>
+          </div>
         )}
 
         <form onSubmit={handleChangePassword} className="space-y-4">
@@ -287,13 +347,17 @@ export default function AccountSettings({ user, goBack }) {
           </div>
 
           <div className="flex justify-end">
-            <Button type="submit" variant="primary" disabled={isChangingPassword}>
+            <button
+              type="submit"
+              disabled={isChangingPassword}
+              className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
               <KeyRound size={15} />
               {isChangingPassword ? "Changing..." : "Change Password"}
-            </Button>
+            </button>
           </div>
         </form>
-      </Card>
+      </div>
     </div>
   );
 }

@@ -31,3 +31,11 @@ export function makeAttendanceDocId(classValue, monthValue) {
   const [gradeLevel = "", section = ""] = classValue.split(" - ");
   return `${gradeLevel.replace(/ /g, "_")}_${section.replace(/ /g, "_")}_${monthValue}`;
 }
+
+// Derives the DepEd school year (June-May) that contains the given "YYYY-MM" month.
+export function schoolYearFromMonth(monthValue) {
+  if (!monthValue) return "";
+  const year = Number(monthValue.slice(0, 4));
+  const month = Number(monthValue.slice(5, 7));
+  return month >= 6 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+}

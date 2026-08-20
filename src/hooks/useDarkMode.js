@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const STORAGE_KEY = 'likha-sis-dark-mode';
 
@@ -18,6 +18,8 @@ export default function useDarkMode() {
   });
 
   const resolvedIsDark = mode === 'dark' ? true : mode === 'light' ? false : systemIsDark;
+
+  const isFirstRun = useRef(true);
 
   // Persist the raw preference string when it changes
   useEffect(() => {
@@ -54,6 +56,15 @@ export default function useDarkMode() {
   // Apply class on root; also sync colorScheme to suppress browser forced-dark
   useEffect(() => {
     const root = document.documentElement;
+
+    // Skip the crossfade on first mount (would flash on initial load); only
+    // animate actual switches after that.
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+    } else {
+      root.classList.add('theme-transition');
+    }
+
     root.classList.toggle('dark', resolvedIsDark);
 
     const scheme = resolvedIsDark ? 'dark' : 'light';
@@ -66,6 +77,9 @@ export default function useDarkMode() {
       document.head.appendChild(metaTag);
     }
     metaTag.setAttribute('content', scheme);
+
+    const timeout = setTimeout(() => root.classList.remove('theme-transition'), 220);
+    return () => clearTimeout(timeout);
   }, [resolvedIsDark]);
 
   return [mode, resolvedIsDark, setMode];

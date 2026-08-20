@@ -1,16 +1,32 @@
-# React + Vite
+# LIKHA-SIS
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Learner Information & Knowledge Hub Administrative System** — a web-based school management PWA for Tingub National High School (Philippines), built to enter school data once and automatically generate the DepEd forms, reports, and records that depend on it.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React + Vite, Tailwind CSS
+- Firebase (Authentication + Firestore, offline-first via `persistentLocalCache`)
+- Single-page string-state routing in `App.jsx` (no React Router)
+- `lucide-react` icons, `vite-plugin-pwa` for installability
 
-## React Compiler
+## DepEd compliance
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Built against current DepEd issuances for SY 2026–2027: DO 15 (grading), DO 006 (Safe Environment/LRP), DO 017 (Strengthened SHS), and the three-term academic calendar (Term 1–3, no legacy quarters). See `CLAUDE.md` for the full domain-mandate reference.
 
-## Expanding the ESLint configuration
+## Getting started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+npm run dev      # start the dev server
+npm run lint      # eslint
+npm run test      # vitest
+npm run build     # production build
+```
+
+A Firebase project is required — configure `src/firebase.js` with your project's credentials, then deploy `firestore.rules` (`firebase deploy --only firestore:rules`). On first run, the in-app Setup Wizard walks through School Identity, the School Settings key, and initial configuration.
+
+## Project docs
+
+- **`CLAUDE.md`** — architecture, domain mandates, and development conventions (read this first)
+- **`LIKHA-SIS — Living Project Specification.md`** — the living spec: target users, data model, and phase-by-phase implementation status
+- **`roadmap.md`** — current pending work, ranked by priority

@@ -1,0 +1,3 @@
+src\__tests__\dashboard.test.js
+src\__tests__\schoolSettingsLock.test.js
+src\__tests__\setupWizard.test.js

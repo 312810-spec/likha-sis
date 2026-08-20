@@ -3,15 +3,25 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
-import { extractThemeFromImage } from "./utils/extractTheme.js";
+import { extractThemeSuggestionsFromImage } from "./utils/extractTheme.js";
+import ThemeSuggestionPicker from "./components/ThemeSuggestionPicker.jsx";
 import {
   KEY_STAGE_OPTIONS,
   getGradeLevelsFromStages,
   makeDefaultShsSubjects,
   makeDefaultShsClusters,
 } from "./utils/keyStagesConfig.js";
+import { toCoordinate } from "./utils/coordinates.js";
+import { makeDefaultShift } from "./utils/scheduleModel.js";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
+import { hashSettingsKey, validateSettingsKey, SETTINGS_KEY_MIN_LENGTH } from "./utils/settingsLock.js";
+import {
+  autofillSchoolData,
+  DEPED_REGIONS,
+  KNOWN_SCHOOLS,
+  getDivisionsForRegion,
+} from "./utils/depedHierarchy.js";
 import {
   Upload,
   Sparkles,
@@ -21,12 +31,8 @@ import {
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
-import Button from "./components/ui/Button";
-import Alert from "./components/ui/Alert";
-
-const inputClass = "border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors";
-const labelClass = "text-sm font-medium text-gray-700";
 
 /**
  * Resizes an image file to max width/height preserving aspect ratio
@@ -105,17 +111,34 @@ function SetupWizard({ onComplete }) {
   const [shsClusters, setShsClusters] = useState(() =>
     initialConfig?.shs?.electiveClusters?.length ? initialConfig.shs.electiveClusters : makeDefaultShsClusters()
   );
+
+  // Shifts (how many sessions the school runs) and, once at least one shift
+  // exists, sections per grade level -- both editable in full later from
+  // School Settings > Sections & Shifts. Kept lightweight here since no
+  // teacher accounts exist yet to assign as advisers.
+  const [shifts, setShifts] = useState(() =>
+    initialConfig?.shifts?.length ? initialConfig.shifts : [makeDefaultShift("Whole Day")]
+  );
+  const [sectionsByGrade, setSectionsByGrade] = useState({});
+  const [newSectionName, setNewSectionName] = useState({});
+  const [newSectionShift, setNewSectionShift] = useState({});
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  // The School Settings key -- a SECOND secret, separate from the login
+  // password, required later before any school setting can be edited.
+  const [settingsKey, setSettingsKey] = useState("");
+  const [confirmSettingsKey, setConfirmSettingsKey] = useState("");
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Step 3: Branding State
   const [uploadedLogoUrl, setUploadedLogoUrl] = useState(null);
-  const [extractedTheme, setExtractedTheme] = useState(null);
+  const [themeSuggestions, setThemeSuggestions] = useState([]);
+  const [selectedThemeIndex, setSelectedThemeIndex] = useState(0);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSavingBranding, setIsSavingBranding] = useState(false);
   const [brandingError, setBrandingError] = useState("");
@@ -179,6 +202,48 @@ function SetupWizard({ onComplete }) {
     );
   }
 
+  function updateShiftLabel(index, label) {
+    setShifts((prev) => prev.map((s, i) => (i === index ? { ...s, label } : s)));
+  }
+
+  function addShift() {
+    setShifts((prev) => [...prev, makeDefaultShift(`Shift ${prev.length + 1}`)]);
+  }
+
+  function removeShift(index) {
+    const removed = shifts[index];
+    setShifts((prev) => prev.filter((_, i) => i !== index));
+    // Sections pointed at the removed shift fall back to whatever shift is
+    // first afterward, so "Add" never silently points at a shift that no
+    // longer exists.
+    setSectionsByGrade((prev) => {
+      const next = {};
+      Object.entries(prev).forEach(([grade, list]) => {
+        next[grade] = list.map((s) => (s.shiftId === removed?.id ? { ...s, shiftId: "" } : s));
+      });
+      return next;
+    });
+  }
+
+  function addSection(gradeLevel) {
+    const name = (newSectionName[gradeLevel] || "").trim();
+    if (!name) return;
+    const shiftId = newSectionShift[gradeLevel] || shifts[0]?.id || "";
+    const id = `${gradeLevel}_${name}`.toLowerCase().replace(/\s+/g, "-");
+    setSectionsByGrade((prev) => ({
+      ...prev,
+      [gradeLevel]: [...(prev[gradeLevel] || []), { id, gradeLevel, name, shiftId }],
+    }));
+    setNewSectionName((prev) => ({ ...prev, [gradeLevel]: "" }));
+  }
+
+  function removeSection(gradeLevel, sectionId) {
+    setSectionsByGrade((prev) => ({
+      ...prev,
+      [gradeLevel]: (prev[gradeLevel] || []).filter((s) => s.id !== sectionId),
+    }));
+  }
+
   function validateStep1() {
     const e = {};
     if (!schoolData.schoolName || !schoolData.schoolName.trim()) {
@@ -204,6 +269,10 @@ function SetupWizard({ onComplete }) {
     if (!password) e.password = "Password is required.";
     if (password && password.length < 6) e.password = "Password must be at least 6 characters.";
     if (password !== confirmPassword) e.confirmPassword = "Passwords do not match.";
+
+    const settingsKeyError = validateSettingsKey(settingsKey, confirmSettingsKey);
+    if (settingsKeyError) e.settingsKey = settingsKeyError;
+
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -236,6 +305,17 @@ function SetupWizard({ onComplete }) {
         createdByEmail: email,
       });
 
+      // Store the School Settings key BEFORE schoolConfig: writing
+      // setupCompletedAt below flips isSetupComplete() in firestore.rules, and
+      // this write is simplest while first-run bootstrap access still applies.
+      // Only the PBKDF2 hash is persisted -- never the key itself.
+      const hashedSettingsKey = await hashSettingsKey(settingsKey);
+      await setDoc(doc(db, "settings", "security"), {
+        ...hashedSettingsKey,
+        updatedAt: serverTimestamp(),
+        updatedByEmail: email,
+      });
+
       // Only persist SHS configuration when Key Stage 4 is actually enabled --
       // otherwise write the empty default rather than unused placeholder junk.
       const shs = selectedKeyStages.ks4
@@ -244,10 +324,27 @@ function SetupWizard({ onComplete }) {
 
       await setDoc(doc(db, "settings", "schoolConfig"), {
         ...schoolData,
+        // Coordinates are typed as text but consumed as numbers by the weather
+        // card and the nearby-earthquake radius, so normalize on write.
+        latitude: toCoordinate(schoolData.latitude),
+        longitude: toCoordinate(schoolData.longitude),
         gradeLevelsOffered,
         shs,
+        shifts,
         setupCompletedAt: serverTimestamp(),
       });
+
+      // Sections live in schedules/{schoolYear}/sections -- the same
+      // collection Class Program Generator reads -- keyed to the built-in
+      // default school year until Academic Calendar is configured. Written
+      // after users/{uid} above so hasAnyRole(["ictCoordinator"]) already
+      // resolves for this account.
+      const allSections = Object.values(sectionsByGrade).flat();
+      await Promise.all(
+        allSections.map((section) =>
+          setDoc(doc(db, "schedules", "2026-2027", "sections", section.id), section)
+        )
+      );
 
       // Advance to Step 3 (Branding)
       setStep(3);
@@ -295,8 +392,9 @@ function SetupWizard({ onComplete }) {
         img.src = uploadedLogoUrl;
       });
 
-      const theme = await extractThemeFromImage(img);
-      setExtractedTheme(theme);
+      const suggestions = await extractThemeSuggestionsFromImage(img);
+      setThemeSuggestions(suggestions);
+      setSelectedThemeIndex(0);
     } catch (err) {
       console.error("Failed to extract theme from logo:", err);
       setBrandingError("Failed to extract colors from the image. Please try again or use another image.");
@@ -304,6 +402,8 @@ function SetupWizard({ onComplete }) {
       setIsExtracting(false);
     }
   }
+
+  const extractedTheme = themeSuggestions[selectedThemeIndex]?.theme || null;
 
   async function handleSaveBranding() {
     if (!uploadedLogoUrl && !extractedTheme) {
@@ -375,7 +475,7 @@ function SetupWizard({ onComplete }) {
 
   return (
     <div className="min-h-screen bg-primary flex items-center justify-center p-4">
-      <div className={`w-full ${containerMaxWidth} bg-white rounded-lg shadow-lg p-6 sm:p-8 transition-all duration-200`}>
+      <div className={`w-full ${containerMaxWidth} bg-white rounded-xl shadow-lg p-6 sm:p-8 transition-all duration-200`}>
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold text-primary">LIKHA-SIS Setup</h2>
           <p className="text-sm text-gray-500 mt-1">Step {step} of 4</p>
@@ -388,61 +488,94 @@ function SetupWizard({ onComplete }) {
               if (validateStep1()) setStep(2);
             }}
           >
+            <datalist id="wizard-school-presets">
+              {KNOWN_SCHOOLS.map((s) => (
+                <option key={s.schoolId} value={s.schoolName}>
+                  {`${s.schoolName} (${s.district}, ${s.divisionOffice})`}
+                </option>
+              ))}
+            </datalist>
+
+            <datalist id="wizard-regions">
+              {DEPED_REGIONS.map((r) => (
+                <option key={r} value={r} />
+              ))}
+            </datalist>
+
+            <datalist id="wizard-divisions">
+              {getDivisionsForRegion(schoolData.region).map((d) => (
+                <option key={d.name} value={d.name}>
+                  {d.cityProvince}
+                </option>
+              ))}
+            </datalist>
+
             <div className="grid grid-cols-1 gap-3">
-              <label className={labelClass}>School Name</label>
+              <label className="text-sm">School ID (6 Digits)</label>
               <input
-                className={inputClass}
-                value={schoolData.schoolName}
-                onChange={(e) => setSchoolData({ ...schoolData, schoolName: e.target.value })}
+                className="border p-2 rounded"
+                value={schoolData.schoolId || ""}
+                placeholder="e.g. 302975"
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "schoolId", e.target.value))}
+              />
+
+              <label className="text-sm">School Name</label>
+              <input
+                className="border p-2 rounded"
+                list="wizard-school-presets"
+                value={schoolData.schoolName || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "schoolName", e.target.value))}
               />
               {errors.schoolName && <p className="text-red-600 text-sm">{errors.schoolName}</p>}
 
-              <label className={labelClass}>School Address</label>
+              <label className="text-sm">School Address</label>
               <input
-                className={inputClass}
-                value={schoolData.schoolAddress}
-                onChange={(e) => setSchoolData({ ...schoolData, schoolAddress: e.target.value })}
+                className="border p-2 rounded"
+                value={schoolData.schoolAddress || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "schoolAddress", e.target.value))}
               />
 
-              <label className={labelClass}>Region</label>
+              <label className="text-sm">Region</label>
               <input
-                className={inputClass}
-                value={schoolData.region}
-                onChange={(e) => setSchoolData({ ...schoolData, region: e.target.value })}
+                className="border p-2 rounded"
+                list="wizard-regions"
+                value={schoolData.region || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "region", e.target.value))}
               />
 
-              <label className={labelClass}>Division Office</label>
+              <label className="text-sm">SDO - Division Office</label>
               <input
-                className={inputClass}
-                value={schoolData.divisionOffice}
-                onChange={(e) => setSchoolData({ ...schoolData, divisionOffice: e.target.value })}
+                className="border p-2 rounded"
+                list="wizard-divisions"
+                value={schoolData.divisionOffice || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "divisionOffice", e.target.value))}
               />
 
-              <label className={labelClass}>District</label>
+              <label className="text-sm">District</label>
               <input
-                className={inputClass}
-                value={schoolData.district}
-                onChange={(e) => setSchoolData({ ...schoolData, district: e.target.value })}
+                className="border p-2 rounded"
+                value={schoolData.district || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "district", e.target.value))}
               />
 
-              <label className={labelClass}>Municipality / City / Province</label>
+              <label className="text-sm">Municipality / City / Province</label>
               <input
-                className={inputClass}
-                value={schoolData.municipalityCityProvince}
-                onChange={(e) => setSchoolData({ ...schoolData, municipalityCityProvince: e.target.value })}
+                className="border p-2 rounded"
+                value={schoolData.municipalityCityProvince || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "municipalityCityProvince", e.target.value))}
               />
 
-              <label className={labelClass}>Principal Name</label>
+              <label className="text-sm">Principal Name</label>
               <input
-                className={inputClass}
-                value={schoolData.principalName}
-                onChange={(e) => setSchoolData({ ...schoolData, principalName: e.target.value })}
+                className="border p-2 rounded"
+                value={schoolData.principalName || ""}
+                onChange={(e) => setSchoolData(autofillSchoolData(schoolData, "principalName", e.target.value))}
               />
               {errors.principalName && <p className="text-red-600 text-sm">{errors.principalName}</p>}
 
-              <label className={labelClass}>Principal Position</label>
+              <label className="text-sm">Principal Position</label>
               <input
-                className={inputClass}
+                className="border p-2 rounded"
                 value={schoolData.principalPosition}
                 onChange={(e) => setSchoolData({ ...schoolData, principalPosition: e.target.value })}
               />
@@ -494,7 +627,7 @@ function SetupWizard({ onComplete }) {
                     {shsSubjects.map((subj, i) => (
                       <input
                         key={subj.id}
-                        className={`${inputClass} text-sm`}
+                        className="border p-2 rounded text-sm"
                         value={subj.name}
                         onChange={(e) => updateCoreSubjectName(i, e.target.value)}
                       />
@@ -522,10 +655,10 @@ function SetupWizard({ onComplete }) {
 
                   <div className="space-y-3">
                     {shsClusters.map((cluster, ci) => (
-                      <div key={cluster.id} className="border border-gray-300 rounded-lg p-3 bg-gray-50/70">
+                      <div key={cluster.id} className="border rounded-lg p-3 bg-gray-50/70">
                         <div className="flex items-center gap-2">
                           <input
-                            className={`${inputClass} text-sm flex-1`}
+                            className="border p-1.5 rounded text-sm flex-1"
                             value={cluster.name}
                             onChange={(e) => updateClusterName(ci, e.target.value)}
                           />
@@ -542,13 +675,13 @@ function SetupWizard({ onComplete }) {
                           {cluster.subjects.map((subj, si) => (
                             <div key={subj.id} className="flex items-center gap-1.5">
                               <input
-                                className="border border-gray-300 rounded-md p-1 text-xs flex-1"
+                                className="border p-1 rounded text-xs flex-1"
                                 placeholder="Subject name"
                                 value={subj.name}
                                 onChange={(e) => updateClusterSubject(ci, si, { name: e.target.value })}
                               />
                               <select
-                                className="border border-gray-300 rounded-md p-1 text-xs"
+                                className="border p-1 rounded text-xs"
                                 value={subj.weightProfile}
                                 onChange={(e) => updateClusterSubject(ci, si, { weightProfile: e.target.value })}
                               >
@@ -579,11 +712,117 @@ function SetupWizard({ onComplete }) {
               </div>
             )}
 
+            {getGradeLevelsFromStages(selectedKeyStages).length > 0 && (
+              <div className="mt-6 border-t border-gray-200 pt-5 space-y-5">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Shifts &amp; Sections</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    How many shifts does the school run, and how many sections per grade level? You can
+                    fine-tune shift start times and periods later in School Settings.
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Shifts</p>
+                  <div className="space-y-1.5">
+                    {shifts.map((shift, i) => (
+                      <div key={shift.id} className="flex items-center gap-1.5">
+                        <input
+                          className="flex-1 border p-1.5 rounded text-sm"
+                          value={shift.label}
+                          onChange={(e) => updateShiftLabel(i, e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeShift(i)}
+                          className="text-xs text-red-600 hover:text-red-700 px-1"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addShift}
+                    className="text-xs font-medium text-primary hover:text-primary-light mt-1.5"
+                  >
+                    + Add Shift
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                    Sections per Grade Level
+                  </p>
+                  {getGradeLevelsFromStages(selectedKeyStages).map((gradeLevel) => (
+                    <div key={gradeLevel} className="border rounded-lg p-3 bg-gray-50/70">
+                      <p className="text-xs font-semibold text-gray-600 mb-1.5">{gradeLevel}</p>
+                      {(sectionsByGrade[gradeLevel] || []).length > 0 && (
+                        <ul className="flex flex-wrap gap-1.5 mb-1.5">
+                          {sectionsByGrade[gradeLevel].map((s) => (
+                            <li
+                              key={s.id}
+                              className="flex items-center gap-1.5 text-xs font-medium bg-white text-gray-700 border border-gray-200 rounded-full px-2.5 py-1"
+                            >
+                              {s.name}
+                              <button
+                                type="button"
+                                onClick={() => removeSection(gradeLevel, s.id)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                &times;
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <input
+                          className="flex-1 min-w-[100px] border p-1.5 rounded text-xs"
+                          placeholder="Section name"
+                          value={newSectionName[gradeLevel] || ""}
+                          onChange={(e) =>
+                            setNewSectionName((prev) => ({ ...prev, [gradeLevel]: e.target.value }))
+                          }
+                        />
+                        <select
+                          className="border p-1.5 rounded text-xs"
+                          value={newSectionShift[gradeLevel] || shifts[0]?.id || ""}
+                          onChange={(e) =>
+                            setNewSectionShift((prev) => ({ ...prev, [gradeLevel]: e.target.value }))
+                          }
+                          disabled={shifts.length === 0}
+                        >
+                          {shifts.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => addSection(gradeLevel)}
+                          disabled={shifts.length === 0}
+                          className="text-xs font-semibold text-white bg-primary hover:bg-primary-light disabled:opacity-50 rounded px-2.5 py-1.5"
+                        >
+                          + Add
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-6 flex justify-between">
               <div />
-              <Button type="submit" variant="primary">
+              <button
+                type="submit"
+                className="bg-primary text-white px-4 py-2 rounded"
+              >
                 Continue
-              </Button>
+              </button>
             </div>
           </form>
         )}
@@ -594,31 +833,67 @@ function SetupWizard({ onComplete }) {
               This account will have full ICT Coordinator access to set up the rest of your school's system.
             </p>
 
-            <label className={labelClass}>Full Name</label>
-            <input className={`${inputClass} w-full mb-2`} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <label className="text-sm">Full Name</label>
+            <input className="border p-2 rounded w-full mb-2" value={fullName} onChange={(e) => setFullName(e.target.value)} />
             {errors.fullName && <p className="text-red-600 text-sm">{errors.fullName}</p>}
 
-            <label className={labelClass}>Email</label>
-            <input className={`${inputClass} w-full mb-2`} value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label className="text-sm">Email</label>
+            <input className="border p-2 rounded w-full mb-2" value={email} onChange={(e) => setEmail(e.target.value)} />
             {errors.email && <p className="text-red-600 text-sm">{errors.email}</p>}
 
-            <label className={labelClass}>Password</label>
-            <input type="password" className={`${inputClass} w-full mb-2`} value={password} onChange={(e) => setPassword(e.target.value)} />
+            <label className="text-sm">Password</label>
+            <input type="password" className="border p-2 rounded w-full mb-2" value={password} onChange={(e) => setPassword(e.target.value)} />
             {errors.password && <p className="text-red-600 text-sm">{errors.password}</p>}
 
-            <label className={labelClass}>Confirm Password</label>
-            <input type="password" className={`${inputClass} w-full mb-2`} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+            <label className="text-sm">Confirm Password</label>
+            <input type="password" className="border p-2 rounded w-full mb-2" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
             {errors.confirmPassword && <p className="text-red-600 text-sm">{errors.confirmPassword}</p>}
+
+            <div className="mt-5 pt-4 border-t border-gray-200">
+              <p className="text-sm font-medium text-gray-700">School Settings Key</p>
+              <p className="text-xs text-gray-500 mt-1 mb-3">
+                A second secret, separate from the password above. It will be required before school
+                identity, grade levels, branding or the academic calendar can ever be changed. Minimum{" "}
+                {SETTINGS_KEY_MIN_LENGTH} characters — store it somewhere safe, it cannot be recovered.
+              </p>
+
+              <label className="text-sm">School Settings Key</label>
+              <input
+                type="password"
+                autoComplete="off"
+                className="border p-2 rounded w-full mb-2"
+                value={settingsKey}
+                onChange={(e) => setSettingsKey(e.target.value)}
+              />
+
+              <label className="text-sm">Confirm School Settings Key</label>
+              <input
+                type="password"
+                autoComplete="off"
+                className="border p-2 rounded w-full mb-2"
+                value={confirmSettingsKey}
+                onChange={(e) => setConfirmSettingsKey(e.target.value)}
+              />
+              {errors.settingsKey && <p className="text-red-600 text-sm">{errors.settingsKey}</p>}
+            </div>
 
             {submitError && <p className="text-red-600 text-sm mt-2">{submitError}</p>}
 
             <div className="mt-6 flex justify-between">
-              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
+              <button
+                type="button"
+                onClick={() => setStep(1)}
+                className="px-4 py-2 rounded border"
+              >
                 Back
-              </Button>
-              <Button type="submit" variant="primary" disabled={isSubmitting}>
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-primary text-white px-4 py-2 rounded"
+              >
                 {isSubmitting ? "Creating account..." : "Create account & Continue"}
-              </Button>
+              </button>
             </div>
           </form>
         )}
@@ -630,14 +905,15 @@ function SetupWizard({ onComplete }) {
             </p>
 
             {brandingError && (
-              <Alert variant="error" className="text-xs">
-                {brandingError}
-              </Alert>
+              <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-800 flex items-start gap-2.5 text-xs font-medium">
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                <span>{brandingError}</span>
+              </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Logo Upload */}
-              <div className="bg-gray-50/70 p-5 rounded-lg border border-gray-200 space-y-3">
+              <div className="bg-gray-50/70 p-5 rounded-xl border border-gray-200 space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
                     1
@@ -670,10 +946,14 @@ function SetupWizard({ onComplete }) {
                     id="setup-logo-input"
                   />
 
-                  <Button type="button" variant="secondary" size="compact" onClick={() => fileInputRef.current?.click()}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition"
+                  >
                     <Upload size={14} />
                     {uploadedLogoUrl ? "Change Logo" : "Upload Logo"}
-                  </Button>
+                  </button>
                   {uploadedLogoUrl && (
                     <span className="text-[11px] text-green-600 font-medium flex items-center gap-1">
                       <CheckCircle2 size={12} /> Ready for theme generation
@@ -683,7 +963,7 @@ function SetupWizard({ onComplete }) {
               </div>
 
               {/* Theme Generation */}
-              <div className="bg-gray-50/70 p-5 rounded-lg border border-gray-200 space-y-3">
+              <div className="bg-gray-50/70 p-5 rounded-xl border border-gray-200 space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
                     2
@@ -694,90 +974,24 @@ function SetupWizard({ onComplete }) {
                   Extracts dominant colors from your logo with readable contrast.
                 </p>
 
-                <Button
+                <button
                   type="button"
-                  variant="primary"
-                  size="compact"
-                  className="w-full"
                   disabled={isExtracting || !uploadedLogoUrl}
                   onClick={handleGenerateTheme}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   <Sparkles size={14} />
                   {isExtracting ? "Extracting Colors..." : "Generate Theme from Logo"}
-                </Button>
+                </button>
 
-                {extractedTheme ? (
-                  <div className="space-y-2 pt-1">
-                    <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                      Extracted Palette
-                    </h4>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {/* Primary Swatch */}
-                      <div className="p-2 rounded-lg border border-gray-200 bg-white text-center space-y-1">
-                        <div
-                          className="w-full h-7 rounded shadow-inner"
-                          style={{ backgroundColor: extractedTheme.primary }}
-                        />
-                        <div className="text-[11px] font-bold text-gray-800">Primary</div>
-                        <div className="text-[9px] text-gray-500 font-mono">{extractedTheme.primary}</div>
-                        <div className="flex gap-1 justify-center pt-0.5">
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Light: ${extractedTheme.primaryLight}`}
-                            style={{ backgroundColor: extractedTheme.primaryLight }}
-                          />
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Dark: ${extractedTheme.primaryDark}`}
-                            style={{ backgroundColor: extractedTheme.primaryDark }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Accent Swatch */}
-                      <div className="p-2 rounded-lg border border-gray-200 bg-white text-center space-y-1">
-                        <div
-                          className="w-full h-7 rounded shadow-inner"
-                          style={{ backgroundColor: extractedTheme.accent }}
-                        />
-                        <div className="text-[11px] font-bold text-gray-800">Accent</div>
-                        <div className="text-[9px] text-gray-500 font-mono">{extractedTheme.accent}</div>
-                        <div className="flex gap-1 justify-center pt-0.5">
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Light: ${extractedTheme.accentLight}`}
-                            style={{ backgroundColor: extractedTheme.accentLight }}
-                          />
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Dark: ${extractedTheme.accentDark}`}
-                            style={{ backgroundColor: extractedTheme.accentDark }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Leaf Swatch */}
-                      <div className="p-2 rounded-lg border border-gray-200 bg-white text-center space-y-1">
-                        <div
-                          className="w-full h-7 rounded shadow-inner"
-                          style={{ backgroundColor: extractedTheme.leaf }}
-                        />
-                        <div className="text-[11px] font-bold text-gray-800">Leaf</div>
-                        <div className="text-[9px] text-gray-500 font-mono">{extractedTheme.leaf}</div>
-                        <div className="flex gap-1 justify-center pt-0.5">
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Light: ${extractedTheme.leafLight}`}
-                            style={{ backgroundColor: extractedTheme.leafLight }}
-                          />
-                          <div
-                            className="w-3 h-3 rounded"
-                            title={`Dark: ${extractedTheme.leafDark}`}
-                            style={{ backgroundColor: extractedTheme.leafDark }}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                {themeSuggestions.length > 0 ? (
+                  <div className="pt-1">
+                    <ThemeSuggestionPicker
+                      suggestions={themeSuggestions}
+                      selectedIndex={selectedThemeIndex}
+                      onSelect={setSelectedThemeIndex}
+                      compact
+                    />
                   </div>
                 ) : (
                   <div className="text-center py-4 text-[11px] text-gray-400 border border-dashed rounded-lg bg-white">
@@ -788,12 +1002,21 @@ function SetupWizard({ onComplete }) {
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
-              <Button type="button" variant="secondary" onClick={handleSkipBranding}>
+              <button
+                type="button"
+                onClick={handleSkipBranding}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
                 Skip for Now
-              </Button>
-              <Button type="button" variant="primary" disabled={isSavingBranding} onClick={handleSaveBranding}>
+              </button>
+              <button
+                type="button"
+                disabled={isSavingBranding}
+                onClick={handleSaveBranding}
+                className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition shadow-sm disabled:opacity-50"
+              >
                 {isSavingBranding ? "Saving..." : "Save and Continue"}
-              </Button>
+              </button>
             </div>
           </div>
         )}
@@ -813,7 +1036,7 @@ function SetupWizard({ onComplete }) {
                       key={card.key}
                       type="button"
                       onClick={() => setActiveImporter(card.key)}
-                      className="text-left bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:border-primary hover:shadow-md transition-all group"
+                      className="text-left bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-primary hover:shadow-md transition-all group"
                     >
                       <div className="flex items-start gap-3.5">
                         <div
@@ -852,7 +1075,7 @@ function SetupWizard({ onComplete }) {
                   </span>
                 </div>
 
-                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                <div className="border rounded-xl p-4 bg-gray-50/50">
                   {activeImporter === "sf1" && <SF1Importer user={auth.currentUser} />}
                   {activeImporter === "sf10" && <SF10Importer user={auth.currentUser} />}
                 </div>
@@ -860,12 +1083,20 @@ function SetupWizard({ onComplete }) {
             )}
 
             <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
-              <Button type="button" variant="secondary" onClick={handleFinishSetup}>
+              <button
+                type="button"
+                onClick={handleFinishSetup}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+              >
                 Skip for Now
-              </Button>
-              <Button type="button" variant="primary" onClick={handleFinishSetup}>
+              </button>
+              <button
+                type="button"
+                onClick={handleFinishSetup}
+                className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition shadow-sm"
+              >
                 Finish Setup
-              </Button>
+              </button>
             </div>
           </div>
         )}

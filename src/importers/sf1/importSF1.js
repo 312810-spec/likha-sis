@@ -24,6 +24,7 @@ function emptySchool() {
   return {
     schoolId: "",
     schoolName: "",
+    region: "",
     division: "",
     district: "",
     schoolYear: "",
@@ -67,7 +68,9 @@ function selectBestSheet(workbook) {
     } catch {
       continue;
     }
-    if (!structure.headerRow) continue;
+    // headerRow is a 0-based ROW INDEX: a truthiness check would discard a sheet
+    // whose learner header happens to be the very first row.
+    if (structure.headerRow === null || structure.headerRow === undefined) continue;
     const { rawLearners, droppedRows } = parseSF1(structure);
     const { learners } = normalizeSF1(rawLearners);
     const { records } = validateSF1(learners);
@@ -231,9 +234,11 @@ export async function analyzeSF1Files(files, existingByLrn = {}) {
  *
  * @param {Array} fileModels
  * @param {Object} existingByLrn
+ * @param {Object} [options] - forwarded to detectDuplicates (e.g. `keyOf`, which
+ *        SF10 narrows so one learner's several school years are not duplicates)
  * @returns {Array} updated fileModels
  */
-export function applyDuplicates(fileModels, existingByLrn = {}) {
+export function applyDuplicates(fileModels, existingByLrn = {}, options = {}) {
   const byId = new Map();
   const flat = fileModels.flatMap((f) =>
     (f.records || []).map((r) => {
@@ -260,7 +265,7 @@ export function applyDuplicates(fileModels, existingByLrn = {}) {
     })
   );
 
-  const res = detectDuplicates(flat, existingByLrn);
+  const res = detectDuplicates(flat, existingByLrn, options);
 
   res.records.forEach((annotated) => {
     const orig = annotated._original;

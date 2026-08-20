@@ -1,0 +1,6 @@
+node_modules/
+dist/
+coverage/
+*.log
+src/importers/**/fixtures/
+docs/superpowers/archived/

@@ -16,14 +16,12 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
-import { CalendarCheck } from "lucide-react";
+import useSchoolConfig from "./hooks/useSchoolConfig";
+import { Info } from "lucide-react";
 
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
-import { getWeekdays, makeAttendanceDocId } from "./utils/attendanceDates";
-import PageHeader from "./components/ui/PageHeader";
-import Card from "./components/ui/Card";
-import Alert from "./components/ui/Alert";
-import Button from "./components/ui/Button";
+import { getWeekdays, makeAttendanceDocId, schoolYearFromMonth } from "./utils/attendanceDates";
+import buildAttendanceYearOverview from "./utils/attendanceYearOverview";
 
 // Dropout reason codes (a1–f) per the DepEd NLS legend. Used both for the
 // "Legend & Guidelines" section and the per-learner Remarks dropdown options.
@@ -86,17 +84,18 @@ function formatMonthLabel(monthValue) {
   return monthName && year ? `${monthName} ${year}` : monthValue;
 }
 
-// Derives the DepEd school year (June–May) that contains the given "YYYY-MM" month.
-function schoolYearFromMonth(monthValue) {
-  if (!monthValue) return "";
-  const year = Number(monthValue.slice(0, 4));
-  const month = Number(monthValue.slice(5, 7));
-  return month >= 6 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
-}
-
 // ---- Component -------------------------------------------------------------
 
-function SF2({ user, goBack }) {
+function SF2({ user, userRoles, goBack }) {
+  const { config } = useSchoolConfig();
+  const currentSchool = { ...schoolConfig, ...config };
+  // Only the adviser marks attendance; other roles granted sf2 access
+  // (principal, masterTeacher, smeaCoordinator, guidance, ictCoordinator)
+  // only see the read-only Year Overview tab.
+  const isAdviser = Array.isArray(userRoles) && userRoles.includes("adviser");
+  const [activeTab, setActiveTab] = useState(isAdviser ? "grid" : "overview");
+  const [yearOverviewDocs, setYearOverviewDocs] = useState([]);
+  const [loadingOverview, setLoadingOverview] = useState(false);
   // learners: full roster fetched from Firestore, each with its document id.
   const [learners, setLearners] = useState([]);
   // loading: true while the roster is being fetched on mount.
@@ -227,6 +226,44 @@ function SF2({ user, goBack }) {
     loadAttendance();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterValue, monthValue]);
+
+  // Load every attendance doc for the selected class across the current
+  // school year (all months, not just the one picked above) to power the
+  // Year Overview tab.
+  useEffect(() => {
+    if (activeTab !== "overview" || !filterValue) {
+      return;
+    }
+    let cancelled = false;
+
+    async function loadYearOverview() {
+      setLoadingOverview(true);
+      try {
+        const snapshot = await getDocs(collection(db, "attendance"));
+        if (cancelled) return;
+        const targetSchoolYear = schoolYearFromMonth(monthValue);
+        const docs = [];
+        snapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          if (d.gradeLevel !== selectedGradeLevel) return;
+          if (d.section !== selectedSection) return;
+          if (schoolYearFromMonth(d.month) !== targetSchoolYear) return;
+          docs.push(d);
+        });
+        setYearOverviewDocs(docs);
+      } catch (err) {
+        console.error("Failed to load attendance year overview:", err);
+        if (!cancelled) setYearOverviewDocs([]);
+      } finally {
+        if (!cancelled) setLoadingOverview(false);
+      }
+    }
+
+    loadYearOverview();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, filterValue, selectedGradeLevel, selectedSection, monthValue]);
 
   // Cycles a learner+date cell: "" (Present) -> "A" -> "T" -> "".
   function cycleCell(learnerId, dateString) {
@@ -683,6 +720,10 @@ function SF2({ user, goBack }) {
     );
   }
   const hasSelection = Boolean(filterValue && monthValue);
+  const yearOverview = buildAttendanceYearOverview({
+    monthDocs: yearOverviewDocs,
+    learners: filteredLearners,
+  });
 
   const registeredLearners = maleLearners.length + femaleLearners.length;
   // Auto-computed values for the Class Summary, recalculated live from current state.
@@ -705,7 +746,7 @@ function SF2({ user, goBack }) {
   // Renders the collapsible "Legend & Guidelines" section (collapsed by default).
   function renderLegend() {
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
         <button
           type="button"
           onClick={() => setShowLegend((v) => !v)}
@@ -832,7 +873,7 @@ function SF2({ user, goBack }) {
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">School Head Name</label>
             <input
               type="text"
-              value={schoolConfig.principalName}
+              value={currentSchool.principalName}
               readOnly
               className="w-full text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/50 text-gray-600 dark:text-gray-400 px-3 py-2 cursor-not-allowed"
             />
@@ -908,17 +949,26 @@ function SF2({ user, goBack }) {
       `}</style>
 
       {/* Header Bar */}
-      <div className="no-print">
-        <PageHeader
-          icon={CalendarCheck}
-          title="School Form 2 — Daily Attendance"
-          description={`Logged in as: ${user?.email || ""}`}
-          onBack={goBack}
-        />
+      <div className="no-print bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        {goBack && (
+          <button
+            onClick={goBack}
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
+            type="button"
+          >
+            ← Back to Dashboard
+          </button>
+        )}
+        <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+          School Form 2 — Daily Attendance
+        </h1>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user?.email || ""}</strong>
+        </p>
       </div>
 
       {/* Class + month pickers */}
-      <Card className="no-print">
+      <div className="no-print bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Class</label>
@@ -946,54 +996,154 @@ function SF2({ user, goBack }) {
             />
           </div>
         </div>
-      </Card>
+      </div>
 
+      {/* Tab bar — adviser can switch between marking attendance and the
+          year-long trend; other sf2-access roles only ever see Year Overview. */}
+      {isAdviser && (
+        <div className="no-print flex gap-2 border-b border-gray-200 dark:border-gray-700">
+          {[
+            { id: "grid", label: "Attendance Grid" },
+            { id: "overview", label: "Year Overview" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors duration-150 ${
+                activeTab === tab.id
+                  ? "border-primary text-primary dark:text-primary-light"
+                  : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === "overview" && (
+        <div className="no-print bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+            Attendance Year Overview{filterValue ? ` — ${filterValue}` : ""}
+          </h2>
+          {!filterValue && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Select a class above to see its attendance trend.
+            </p>
+          )}
+          {filterValue && loadingOverview && (
+            <div className="h-24 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+          )}
+          {filterValue && !loadingOverview && yearOverview.months.length === 0 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No saved attendance found yet for this class this school year.
+            </p>
+          )}
+          {filterValue && !loadingOverview && yearOverview.months.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-primary/5 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold">
+                    <th className="p-2 text-left border-b border-gray-200 dark:border-gray-700">Learner</th>
+                    {yearOverview.months.map((m) => (
+                      <th key={m} className="p-2 text-center border-b border-gray-200 dark:border-gray-700 whitespace-nowrap">
+                        {formatMonthLabel(m)}
+                      </th>
+                    ))}
+                    <th className="p-2 text-center border-b border-gray-200 dark:border-gray-700">Year Avg</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
+                  {yearOverview.perLearner.map((l) => (
+                    <tr key={l.learnerId}>
+                      <td className="p-2">{l.name}</td>
+                      {yearOverview.months.map((m) => (
+                        <td key={m} className="p-2 text-center font-mono">
+                          {l.monthlyRates[m] === null ? "—" : `${l.monthlyRates[m].toFixed(1)}%`}
+                        </td>
+                      ))}
+                      <td className="p-2 text-center font-mono font-semibold">
+                        {l.yearAverage === null ? "—" : `${l.yearAverage.toFixed(1)}%`}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-gray-50 dark:bg-gray-800/60 font-bold">
+                    <td className="p-2">Class Average</td>
+                    {yearOverview.months.map((m) => (
+                      <td key={m} className="p-2 text-center font-mono">
+                        {yearOverview.classAverage[m] === null
+                          ? "—"
+                          : `${yearOverview.classAverage[m].toFixed(1)}%`}
+                      </td>
+                    ))}
+                    <td className="p-2" />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isAdviser && activeTab === "grid" && (
+        <>
       {/* Legend & Guidelines */}
       <div className="no-print">{renderLegend()}</div>
 
       {/* Class Summary + Signatures shown once a class with learners is selected */}
       {!loading && hasSelection && filteredLearners.length > 0 && (
-        <Card className="no-print space-y-6">
+        <div className="no-print bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-6">
           {renderSummary()}
           {renderSignatures()}
-        </Card>
+        </div>
       )}
 
       {/* Save button, Print Report & Status */}
       <div className="no-print flex flex-wrap items-center gap-3">
-        <Button onClick={handleSave} disabled={isSaving || !hasSelection}>
+        <button
+          onClick={handleSave}
+          disabled={isSaving || !hasSelection}
+          className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
+          type="button"
+        >
           {isSaving ? "Saving..." : "Save Month"}
-        </Button>
+        </button>
         {hasSelection && (
           <button
             onClick={() => {
               setShowPrintArea(true);
               setTimeout(() => window.print(), 150);
             }}
-            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98]"
             type="button"
           >
             🖨 Print Report
           </button>
         )}
         {statusMessage && (
-          <Alert variant={statusMessage.startsWith("Attendance") ? "success" : "error"}>
+          <span
+            className={`text-xs font-medium px-3 py-1.5 rounded-lg animate-fade-in ${
+              statusMessage.startsWith("Attendance")
+                ? "bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light"
+                : "bg-red-500/10 text-red-700 dark:text-red-400"
+            }`}
+          >
             {statusMessage}
-          </Alert>
+          </span>
         )}
       </div>
 
       {/* Auto-flag confirmation banners */}
       {pendingFlagCandidates.map((c) => (
-        <Alert key={c.docId} variant="warning" className="no-print animate-fade-in items-center">
-          <div className="flex flex-wrap items-center gap-4">
+        <div key={c.docId} className="no-print animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4">
+          <Info className="w-4 h-4 shrink-0 text-yellow-700" />
           <div className="flex-1">
             <div className="font-medium">This learner's attendance suggests a LARDO risk flag.</div>
             <div className="text-xs mt-0.5">Flag {c.learner.lastName || ""}, {c.learner.firstName || ""} for monitoring?</div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              size="compact"
+            <button
               onClick={async () => {
                 try {
                   const nowIso = new Date().toISOString();
@@ -1031,24 +1181,23 @@ function SF2({ user, goBack }) {
                   setStatusMessage("Failed to create LARDO record. Please try again.");
                 }
               }}
+              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
             >
               Flag for monitoring
-            </Button>
-            <Button
-              variant="secondary"
-              size="compact"
+            </button>
+            <button
               onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
             >
               Dismiss
-            </Button>
+            </button>
           </div>
-          </div>
-        </Alert>
+        </div>
       ))}
 
       {/* Loading state */}
       {loading && (
-        <div className="no-print space-y-3 p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="no-print space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
@@ -1057,19 +1206,19 @@ function SF2({ user, goBack }) {
 
       {/* Guards: nothing selected vs. no learners for this class */}
       {!loading && !hasSelection && (
-        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
+        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
           Select a class and month to begin
         </div>
       )}
       {!loading && hasSelection && filteredLearners.length === 0 && (
-        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
+        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
           No learners found for this class.
         </div>
       )}
 
       {/* Attendance grid */}
       {!loading && hasSelection && filteredLearners.length > 0 && (
-        <div className="no-print bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="no-print bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="overflow-x-auto max-h-[70vh]">
             <table className="w-full border-collapse text-xs">
               <thead>
@@ -1120,10 +1269,10 @@ function SF2({ user, goBack }) {
                 School Form 2 (SF2) Daily Attendance Report of Learners
               </div>
               <div>
-                School ID: <strong>{schoolConfig.schoolId || ""}</strong>
+                School ID: <strong>{currentSchool.schoolId || ""}</strong>
               </div>
               <div>
-                School Name: <strong>{schoolConfig.schoolName}</strong>
+                School Name: <strong>{currentSchool.schoolName}</strong>
               </div>
               <div>
                 School Year: <strong>{schoolYearFromMonth(monthValue)}</strong>
@@ -1148,6 +1297,8 @@ function SF2({ user, goBack }) {
             {renderPrintSignature()}
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

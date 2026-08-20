@@ -13,12 +13,7 @@ import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { computeLearnerTermGrade } from "./utils/gradeComputations";
 import { getSubjectRows, isShsGradeLevel } from "./utils/subjectRows.js";
 import schoolConfig from "./schoolConfig";
-import { FileText, Printer, RefreshCw } from "lucide-react";
-import PageHeader from "./components/ui/PageHeader";
-import Card from "./components/ui/Card";
-import Alert from "./components/ui/Alert";
-import Button from "./components/ui/Button";
-import EmptyState from "./components/ui/EmptyState";
+import { ArrowLeft, Printer, RefreshCw } from "lucide-react";
 
 // ---- Helpers ----------------------------------------------------------------
 
@@ -67,6 +62,7 @@ export default function ReportCard({ goBack }) {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
   const GRADE_OPTIONS = gradeOptions;
+  const school = { ...schoolConfig, ...config };
 
   // DO 017 SHS: resolve weights for the school's configured SHS subjects
   // first, falling through to the static Grade 4-10 map.
@@ -316,19 +312,35 @@ export default function ReportCard({ goBack }) {
 
       {/* ---- Filter / Controls (no-print) ---- */}
       <div className="no-print space-y-4 animate-slide-up">
-        <PageHeader
-          icon={FileText}
-          title="Report Card (SF9)"
-          description="Learner's Performance Report per DO 15, s.2026, Annex G"
-          onBack={goBack}
-        />
+        <div className="flex items-center gap-3">
+          {goBack && (
+            <button
+              onClick={goBack}
+              className="p-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 active:scale-[0.98]"
+              title="Back"
+              type="button"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
+          <div>
+            <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100">Report Card (SF9)</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Learner&apos;s Performance Report per DO 15, s.2026, Annex G
+            </p>
+          </div>
+        </div>
 
-        {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
+        {errorMessage && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-medium animate-fade-in">
+            {errorMessage}
+          </div>
+        )}
 
         {!isLoaded ? (
           <form
             onSubmit={handleLoadClass}
-            className="bg-white dark:bg-gray-900 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 max-w-xl space-y-4"
+            className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-xl space-y-4"
           >
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Select Section</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -379,7 +391,11 @@ export default function ReportCard({ goBack }) {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
               />
             </div>
-            <Button type="submit" disabled={isLoading} className="w-full">
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-2.5 px-4 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+            >
               {isLoading ? (
                 <>
                   <RefreshCw className="animate-spin" size={16} />
@@ -388,7 +404,7 @@ export default function ReportCard({ goBack }) {
               ) : (
                 "Load Class"
               )}
-            </Button>
+            </button>
 
             {isLoading && (
               <div className="space-y-3 pt-2">
@@ -398,11 +414,15 @@ export default function ReportCard({ goBack }) {
             )}
           </form>
         ) : (
-          <Card className="flex flex-wrap items-center gap-3">
-            <Button variant="secondary" onClick={() => setIsLoaded(false)}>
+          <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setIsLoaded(false)}
+              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 active:scale-[0.98] flex items-center gap-2"
+              type="button"
+            >
               <RefreshCw size={16} />
               Change Class
-            </Button>
+            </button>
             <div>
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Select Learner
@@ -423,11 +443,16 @@ export default function ReportCard({ goBack }) {
                 )}
               </select>
             </div>
-            <Button onClick={() => window.print()} disabled={!selectedLearnerId} className="ml-auto">
+            <button
+              onClick={() => window.print()}
+              disabled={!selectedLearnerId}
+              className="ml-auto px-4 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] flex items-center gap-2 disabled:opacity-50"
+              type="button"
+            >
               <Printer size={18} />
               Print
-            </Button>
-          </Card>
+            </button>
+          </div>
         )}
       </div>
 
@@ -461,14 +486,20 @@ export default function ReportCard({ goBack }) {
                 >
                   <div>Republic of the Philippines</div>
                   <div>Department of Education</div>
-                  <div>{schoolConfig.region}</div>
-                  <div>SCHOOLS DIVISION OFFICE OF {schoolConfig.divisionOffice}</div>
-                  <div>{schoolConfig.district}</div>
-                  <div>{schoolConfig.municipalityCityProvince}</div>
+                  <div>{school.region}</div>
+                  <div>SCHOOLS DIVISION OFFICE OF {school.divisionOffice}</div>
+                  <div>{school.district}</div>
+                  <div>{school.municipalityCityProvince}</div>
                   <div>
                     <strong>School: </strong>
-                    {schoolConfig.schoolName}
+                    {school.schoolName}
                   </div>
+                  {school.schoolId && (
+                    <div>
+                      <strong>School ID: </strong>
+                      {school.schoolId}
+                    </div>
+                  )}
                 </td>
 
                 {/* Right: Logo placeholder + Attendance table */}
@@ -852,9 +883,9 @@ export default function ReportCard({ goBack }) {
 
       {/* Empty state when loaded but no learner */}
       {isLoaded && !selectedLearner && (
-        <Card className="no-print mt-6">
-          <EmptyState title={`No learners found for ${gradeLevel} — ${section} (${schoolYear}).`} />
-        </Card>
+        <div className="mt-6 p-8 bg-white rounded-2xl shadow-sm border border-slate-200 text-center text-slate-500">
+          No learners found for {gradeLevel} — {section} ({schoolYear}).
+        </div>
       )}
     </div>
   );

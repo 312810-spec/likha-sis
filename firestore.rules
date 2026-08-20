@@ -41,6 +41,12 @@ service cloud.firestore {
     // Update/delete: adviser only (matches ViewLearners edit permission).
     match /learners/{learnerId} {
       allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "ictCoordinator", "smeaCoordinator", "guidance"]);
+      // Parent read: only allowed when the caller has a parentLinks document
+      // AND that document explicitly lists this learnerId. This enforces
+      // the verified parent-learner relationship at the database rule level.
+      allow read: if isSignedIn()
+        && exists(/databases/$(database)/documents/parentLinks/$(request.auth.uid))
+        && get(/databases/$(database)/documents/parentLinks/$(request.auth.uid)).data.learnerIds.hasAny([learnerId]);
       allow create: if hasAnyRole(["adviser", "ictCoordinator", "principal"]);
       allow update, delete: if hasAnyRole(["adviser"]);
     }
@@ -80,8 +86,13 @@ service cloud.firestore {
     }
 
     // ---- nutritionRecords ----
+    // Write stays adviser/smeaCoordinator-only (only NutritionStatus.jsx
+    // writes this collection). Read now also includes principal so they
+    // can view/print the school-wide Nutrition Consolidator (matches
+    // nutritionConsolidator in pageAccess.js).
     match /nutritionRecords/{recordId} {
-      allow read, write: if hasAnyRole(["adviser", "smeaCoordinator"]);
+      allow read: if hasAnyRole(["adviser", "smeaCoordinator", "principal"]);
+      allow write: if hasAnyRole(["adviser", "smeaCoordinator"]);
     }
 
     // ---- academicRecords (SF10 imports + SF10 Generator) ----
@@ -103,6 +114,32 @@ service cloud.firestore {
       allow read, write: if hasAnyRole(["smeaCoordinator", "principal", "guidance"]);
     }
 
+    // ---- parentLinks (Parent Portal — verified parent-learner relationships) ----
+    // Each document is keyed by the parent's Firebase Auth UID.
+    // Structure: { parentUid, learnerIds: [...], linkedBy, linkedAt, parentEmail, parentName }
+    // - Parent can read ONLY their own link document (UID-scoped).
+    // - ICT Coordinator and Principal can create, update, and delete link documents
+    //   (provisioning and revoking access).
+    // - NO other role has any access to this collection.
+    match /parentLinks/{parentUid} {
+      allow read: if isSignedIn() && request.auth.uid == parentUid;
+      allow read, write: if hasAnyRole(["ictCoordinator", "principal"]);
+    }
+
+    // ---- anecdotal_records (SMEA Anecdotal Records) ----
+    // Learner-level incident records covering DO 006 categories (behavioral/
+    // disciplinary, academic concern, commendation, guidance referral, chronic
+    // attendance). Per DO 006 s.2026 this is LARDO/behavioral data, so access
+    // is restricted to smeaCoordinator, principal, guidance only -- exactly the
+    // role set as the disciplinaryRecords block above. The earlier
+    // SMEAAnecdotal.jsx module was orphaned (never routed in App.jsx/Sidebar)
+    // and its smeaAnecdotal page-access entry has been removed, so no page
+    // grants a wider audience anymore; this rule stays as a fail-closed guard
+    // for the collection since data may still exist.
+    match /anecdotal_records/{recordId} {
+      allow read, write: if hasAnyRole(["smeaCoordinator", "principal", "guidance"]);
+    }
+
     // ---- transfers ----
     match /transfers/{transferId} {
       allow read, write: if hasAnyRole(["adviser", "ictCoordinator", "principal", "smeaCoordinator"]);
@@ -111,6 +148,25 @@ service cloud.firestore {
     // ---- importBatches (SF1/SF10 bulk import + Import Center) ----
     match /importBatches/{batchId} {
       allow read, write: if hasAnyRole(["ictCoordinator"]);
+    }
+
+    // ---- schedules (Class Program / Teacher's Load) ----
+    // Class Program / Teacher's Load scheduling data. No learner PII lives here,
+    // so reads are open to all scheduling-relevant staff while writes stay with
+    // the roles that own the timetable.
+    match /schedules/{schoolYear} {
+      allow read: if hasAnyRole(["ictCoordinator", "principal", "adviser", "masterTeacher", "subjectTeacher"]);
+      allow write: if hasAnyRole(["ictCoordinator", "principal"]);
+
+      match /sections/{sectionId} {
+        allow read: if hasAnyRole(["ictCoordinator", "principal", "adviser", "masterTeacher", "subjectTeacher"]);
+        allow write: if hasAnyRole(["ictCoordinator", "principal"]);
+      }
+
+      match /teachers/{teacherId} {
+        allow read: if hasAnyRole(["ictCoordinator", "principal", "adviser", "masterTeacher", "subjectTeacher"]);
+        allow write: if hasAnyRole(["ictCoordinator", "principal"]);
+      }
     }
 
     // ---- users (User Management) ----
@@ -133,7 +189,8 @@ service cloud.firestore {
       // editing their own doc can't grant themselves a different role.
       //
       // Exception: an ICT Coordinator may also self-edit their own `roles`
-      // (e.g. adding a second role to themselves), but only while both the
+      // (e.g. adding a second role to themselves) and employee info fields
+      // (employeeNumber, position, mobileNumber), but only while both the
       // stored value AND the new value still contain "ictCoordinator" --
       // this is the server-side half of the self-lockout guard (the UI
       // additionally disables unchecking that role on your own account).
@@ -142,27 +199,82 @@ service cloud.firestore {
         && (
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fullName"])
           || (
-            request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fullName", "roles"])
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(["fullName", "roles", "employeeNumber", "position", "mobileNumber"])
             && resource.data.roles.hasAny(["ictCoordinator"])
             && request.resource.data.roles.hasAny(["ictCoordinator"])
           )
         );
     }
 
-    // ---- settings (school config, branding, setup state) ----
+    // ---- settings/security (School Settings key) ----
+    // Holds ONLY the PBKDF2 salt+hash of the School Settings key -- never the
+    // key itself. Deliberately narrower than the rest of /settings: no other
+    // role has any reason to read the hash, so it is ictCoordinator-only.
+    // MUST come with the `document != 'security'` guard on the generic rule
+    // below, because Firestore allow rules are additive -- a narrower match
+    // block cannot take away access granted by a broader one.
+    // The !isSetupComplete() branch lets SetupWizard write it during
+    // first-run bootstrap, before the first user doc grants any role.
+    match /settings/security {
+      allow read, write: if hasAnyRole(["ictCoordinator"]) || !isSetupComplete();
+    }
+
+    // ---- settings (school config, branding, academic calendar, setup state) ----
     // Read: any signed-in user BEFORE setup completes (needed for
     // SetupWizard/App.jsx to check setup state during first-run bootstrap,
     // when a brand-new account has no users/{uid} doc -- and therefore no
     // role -- yet). Once setup is complete, requires a real ROLE_OPTIONS
     // role like every other collection, so a signed-in account with no
     // assigned role can't read school config after launch.
-    // Write: ictCoordinator/principal normally, OR anyone during first-run
-    // setup (before isSetupComplete), so a brand-new school can write its
-    // own settings/schoolConfig doc while bootstrapping.
+    // Write: ictCoordinator only -- School Settings is the ICT Coordinator's
+    // console (branding included, now that it is a tab in there) -- OR anyone
+    // during first-run setup (before isSetupComplete), so a brand-new school
+    // can write its own settings/schoolConfig doc while bootstrapping.
     match /settings/{document} {
-      allow read: if !isSetupComplete()
-        || hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
-      allow write: if hasAnyRole(["ictCoordinator", "principal"]) || !isSetupComplete();
+      allow read: if document != 'security'
+        && (!isSetupComplete()
+          || hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]));
+      allow write: if document != 'security'
+        && (hasAnyRole(["ictCoordinator"]) || !isSetupComplete());
+    }
+
+    // ---- announcements (school notices, DepEd issuances, NDRRMC advisories) ----
+    // Read: every real ROLE_OPTIONS role. A class suspension or NDRRMC advisory
+    // is useless if the teachers and stakeholders it applies to can't see it,
+    // so viewing is deliberately as wide as the role list gets. Still an
+    // ALLOWLIST rather than isSignedIn(), so a bare Auth account with no
+    // users/{uid} doc reads nothing.
+    // Write: principal and ictCoordinator ONLY -- the server-side half of
+    // canPostAnnouncements() in pageAccess.js. This matters more than usual
+    // here: an ndrrmcAdvisory or classSuspension post renders as a DANGER alert
+    // in every user's notification bell and blocks out days on the School
+    // Calendar, so the ability to post one is the ability to tell the whole
+    // school that classes are cancelled.
+    match /announcements/{announcementId} {
+      allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
+      allow write: if hasAnyRole(["principal", "ictCoordinator"]);
+    }
+
+    // ---- schoolEvents (School Calendar entries) ----
+    // Same split as announcements, and for the same reason: the calendar is a
+    // school-wide reference everyone reads, authored by the two roles that own
+    // school-wide scheduling. Mirrors canManageSchoolEvents() in pageAccess.js.
+    match /schoolEvents/{eventId} {
+      allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
+      allow write: if hasAnyRole(["principal", "ictCoordinator"]);
+    }
+
+    // ---- referenceData (school-maintained dropdown suggestions) ----
+    // Regions and Schools Division Offices ship as static data in
+    // src/data/depedReferenceData.js, but district names and neighbouring
+    // school names have no stable public machine-readable source, so the
+    // school maintains its own suggestion lists here (one document per list,
+    // e.g. referenceData/districts, referenceData/schools). Read is open to
+    // every role because these feed comboboxes on forms many roles fill in.
+    match /referenceData/{listId} {
+      allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
+      allow write: if hasAnyRole(["principal", "ictCoordinator"]);
     }
 
     // Catch-all: anything NOT explicitly listed above is blocked completely,

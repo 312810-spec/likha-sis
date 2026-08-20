@@ -13,7 +13,7 @@
 // logic lives in src/importers, this file only orchestrates the user flow.
 
 import { useRef, useState } from "react";
-import { CheckCircle2, Loader2, Upload, X, AlertTriangle, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, Loader2, Upload, X, AlertTriangle } from "lucide-react";
 import { db } from "../firebase";
 import { analyzeSF1Files } from "../importers/sf1/importSF1.js";
 import {
@@ -26,10 +26,6 @@ import StatCard from "../components/import/StatCard";
 import FileSummaryCard from "../components/import/FileSummaryCard";
 import PreviewTable from "../components/import/PreviewTable";
 import IssueList from "../components/import/IssueList";
-import PageHeader from "../components/ui/PageHeader";
-import Card from "../components/ui/Card";
-import Alert from "../components/ui/Alert";
-import Button from "../components/ui/Button";
 
 
 const STEPS = ["Select Files", "Analyze", "Review", "Import", "Summary"];
@@ -40,11 +36,17 @@ const COLUMNS = [
   {
     key: "name",
     label: "Name",
+    // The full SF1 form (LAST, FIRST MIDDLE) so a mis-split combined name cell
+    // is obvious before anything is written to Firestore.
     render: (r) =>
-      [r.learner?.lastName, r.learner?.firstName].filter(Boolean).join(", ") || "—",
+      r.learner?.displayName ||
+      [r.learner?.lastName, r.learner?.firstName].filter(Boolean).join(", ") ||
+      "—",
   },
   { key: "sex", label: "Sex", render: (r) => r.learner?.sex || "—" },
   { key: "birthDate", label: "Birth Date", render: (r) => r.learner?.birthDate || "—" },
+  { key: "age", label: "Age", render: (r) => r.learner?.age || "—" },
+  { key: "address", label: "Address", render: (r) => r.learner?.address || "—" },
   { key: "gradeLevel", label: "Grade", render: (r) => r.learner?.gradeLevel || "—" },
   { key: "section", label: "Section", render: (r) => r.learner?.section || "—" },
 ];
@@ -138,6 +140,13 @@ export default function SF1Importer({ user }) {
       });
       setResult(res);
       setStep(4);
+      // Notify any already-open SF1 page (this tab or another) so its class
+      // roster and section list pick up the newly imported learners.
+      try {
+        localStorage.setItem("sf1:rosterChanged", String(Date.now()));
+      } catch {
+        // localStorage unavailable (e.g. private browsing) — non-fatal.
+      }
     } catch (err) {
       console.error("Import failed:", err);
       setError(
@@ -153,20 +162,30 @@ export default function SF1Importer({ user }) {
   // ---- Render -------------------------------------------------------------
   return (
     <div className="max-w-6xl mx-auto space-y-5 animate-slide-up">
-      <PageHeader
-        icon={FileSpreadsheet}
-        title="SF1 Bulk Import"
-        description="School Form 1 — Learner's Information Sheet (.xls / .xlsx)"
-        actions={
-          <Button variant="ghost" size="compact" onClick={() => setStep(0)}>
-            ← Back to file selection
-          </Button>
-        }
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SF1 Bulk Import</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            School Form 1 — Learner's Information Sheet (.xls / .xlsx)
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setStep(0)}
+          className="text-sm text-primary dark:text-primary-light hover:underline"
+        >
+          ← Back to file selection
+        </button>
+      </div>
 
       <StepIndicator steps={STEPS} current={step} />
 
-      {error && <Alert variant="error">{error}</Alert>}
+      {error && (
+        <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl px-4 py-3 text-sm animate-fade-in">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {step === 0 && (
         <SelectFilesStep
@@ -218,14 +237,14 @@ export default function SF1Importer({ user }) {
 // ---------------------------------------------------------------------------
 function SelectFilesStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) {
   return (
-    <Card>
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
       <label
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
           if (e.dataTransfer.files?.length) onAdd(e.dataTransfer.files);
         }}
-        className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg py-12 px-4 cursor-pointer hover:border-primary dark:hover:border-primary-light transition-colors text-center"
+        className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl py-12 px-4 cursor-pointer hover:border-primary dark:hover:border-primary-light transition-colors text-center"
       >
         <input
           ref={inputRef}
@@ -283,11 +302,16 @@ function SelectFilesStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) 
       )}
 
       <div className="mt-5 flex justify-end">
-        <Button variant="primary" disabled={busy || files.length === 0} onClick={onAnalyze}>
+        <button
+          type="button"
+          disabled={busy || files.length === 0}
+          onClick={onAnalyze}
+          className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           <CheckCircle2 size={16} /> Analyze Files
-        </Button>
+        </button>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -296,7 +320,7 @@ function SelectFilesStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) 
 // ---------------------------------------------------------------------------
 function AnalyzingStep({ importing = false }) {
   return (
-    <Card className="py-12 flex flex-col items-center justify-center text-center">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-12 shadow-sm flex flex-col items-center justify-center text-center">
       <Loader2 size={32} className="animate-spin text-primary mb-3" />
       <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
         {importing ? "Importing approved records into Firestore…" : "Analyzing workbooks…"}
@@ -304,7 +328,7 @@ function AnalyzingStep({ importing = false }) {
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
         Detecting structure · extracting records · validating · checking duplicates
       </p>
-    </Card>
+    </div>
   );
 }
 
@@ -329,7 +353,7 @@ function ReviewStep({
   return (
     <div className="space-y-5">
       {/* Import Summary */}
-      <Card>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Import Summary</h3>
         <div className="flex flex-wrap gap-3">
           <StatCard label="Files selected" value={batch.fileCount} />
@@ -344,11 +368,14 @@ function ReviewStep({
         </div>
 
         {priorImport && (
-          <Alert variant="warning" className="mt-4">
-            One or more of these files appears to have already been imported
-            successfully (previous import {priorImport.id}). Records that already
-            exist (matching LRN) will be skipped rather than duplicated.
-          </Alert>
+          <div className="mt-4 flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 rounded-xl px-4 py-3 text-sm">
+            <AlertTriangle size={18} className="mt-0.5 shrink-0" />
+            <span>
+              One or more of these files appears to have already been imported
+              successfully (previous import {priorImport.id}). Records that already
+              exist (matching LRN) will be skipped rather than duplicated.
+            </span>
+          </div>
         )}
 
         {summaryWarnings.length > 0 && (
@@ -366,16 +393,16 @@ function ReviewStep({
             />
           </div>
         )}
-      </Card>
+      </div>
 
       {/* File Summary */}
-      <Card>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">File Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           <button
             type="button"
             onClick={() => setSelectedIndex(-1)}
-            className={`text-left px-4 py-3 rounded-md border text-sm transition-colors ${
+            className={`text-left px-4 py-3 rounded-xl border text-sm transition-colors ${
               selectedIndex === -1
                 ? "border-primary bg-primary/5 text-primary dark:border-primary-light dark:bg-primary/10 dark:text-primary-light"
                 : "border-gray-200 text-gray-600 hover:border-gray-300 dark:border-gray-700 dark:text-gray-300 dark:hover:border-gray-600"
@@ -392,7 +419,7 @@ function ReviewStep({
             />
           ))}
         </div>
-      </Card>
+      </div>
 
       {/* Learner Preview */}
       <div className="space-y-2">
@@ -406,10 +433,14 @@ function ReviewStep({
       </div>
 
       {/* Confirm controls */}
-      <Card className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="secondary" onClick={onBack}>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        >
           ← Back to file selection
-        </Button>
+        </button>
 
         <div className="flex items-center gap-3">
           {batch.blockingErrors && (
@@ -425,12 +456,12 @@ function ReviewStep({
             type="button"
             disabled={busy || !batch.canImport}
             onClick={onConfirm}
-            className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium bg-leaf text-white hover:bg-leaf-light transition-colors duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
+            className="inline-flex items-center gap-2 bg-leaf text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-leaf-light active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <CheckCircle2 size={16} /> Confirm Import
           </button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
@@ -442,7 +473,7 @@ function ResultStep({ result, onDone }) {
   const ok = result && result.status === "success";
   const blocked = result && result.status === "blocked";
   return (
-    <Card className="text-center animate-fade-in">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8 shadow-sm text-center animate-fade-in">
       <div
         className={`mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center ${
           blocked
@@ -477,9 +508,13 @@ function ResultStep({ result, onDone }) {
         <p className="text-sm text-gray-500 dark:text-gray-400">No import result available.</p>
       )}
 
-      <Button variant="primary" onClick={onDone} className="mt-6">
+      <button
+        type="button"
+        onClick={onDone}
+        className="mt-6 inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all"
+      >
         <Upload size={16} /> Import More Files
-      </Button>
-    </Card>
+      </button>
+    </div>
   );
 }

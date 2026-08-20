@@ -17,28 +17,20 @@ import {
   getAgeInMonths,
   computeBMI,
   classifyNutritionalStatus,
+  classifyHeightForAge,
+  normalizeSex,
 } from "./utils/nutritionComputations";
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import {
   Save,
   RefreshCw,
+  ArrowLeft,
   HeartPulse,
+  AlertCircle,
+  CheckCircle2,
   Users,
   Printer,
 } from "lucide-react";
-import PageHeader from "./components/ui/PageHeader";
-import Alert from "./components/ui/Alert";
-import Button from "./components/ui/Button";
-
-// Normalizes a learner's sex value ("M"/"F"/"Male"/"Female") to "M" | "F" | "" so
-// the SF8 printout can group rows by Male / Female reliably regardless of how the
-// learner doc stores the field.
-function normalizeSex(sex) {
-  const s = String(sex || "").trim().toUpperCase();
-  if (s === "M" || s === "MALE") return "M";
-  if (s === "F" || s === "FEMALE") return "F";
-  return "";
-}
 
 // Converts an age in months to the "X yrs Y mos" convention used on the SF8 report.
 function formatAgeLabel(ageInMonths) {
@@ -64,6 +56,7 @@ export default function NutritionStatus({ user, goBack }) {
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
+  const [period, setPeriod] = useState("Baseline");
   const { sections: availableSections, loading } = useAvailableSections(gradeLevel, schoolYear);
   const [measurementDate, setMeasurementDate] = useState(
     new Date().toISOString().split("T")[0]
@@ -79,6 +72,21 @@ export default function NutritionStatus({ user, goBack }) {
   const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
   // Renders the printable SF8 block while printing (same pattern as SF1/SF2).
   const [showPrintArea, setShowPrintArea] = useState(false);
+
+  // Switching Baseline <-> Endline invalidates any grid already on screen:
+  // the loaded heights/weights belong to the *previous* period, and handleSave
+  // writes using the CURRENT period. Dropping the grid forces a fresh Load, so
+  // measurements can never be saved under a period they weren't loaded for.
+  function handlePeriodChange(nextPeriod) {
+    if (nextPeriod === period) return;
+    setPeriod(nextPeriod);
+    setGridData([]);
+    setIsLoaded(false);
+    setErrorMessage("");
+    setStatusMessage(
+      `Period switched to ${nextPeriod}. Click "Load Class" to load the ${nextPeriod} measurements.`
+    );
+  }
 
   // Load learners and matching nutrition records
   async function handleLoad(e) {
@@ -116,7 +124,7 @@ export default function NutritionStatus({ user, goBack }) {
       // 2. Fetch existing nutritionRecords for each learner
       const rows = await Promise.all(
         filteredLearners.map(async (learner) => {
-          const docId = `${learner.id}_${schoolYear.trim()}`;
+          const docId = `${learner.id}_${schoolYear.trim()}_${period}`;
           let heightM = "";
           let weightKg = "";
           let recordMeasDate = measurementDate;
@@ -194,8 +202,9 @@ export default function NutritionStatus({ user, goBack }) {
         const ageInMonths = getAgeInMonths(learner.birthDate, measurementDate);
         const bmi = computeBMI(w, h);
         const nutritionalStatus = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
+        const heightForAgeStatus = classifyHeightForAge(h, ageInMonths, learner.sex);
 
-        const docId = `${learner.id}_${schoolYear.trim()}`;
+        const docId = `${learner.id}_${schoolYear.trim()}_${period}`;
         const fullName = `${learner.lastName || ""}, ${learner.firstName || ""}${
           learner.middleName ? " " + learner.middleName : ""
         }`.trim();
@@ -209,12 +218,14 @@ export default function NutritionStatus({ user, goBack }) {
           gradeLevel: gradeLevel.trim(),
           section: section.trim(),
           schoolYear: schoolYear.trim(),
+          period,
           heightM: h,
           weightKg: w,
           measurementDate: measurementDate.trim(),
           bmi,
           ageInMonths,
           nutritionalStatus,
+          heightForAgeStatus,
           measuredByEmail: user?.email || "",
           updatedAt: serverTimestamp(),
         };
@@ -306,7 +317,7 @@ export default function NutritionStatus({ user, goBack }) {
   // School info fallbacks: use whichever config fields exist, dash otherwise.
   const sf8SchoolName = config?.schoolName || "—";
   const sf8District = config?.district || "—";
-  const sf8Division = config?.division || config?.divisionName || config?.divisionOffice || "—";
+  const sf8Division = config?.division || config?.divisionOffice || "—";
   const sf8Region = config?.region || "—";
   const sf8SchoolId = config?.schoolId || "—";
 
@@ -360,6 +371,7 @@ export default function NutritionStatus({ user, goBack }) {
     const ageInMonths = getAgeInMonths(learner.birthDate, measurementDate);
     const bmi = computeBMI(w, h);
     const status = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
+    const hfaStatus = classifyHeightForAge(h, ageInMonths, learner.sex);
 
     return (
       <tr key={rowNumber}>
@@ -373,7 +385,7 @@ export default function NutritionStatus({ user, goBack }) {
         <td>{isValid ? (h * h).toFixed(2) : "—"}</td>
         <td>{bmi !== null && bmi !== undefined ? bmi.toFixed(2) : "—"}</td>
         <td>{status || "—"}</td>
-        <td>—</td>
+        <td>{hfaStatus || "—"}</td>
         <td>{learner.remarks || "—"}</td>
       </tr>
     );
@@ -398,8 +410,8 @@ export default function NutritionStatus({ user, goBack }) {
             color: #000;
             background: #fff;
           }
+          @page { size: A4 landscape; margin: 8mm; }
         }
-        @page { size: A4 landscape; margin: 8mm; }
         .sf8-table { border-collapse: collapse; width: 100%; }
         .sf8-table th, .sf8-table td {
           border: 1px solid #000;
@@ -427,39 +439,58 @@ export default function NutritionStatus({ user, goBack }) {
         .sf8-hdr-value { text-align: left; }
       `}</style>
       {/* Header */}
-      <PageHeader
-        icon={HeartPulse}
-        title="Nutrition Status Tracking"
-        description="DepEd / WHO 2007 Growth Reference (BMI-for-Age) baseline & annual monitoring"
-        onBack={goBack}
-        actions={
-          isLoaded && gridData.length > 0 ? (
-            <>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                {isSaving ? "Saving..." : "Save Nutrition Records"}
-              </Button>
-              <button
-                type="button"
-                onClick={handlePrintReport}
-                className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-md transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
-              >
-                <Printer className="w-4 h-4" />
-                Print Report
-              </button>
-            </>
-          ) : null
-        }
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center space-x-3">
+          {goBack && (
+            <button
+              onClick={goBack}
+              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform"
+              title="Go Back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
+          <div>
+            <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <HeartPulse className="w-6 h-6 text-rose-500" />
+              Nutrition Status Tracking
+            </h1>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              DepEd / WHO 2007 Growth Reference (BMI-for-Age) baseline &amp; annual monitoring
+            </p>
+          </div>
+        </div>
+
+        {isLoaded && gridData.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm"
+            >
+              {isSaving ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              {isSaving ? "Saving..." : "Save Nutrition Records"}
+            </button>
+            <button
+              type="button"
+              onClick={handlePrintReport}
+              className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm"
+            >
+              <Printer className="w-4 h-4" />
+              Print Report
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Filter Bar */}
       <form
         onSubmit={handleLoad}
-        className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end"
+        className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 items-end"
       >
         <div>
           <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
@@ -513,6 +544,20 @@ export default function NutritionStatus({ user, goBack }) {
 
         <div>
           <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
+            Period
+          </label>
+          <select
+            value={period}
+            onChange={(e) => handlePeriodChange(e.target.value)}
+            className="w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-colors"
+          >
+            <option value="Baseline">Baseline</option>
+            <option value="Endline">Endline</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
             Measurement Date
           </label>
           <input
@@ -524,33 +569,46 @@ export default function NutritionStatus({ user, goBack }) {
         </div>
 
         <div>
-          <Button type="submit" disabled={isLoading} className="w-full">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm"
+          >
             {isLoading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <Users className="w-4 h-4" />
             )}
             {isLoading ? "Loading..." : "Load Class"}
-          </Button>
+          </button>
         </div>
       </form>
 
       {/* Notifications */}
-      {errorMessage && <Alert variant="error" className="animate-fade-in">{errorMessage}</Alert>}
+      {errorMessage && (
+        <div className="animate-fade-in bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
-      {statusMessage && <Alert variant="success" className="animate-fade-in">{statusMessage}</Alert>}
+      {statusMessage && (
+        <div className="animate-fade-in bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <span>{statusMessage}</span>
+        </div>
+      )}
 
       {/* Auto-flag confirmation banners */}
       {pendingFlagCandidates.map((c) => (
-        <Alert key={c.docId} variant="warning" className="animate-fade-in items-center">
-          <div className="flex flex-wrap items-center gap-4">
+        <div key={c.docId} className="animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4">
+          <AlertCircle className="w-4 h-4 shrink-0 text-yellow-700" />
           <div className="flex-1">
             <div className="font-medium">This learner's nutrition status suggests a LARDO risk flag.</div>
             <div className="text-xs mt-0.5">Flag {c.learner.lastName}, {c.learner.firstName} for monitoring?</div>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              size="compact"
+            <button
               onClick={async () => {
                 try {
                   const nowIso = new Date().toISOString();
@@ -590,24 +648,23 @@ export default function NutritionStatus({ user, goBack }) {
                   setErrorMessage("Failed to create LARDO record. Please try again.");
                 }
               }}
+              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
             >
               Confirm
-            </Button>
-            <Button
-              variant="secondary"
-              size="compact"
+            </button>
+            <button
               onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
             >
               Dismiss
-            </Button>
+            </button>
           </div>
-          </div>
-        </Alert>
+        </div>
       ))}
 
       {/* Loading Skeleton */}
       {isLoading && (
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5 space-y-3">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 space-y-3">
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
@@ -616,7 +673,7 @@ export default function NutritionStatus({ user, goBack }) {
 
       {/* Grid */}
       {isLoaded && !isLoading && (
-        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
@@ -631,12 +688,13 @@ export default function NutritionStatus({ user, goBack }) {
                   <th className="py-3 px-4 w-28">Weight (kg)</th>
                   <th className="py-3 px-4 w-24">BMI</th>
                   <th className="py-3 px-4 w-36 text-center">Nutritional Status</th>
+                  <th className="py-3 px-4 w-36 text-center">Height-for-Age</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-gray-800 dark:text-gray-200">
                 {gridData.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={11} className="py-8 text-center text-gray-500 dark:text-gray-400">
                       No learners found for Grade {gradeLevel} - {section}.
                     </td>
                   </tr>
@@ -648,6 +706,7 @@ export default function NutritionStatus({ user, goBack }) {
                     const ageInMonths = getAgeInMonths(learner.birthDate, measurementDate);
                     const bmi = computeBMI(w, h);
                     const status = classifyNutritionalStatus(bmi, ageInMonths, learner.sex);
+                    const hfaStatus = classifyHeightForAge(h, ageInMonths, learner.sex);
 
                     return (
                       <tr key={learner.id} className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
@@ -714,6 +773,23 @@ export default function NutritionStatus({ user, goBack }) {
                             <span className="text-gray-400 dark:text-gray-500 font-mono">—</span>
                           )}
                         </td>
+                        <td className="py-3 px-4 text-center">
+                          {hfaStatus === "Severely Stunted" || hfaStatus === "Stunted" ? (
+                            <span className="inline-block bg-red-500/10 text-red-700 dark:bg-red-500/20 dark:text-red-300 border border-red-500/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
+                              {hfaStatus}
+                            </span>
+                          ) : hfaStatus === "Normal" ? (
+                            <span className="inline-block bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light border border-leaf/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
+                              {hfaStatus}
+                            </span>
+                          ) : hfaStatus === "Tall" ? (
+                            <span className="inline-block bg-accent/10 text-accent-dark dark:bg-accent/20 dark:text-accent-light border border-accent/20 font-medium px-2.5 py-0.5 rounded-full text-xs">
+                              {hfaStatus}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 dark:text-gray-500 font-mono">—</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })
@@ -726,7 +802,7 @@ export default function NutritionStatus({ user, goBack }) {
 
       {/* Summary Panel */}
       {isLoaded && !isLoading && gridData.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
           <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-2">
             <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             Nutritional Status Summary
@@ -822,6 +898,12 @@ export default function NutritionStatus({ user, goBack }) {
                   <td className="sf8-hdr-value">{section}</td>
                   <td className="sf8-hdr-label">School Year:</td>
                   <td className="sf8-hdr-value">{schoolYear}</td>
+                </tr>
+                {/* Two SF8 printouts now exist per section per school year
+                    (Baseline and Endline) — this row is what tells them apart. */}
+                <tr>
+                  <td className="sf8-hdr-label">Period:</td>
+                  <td className="sf8-hdr-value" colSpan={7}>{period}</td>
                 </tr>
               </tbody>
             </table>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { canAccessPage } from '../pageAccess.js';
+import Tooltip from './Tooltip.jsx';
 import {
   LayoutDashboard,
   FileText,
@@ -7,9 +8,12 @@ import {
   GraduationCap,
   IdCard,
   BarChart3,
+  NotebookPen,
+  CalendarDays,
   UploadCloud,
   UserCog,
   ClipboardList,
+  Megaphone,
   AlertTriangle,
   HeartPulse,
   ArrowLeftRight,
@@ -21,40 +25,38 @@ import {
   X,
 } from 'lucide-react';
 
-// Keyed by page id (not label) so a label rename can't silently drop an icon.
 const icons = {
-  dashboard: LayoutDashboard,
-  userManagement: UserCog,
-  brandingSettings: Palette,
-  schoolSettings: Settings,
-  sf1: FileText,
-  sf2: FileText,
-  sf4: FileText,
-  classRecord: ClipboardList,
-  consolidatedGrades: Award,
-  reportCard: FileText,
-  sf10Generate: FileText,
-  viewLearners: Users,
-  lardoTracking: AlertTriangle,
-  nutritionStatus: HeartPulse,
-  transfersLog: ArrowLeftRight,
-  certificates: GraduationCap,
-  idGenerator: IdCard,
-  smeaEnrollment: BarChart3,
-  importCenter: UploadCloud,
-  sf1Import: UploadCloud,
-  sf10Import: UploadCloud,
-};
-
-// Group icons for section headers (visual grouping only, not navigable).
-const groupIcons = {
-  Learners: Users,
-  Grading: Award,
+  Dashboard: LayoutDashboard,
+  Announcements: Megaphone,
+  'School Calendar': CalendarDays,
+  'User Management': UserCog,
+  Branding: Palette,
+  'Branding Settings': Palette,
+  'School Settings': Settings,
   'School Forms': FileText,
+  SF1: FileText,
+  SF2: FileText,
+  'SF4': FileText,
+  'School Form 4': FileText,
+  'Class Record': ClipboardList,
+  'Consolidated Grades': Award,
+  'Academic Hub': LayoutDashboard,
+  'Report Card (SF9)': FileText,
+  'SF10 Generator': FileText,
+  'View Learners': Users,
+  'LARDO Tracking': AlertTriangle,
+  'Nutrition Status': HeartPulse,
+  'Nutrition Consolidator': ClipboardList,
+  Transfers: ArrowLeftRight,
+  'Transfers Log': ArrowLeftRight,
+  Certificates: GraduationCap,
+  'ID Generator': IdCard,
   SMEA: BarChart3,
-  Documents: GraduationCap,
-  Imports: UploadCloud,
-  Administration: UserCog,
+  Enrollment: BarChart3,
+  'Anecdotal Records': NotebookPen,
+  'Import Center': UploadCloud,
+  'SF1 Bulk Import': UploadCloud,
+  'SF10 Import': UploadCloud,
 };
 
 export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile = false, onCloseMobile }) {
@@ -70,36 +72,50 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
 
   const nav = [
     { label: 'Dashboard', page: 'dashboard' },
+    // Announcements and School Calendar sit directly under Dashboard because
+    // every assigned role can open them — they're the school-wide pages, not
+    // module-specific ones.
+    { label: 'Announcements', page: 'announcements' },
+    { label: 'School Calendar', page: 'schoolCalendar' },
     {
-      label: 'Learners',
+      label: 'Learner Records',
       children: [
         { label: 'View Learners', page: 'viewLearners' },
+        { label: 'SF1', page: 'sf1' },
         { label: 'Transfers', page: 'transfersLog' },
-        { label: 'Nutrition Status', page: 'nutritionStatus' },
       ],
     },
     {
-      label: 'Grading',
+      label: 'Attendance & Forms',
+      children: [
+        { label: 'SF2', page: 'sf2' },
+        { label: 'SF4', page: 'sf4' },
+      ],
+    },
+    {
+      label: 'Academics',
       children: [
         { label: 'Class Record', page: 'classRecord' },
         { label: 'Consolidated Grades', page: 'consolidatedGrades' },
+        { label: 'Academic Hub', page: 'academicHub' },
         { label: 'Report Card (SF9)', page: 'reportCard' },
         { label: 'SF10 Generator', page: 'sf10Generate' },
+        { label: 'Class Program & Load', page: 'classProgram' },
       ],
     },
     {
-      label: 'School Forms',
+      label: 'Learner Welfare',
       children: [
-        { label: 'SF1', page: 'sf1' },
-        { label: 'SF2', page: 'sf2' },
-        { label: 'SF4', page: 'sf4' },
+        { label: 'LARDO Tracking', page: 'lardoTracking' },
+        { label: 'Nutrition Status', page: 'nutritionStatus' },
+        { label: 'Nutrition Consolidator', page: 'nutritionConsolidator' },
+        { label: 'Anecdotal Records', page: 'anecdotalRecords' },
       ],
     },
     {
       label: 'SMEA',
       children: [{ label: 'Enrollment', page: 'smeaEnrollment' }],
     },
-    { label: 'LARDO Tracking', page: 'lardoTracking' },
     {
       label: 'Documents',
       children: [
@@ -108,20 +124,14 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
       ],
     },
     {
-      label: 'Imports',
+      label: 'Admin',
       children: [
         { label: 'Import Center', page: 'importCenter' },
         { label: 'SF1 Bulk Import', page: 'sf1Import' },
         { label: 'SF10 Import', page: 'sf10Import' },
-      ],
-    },
-    // NOTE: Access control for User Management will be restricted to ictCoordinator/principal roles in Phase B.
-    {
-      label: 'Administration',
-      children: [
         { label: 'User Management', page: 'userManagement' },
+        // Branding is a tab inside School Settings now, not a separate page.
         { label: 'School Settings', page: 'schoolSettings' },
-        { label: 'Branding', page: 'brandingSettings' },
       ],
     },
   ];
@@ -147,8 +157,8 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     }
   }
 
-  function NavIcon({ page }) {
-    const Icon = icons[page];
+  function NavIcon({ label }) {
+    const Icon = icons[label];
     return Icon ? <Icon size={18} strokeWidth={2} /> : null;
   }
 
@@ -157,7 +167,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
       <button
         type="button"
         title={collapsed ? label : undefined}
-        className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-150 ${
+        className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 active:scale-[0.97] ${
           active
             ? 'bg-white/15 text-white font-semibold shadow-sm dark:bg-white/10'
             : 'text-white/75 hover:bg-white/10 hover:text-white dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white'
@@ -169,43 +179,80 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
             active ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
           }`}
         />
-        <NavIcon page={page} />
-        {!collapsed && <span className="truncate">{label}</span>}
+        <span className={`flex-shrink-0 transition-transform duration-150 ease-out ${active ? 'scale-110' : ''}`}>
+          <NavIcon label={label} />
+        </span>
+        <span
+          className={`truncate overflow-hidden whitespace-nowrap transition-all duration-200 ease-out ${
+            collapsed ? 'max-w-0 opacity-0' : 'max-w-[160px] opacity-100 delay-75'
+          }`}
+        >
+          {label}
+        </span>
       </button>
     );
   }
 
   return (
     <aside
-      className={`${collapsed ? 'w-20' : 'w-64'} ${openMobile ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:static top-0 left-0 h-screen bg-primary text-white flex flex-col transition-all duration-200 z-40 dark:bg-primary-dark dark:text-gray-100 shadow-xl md:shadow-none`}
+      className={`${collapsed ? 'w-20' : 'w-64'} ${openMobile ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:sticky top-0 left-0 h-screen flex-shrink-0 bg-primary text-white flex flex-col transition-all duration-200 z-40 dark:bg-primary-dark dark:text-gray-100 shadow-xl md:shadow-none`}
       aria-label="Primary"
     >
       <div className="flex items-center justify-between gap-2 px-4 py-4 border-b border-white/10 dark:border-white/10">
         <div className="flex items-center gap-3 min-w-0">
-          <img
-            src={'/Tingub%20National%20High%20School%28clear%29.png'}
-            alt="Tingub National High School"
-            width={38}
-            height={38}
-            className="rounded-full bg-white ring-2 ring-white/20 flex-shrink-0"
-          />
-          {!collapsed && (
-            <div className="min-w-0">
-              <div className="text-sm font-semibold truncate text-white dark:text-gray-100 leading-tight">Tingub National High School</div>
-              <div className="text-[11px] font-medium tracking-wide text-accent-light dark:text-accent-light">LIKHA-SIS</div>
-            </div>
+          {collapsed ? (
+            <Tooltip label="Expand sidebar" position="right" className="hidden md:inline-flex">
+              <button
+                type="button"
+                onClick={toggleCollapsed}
+                aria-expanded={false}
+                aria-label="Expand sidebar"
+                className="group/logo relative flex-shrink-0 w-[38px] h-[38px] rounded-full transition-transform duration-150 ease-out hover:scale-105 active:scale-95"
+              >
+                <img
+                  src={'/Tingub%20National%20High%20School%28clear%29.png'}
+                  alt="Tingub National High School"
+                  width={38}
+                  height={38}
+                  className="absolute inset-0 rounded-full bg-white ring-2 ring-white/20 transition-opacity duration-150 group-hover/logo:opacity-0"
+                />
+                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-white/10 ring-2 ring-white/20 text-white opacity-0 scale-75 transition-all duration-150 ease-out group-hover/logo:opacity-100 group-hover/logo:scale-100">
+                  <ChevronRight size={18} />
+                </span>
+              </button>
+            </Tooltip>
+          ) : (
+            <img
+              src={'/Tingub%20National%20High%20School%28clear%29.png'}
+              alt="Tingub National High School"
+              width={38}
+              height={38}
+              className="rounded-full bg-white ring-2 ring-white/20 flex-shrink-0"
+            />
           )}
+          <div
+            className={`min-w-0 overflow-hidden transition-all duration-200 ease-out ${
+              collapsed ? 'max-w-0 opacity-0' : 'max-w-[180px] opacity-100 delay-75'
+            }`}
+          >
+            <div className="text-sm font-semibold text-white dark:text-gray-100 leading-tight truncate">Tingub National High School</div>
+            <div className="text-[11px] font-medium tracking-wide text-accent-light dark:text-accent-light truncate">LIKHA-SIS</div>
+          </div>
         </div>
 
-        <button
-          className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors dark:text-gray-300 dark:hover:text-white"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          onClick={toggleCollapsed}
-          type="button"
-        >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-        </button>
+        {!collapsed && (
+          <Tooltip label="Collapse sidebar" position="right" className="hidden md:inline-flex animate-fade-in">
+            <button
+              className="group flex items-center justify-center w-7 h-7 rounded-lg text-white/70 hover:text-white hover:bg-white/10 active:scale-90 transition-all duration-150 dark:text-gray-300 dark:hover:text-white"
+              aria-expanded={true}
+              aria-label="Collapse sidebar"
+              onClick={toggleCollapsed}
+              type="button"
+            >
+              <ChevronLeft size={16} className="transition-transform duration-150 group-hover:-translate-x-0.5" />
+            </button>
+          </Tooltip>
+        )}
 
         <button
           className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors dark:text-gray-300 dark:hover:text-white"
@@ -223,11 +270,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
             item.children ? (
               <li key={item.label}>
                 {!collapsed && (
-                  <h3 className="px-3 pt-3 pb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-accent-light/90 font-semibold dark:text-accent-light">
-                    {(() => {
-                      const GroupIcon = groupIcons[item.label];
-                      return GroupIcon ? <GroupIcon size={12} /> : null;
-                    })()}
+                  <h3 className="px-3 pt-3 pb-1 text-[11px] uppercase tracking-wider text-accent-light/90 font-semibold dark:text-accent-light">
                     {item.label}
                   </h3>
                 )}

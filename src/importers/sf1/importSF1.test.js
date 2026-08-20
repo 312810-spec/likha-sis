@@ -10,6 +10,7 @@ import { normalizeSF1 } from "./normalizeSF1.js";
 import { processSF1Buffer, analyzeSF1Files, aggregateBatch } from "./importSF1.js";
 import { normalizeHeader, normalizeLrn, normalizeSex, normalizeDate } from "../shared/normalization.js";
 import { buildSF1Workbook, learner, asNumericLrn } from "./__fixtures__/helpers.js";
+import { toFirestoreLearner } from "../shared/firestoreImport.js";
 
 // Fake browser File so we can drive analyzeSF1Files without a DOM.
 function fakeFile(name, buffer) {
@@ -238,4 +239,92 @@ describe("multiple files + batch aggregation", () => {
   });
 });
 
+describe("toFirestoreLearner — SF1 page field schema alignment", () => {
+  // SF1.jsx#toFormLearner reads these exact Firestore field keys. If the importer
+  // writes a different key (e.g. guardian instead of guardianName) the SF1 page
+  // renders an empty field even though the data exists in Firestore.
+  const normalized = {
+    lrn: "136789012345",
+    lastName: "Dela Cruz",
+    firstName: "Juan",
+    middleName: "Santos",
+    nameExtension: "Jr.",
+    sex: "Male",
+    birthDate: "2010-01-15",
+    age: "16",
+    motherTongue: "Filipino",
+    ipEthnicGroup: "",
+    religion: "Catholic",
+    address: "123 Rizal St",
+    houseStreetSitio: "123 Rizal St",
+    barangay: "Poblacion",
+    municipalityCity: "Cebu City",
+    province: "Cebu",
+    fathersName: "Pedro Dela Cruz",
+    mothersName: "Maria Santos",
+    guardian: "Lola Caring",
+    guardianRelationship: "Grandmother",
+    contactNumber: "09123456789",
+    learningModality: "Face to Face",
+    remarks: "transferee",
+    schoolId: "304212",
+    schoolName: "Test Elementary School",
+    division: "Division of Cebu City",
+    district: "District 1",
+    schoolYear: "2026-2027",
+    gradeLevel: "Grade 6",
+    section: "Rizal",
+  };
+
+  it("writes fathersName (not fatherName) matching SF1.jsx toFormLearner fallback chain", () => {
+    const doc = toFirestoreLearner(normalized, { importId: "x", sourceFileFingerprint: "y", userEmail: "t@t.com" });
+    // SF1.jsx reads: d.fathersName ?? d.fatherName
+    expect(doc).toHaveProperty("fathersName", "Pedro Dela Cruz");
+    expect(doc).not.toHaveProperty("fatherName");
+  });
+
+  it("writes mothersMaidenName (not mothersName) matching SF1.jsx toFormLearner fallback chain", () => {
+    const doc = toFirestoreLearner(normalized, { importId: "x", sourceFileFingerprint: "y", userEmail: "t@t.com" });
+    // SF1.jsx reads: d.mothersMaidenName ?? d.mothersName ?? d.motherName
+    expect(doc).toHaveProperty("mothersMaidenName", "Maria Santos");
+    expect(doc).not.toHaveProperty("mothersName");
+  });
+
+  it("writes guardianName (not guardian) matching SF1.jsx toFormLearner fallback chain", () => {
+    const doc = toFirestoreLearner(normalized, { importId: "x", sourceFileFingerprint: "y", userEmail: "t@t.com" });
+    // SF1.jsx reads: d.guardianName ?? d.guardian
+    expect(doc).toHaveProperty("guardianName", "Lola Caring");
+    expect(doc).not.toHaveProperty("guardian");
+  });
+
+  it("includes all address sub-fields that SF1.jsx renders individually", () => {
+    const doc = toFirestoreLearner(normalized, { importId: "x", sourceFileFingerprint: "y", userEmail: "t@t.com" });
+    expect(doc).toHaveProperty("houseStreetSitio", "123 Rizal St");
+    expect(doc).toHaveProperty("barangay", "Poblacion");
+    expect(doc).toHaveProperty("municipalityCity", "Cebu City");
+    expect(doc).toHaveProperty("province", "Cebu");
+  });
+
+  it("preserves sex as Male/Female (SF1.jsx applies sexLetter() on display)", () => {
+    const doc = toFirestoreLearner(normalized, { importId: "x", sourceFileFingerprint: "y", userEmail: "t@t.com" });
+    // SF1.jsx toFormLearner applies sexLetter(d.sex) which converts Male→M/Female→F.
+    expect(doc.sex).toBe("Male");
+  });
+});
+
+describe("executeImport LRN filter — regression for r.lrn vs r.learner.lrn", () => {
+  // The record shape coming out of the pipeline is { learner: { lrn, ... }, issues, severity, ... }.
+  // Previously the filter used r.lrn (always undefined), so nothing was ever written.
+  // This test exercises the same filter logic to guard against regression.
+  it("analyzeSF1Files produces records where lrn lives on r.learner.lrn, not r.lrn", async () => {
+    const buffer = buildSF1Workbook({ learners: [learner({ lrn: "136789012345" })] });
+    const fakeF = fakeFile("test.xlsx", buffer);
+    const { files } = await analyzeSF1Files([fakeF]);
+    const rec = files[0].records[0];
+    // The outer record must NOT expose lrn at the top level (it only sits on .learner).
+    expect(rec.lrn).toBeUndefined();
+    // The importer pipeline must place lrn under .learner.lrn.
+    expect(rec.learner.lrn).toBe("136789012345");
+  });
+});
 

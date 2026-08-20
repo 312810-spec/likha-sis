@@ -2,8 +2,7 @@
 // Landing page for the Import Center. Links to the SF1 Bulk Importer and the
 // SF10 Importer. Follows the existing LIKHA-SIS Tailwind visual style.
 
-import { FileSpreadsheet, FileText, ArrowRight, UploadCloud } from "lucide-react";
-import PageHeader from "../components/ui/PageHeader";
+import { FileSpreadsheet, FileText, ArrowRight } from "lucide-react";
 
 export default function ImportCenter({ onNavigate }) {
   const cards = [
@@ -29,11 +28,12 @@ export default function ImportCenter({ onNavigate }) {
 
   return (
     <div className="max-w-5xl mx-auto animate-slide-up">
-      <PageHeader
-        icon={UploadCloud}
-        title="Import Center"
-        description="Upload DepEd Excel files, review the detected & validated records, then import them safely."
-      />
+      <div className="mb-5">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import Center</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Upload DepEd Excel files, review the detected & validated records, then import them safely.
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {cards.map((card) => {
@@ -43,7 +43,7 @@ export default function ImportCenter({ onNavigate }) {
               key={card.key}
               type="button"
               onClick={() => onNavigate(card.key)}
-              className="text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-6 shadow-sm hover:border-primary dark:hover:border-primary-light hover:shadow-md transition-all duration-200 group"
+              className="text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm hover:border-primary dark:hover:border-primary-light hover:shadow-md transition-all duration-200 group"
             >
               <div className="flex items-start gap-4">
                 <div

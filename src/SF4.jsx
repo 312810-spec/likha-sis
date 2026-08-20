@@ -23,7 +23,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { academicCalendar } from "./academicCalendar";
+import useAcademicCalendar from "./hooks/useAcademicCalendar";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
 import {
@@ -31,11 +31,6 @@ import {
   computeSectionAttendance,
   isDropoutRemark,
 } from "./utils/sf4Computations";
-import { ClipboardList } from "lucide-react";
-import PageHeader from "./components/ui/PageHeader";
-import Card from "./components/ui/Card";
-import Alert from "./components/ui/Alert";
-import Button from "./components/ui/Button";
 
 // Normalize a learner's sex into "Male" | "Female" | "" so it matches the
 // computeSF4Rows contract, regardless of whether the doc stores "M"/"F" or
@@ -80,21 +75,24 @@ function countWeekdays(monthValue) {
   return count;
 }
 
-// School year options come from the centralized academic calendar.
-const SCHOOL_YEARS = Object.keys(academicCalendar).length
-  ? Object.keys(academicCalendar).sort((a, b) => b.localeCompare(a))
-  : ["2026-2027"];
-
 // Blank mortality inputs (previous month / for the month).
 const DEFAULT_MORTALITY = { previousMonths: 0, forTheMonth: 0 };
 
 function SF4({ user, goBack }) {
   const { config } = useSchoolConfig();
+  // School year options come from School Settings > Academic Calendar,
+  // falling back to the built-in SY 2026-2027 calendar.
+  const { schoolYears } = useAcademicCalendar();
   const gradeOptions =
     config?.gradeLevelsOffered ||
     ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 
   const [schoolYear, setSchoolYear] = useState("2026-2027");
+  // Keep the current selection listed even if the school later removes that
+  // year from its academic calendar, so the dropdown never shows a blank value.
+  const schoolYearOptions = schoolYears.includes(schoolYear)
+    ? schoolYears
+    : [schoolYear, ...schoolYears];
   const [gradeLevel, setGradeLevel] = useState(gradeOptions[0] || "");
   // monthValue: the raw "YYYY-MM" string from the month input, same pattern as SF2.
   const [monthValue, setMonthValue] = useState(() => {
@@ -393,17 +391,28 @@ function SF4({ user, goBack }) {
       `}</style>
 
       {/* Header */}
-      <div className="no-print">
-        <PageHeader
-          icon={ClipboardList}
-          title="School Form 4 — Monthly Learner Movement and Attendance Report"
-          description={`Logged in as: ${user?.email || ""}`}
-          onBack={goBack}
-        />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          {goBack && (
+            <button
+              onClick={goBack}
+              className="mb-2 text-xs font-semibold text-primary-light bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 border border-primary/20 rounded-lg px-3 py-1.5 transition-colors duration-150 active:scale-[0.98] no-print"
+              type="button"
+            >
+              ← Back to Dashboard
+            </button>
+          )}
+          <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+            School Form 4 — Monthly Learner Movement and Attendance Report
+          </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user?.email || ""}</strong>
+          </p>
+        </div>
       </div>
 
       {/* Selectors */}
-      <Card className="no-print">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm no-print">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
@@ -414,7 +423,7 @@ function SF4({ user, goBack }) {
               onChange={(e) => setSchoolYear(e.target.value)}
               className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             >
-              {SCHOOL_YEARS.map((sy) => (
+              {schoolYearOptions.map((sy) => (
                 <option key={sy} value={sy}>{sy}</option>
               ))}
             </select>
@@ -445,18 +454,27 @@ function SF4({ user, goBack }) {
             />
           </div>
         </div>
-      </Card>
+      </div>
       {/* Action buttons */}
       <div className="flex flex-wrap items-center gap-3 no-print">
-        <Button onClick={() => window.print()} disabled={!hasSelection || loading || rows.length === 0}>
+        <button
+          onClick={() => window.print()}
+          disabled={!hasSelection || loading || rows.length === 0}
+          className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
+          type="button"
+        >
           Print
-        </Button>
-        {error && <Alert variant="error">{error}</Alert>}
+        </button>
+        {error && (
+          <span className="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-500/10 text-red-700 dark:text-red-400">
+            {error}
+          </span>
+        )}
       </div>
 
       {/* Mortality (Death) manual inputs */}
       {hasSelection && (
-        <Card className="no-print">
+        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm no-print">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
@@ -496,16 +514,21 @@ function SF4({ user, goBack }) {
                 className="mt-1 w-28 text-sm text-right rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
               />
             </label>
-            <Button onClick={handleSaveMortality} disabled={isSavingMortality}>
+            <button
+              onClick={handleSaveMortality}
+              disabled={isSavingMortality}
+              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
+              type="button"
+            >
               {isSavingMortality ? "Saving…" : "Save Mortality"}
-            </Button>
+            </button>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Loading state */}
       {loading && (
-        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm no-print">
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm no-print">
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
@@ -514,12 +537,12 @@ function SF4({ user, goBack }) {
 
       {/* Guards */}
       {!loading && !hasSelection && (
-        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm no-print">
+        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm no-print">
           Select a grade level and month to view the movement report.
         </div>
       )}
       {!loading && hasSelection && rows.length === 0 && (
-        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm no-print">
+        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm no-print">
           No sections found for this grade level and school year.
         </div>
       )}
@@ -531,9 +554,18 @@ function SF4({ user, goBack }) {
             <p className="text-sm font-bold text-center uppercase tracking-wide text-gray-900 dark:text-gray-100">
               School Form 4 — Monthly Learner Movement and Attendance Report
             </p>
-            <p className="text-xs text-center text-gray-600 dark:text-gray-400 mt-1">
-              School: <strong>{config?.schoolName || ""}</strong> · Grade: {gradeLevel} · SY: {schoolYear} · Month: {monthValue}
-            </p>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-center text-gray-600 dark:text-gray-400 mt-1.5">
+              <span>School ID: <strong>{config?.schoolId || "—"}</strong></span>
+              <span>School: <strong>{config?.schoolName || "—"}</strong></span>
+              {config?.district && <span>District: <strong>{config.district}</strong></span>}
+              {config?.divisionOffice && (
+                <span>Division: <strong>{config.divisionOffice}</strong></span>
+              )}
+              {config?.region && <span>Region: <strong>{config.region}</strong></span>}
+              <span>Grade: <strong>{gradeLevel}</strong></span>
+              <span>SY: <strong>{schoolYear}</strong></span>
+              <span>Month: <strong>{monthValue}</strong></span>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="sf4-table w-full text-xs">
@@ -684,6 +716,22 @@ function SF4({ user, goBack }) {
                 </tr>
               </tbody>
             </table>
+
+            {/* Certification Footer */}
+            <div className="mt-6 flex flex-wrap items-center justify-between text-xs max-w-2xl mx-auto pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="text-center w-5/12">
+                <div className="border-b border-black dark:border-gray-400 min-h-[20px]" />
+                <div className="mt-1 text-[11px] text-gray-700 dark:text-gray-300 font-medium">Prepared by: Class Advisers</div>
+              </div>
+              <div className="text-center w-5/12">
+                <div className="border-b border-black dark:border-gray-400 min-h-[20px] font-bold text-gray-900 dark:text-gray-100">
+                  {config?.principalName || ""}
+                </div>
+                <div className="mt-1 text-[11px] text-gray-700 dark:text-gray-300 font-medium">
+                  {config?.principalPosition || "School Principal"} / Certified Correct
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
