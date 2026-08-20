@@ -1,0 +1,127 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run test*)",
+      "Bash(npm run build*)",
+      "Bash(npx vitest*)",
+      "Bash(npx eslint*)",
+      "Bash(npm run dev*)"
+    ],
+    "ask": [
+      "Bash(npm install*)",
+      "Bash(npm uninstall*)",
+      "Bash(npm remove*)",
+      "Bash(firebase deploy*)",
+      "Bash(git push*)",
+      "Bash(git commit*)"
+    ],
+    "deny": [
+      "Bash(git reset --hard*)",
+      "Bash(git push --force*)",
+      "Bash(git clean -f*)",
+      "Bash(rm -rf*)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "playwright",
+    "github"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${CLAUDE_PROJECT_DIR}/.claude/hooks/SessionStart.ps1", "${CLAUDE_PROJECT_DIR}"],
+            "timeout": 10,
+            "statusMessage": "Reading workspace state"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${CLAUDE_PROJECT_DIR}/.claude/hooks/UserPromptSubmit.ps1"],
+            "timeout": 10,
+            "statusMessage": "Checking prompt for credentials"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${CLAUDE_PROJECT_DIR}/.claude/hooks/PreToolUse.ps1"],
+            "timeout": 10,
+            "statusMessage": "Checking file safety"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const p=process.argv[1];const f=require('fs');if(f.existsSync(p)){const r=require('child_process').spawnSync(process.execPath,[p],{stdio:'inherit'});process.exit(r.status===null?1:r.status);}\" \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/hook.mjs\"",
+            "timeout": 5,
+            "statusMessage": "Checking UI changes"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${CLAUDE_PROJECT_DIR}/.claude/hooks/PostToolUse.ps1", "${CLAUDE_PROJECT_DIR}"],
+            "timeout": 30,
+            "statusMessage": "Linting changed file"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const p=process.argv[1];const f=require('fs');if(f.existsSync(p)){const r=require('child_process').spawnSync(process.execPath,[p],{stdio:'inherit'});process.exit(r.status===null?1:r.status);}\" \"${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/hook.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Design deep pass"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe",
+            "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "${CLAUDE_PROJECT_DIR}/.claude/hooks/Stop.ps1", "${CLAUDE_PROJECT_DIR}"],
+            "timeout": 60,
+            "statusMessage": "Proportional validation"
+          }
+        ]
+      }
+    ]
+  },
+  "description": "LIKHA-SIS project-wide Claude Code defaults: safe read/lint/test permission allowlist, ask-first gates on install/deploy/push/commit, deny on destructive git/rm, Impeccable design detector (UI-file PostToolUse + Stop), and the safety/validation hook chain (SessionStart workspace snapshot, UserPromptSubmit credential check, PreToolUse lockfile/.env/credential-file guard, PostToolUse targeted lint+test, Stop proportional lint/test/build with a print-safety reminder). Shared across the team via git; machine-specific overrides go in settings.local.json."
+}

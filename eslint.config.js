@@ -14,10 +14,11 @@ export default defineConfig([
   // noise: the weekly sweep in .claude/CRON.md chains
   // `npm run lint && npm run test`, so a non-zero lint exit from another
   // branch's code silently skips the tests and the audit skills.
-  // .gemini/skills/impeccable/scripts holds a vendored third-party toolkit
-  // (mixed Node/browser-injected scripts, some minified/generated), not this
-  // app's source — same rationale as .infographic-build above.
-  globalIgnores(['dist', '.infographic-build', '.claude/worktrees', '.gemini/skills/impeccable/scripts']),
+  // .gemini/skills and .claude/skills/impeccable vendor a third-party
+  // screenshot script (modern-screenshot.umd.js) as plugin content, not
+  // project source -- linting it against this project's browser-only config
+  // produces false no-undef/no-redeclare errors from its UMD wrapper.
+  globalIgnores(['dist', '.infographic-build', '.claude/worktrees', '.gemini', '.claude/skills/impeccable']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

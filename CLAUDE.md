@@ -53,7 +53,7 @@ Execution operates directly within Git Bash without third-party prompt handoffs:
     │                        │                        │
     └────────────────────────┼────────────────────────┘
                              ▼
-                 [ Automated Git Commit ]
+                    [ Commit, on request ]
 ```
 
 ### B. Active Loop Engineering Engine (Self-Correcting Execution)
@@ -61,7 +61,7 @@ Execution operates directly within Git Bash without third-party prompt handoffs:
 2. **Implementation-to-Verification Loop:** Automatically run `npm run lint && npm run test` after making changes.
 3. **Auto-Refactor Loop:** If linting or testing fails, parse error outputs, fix code immediately, and re-verify until a 100% pass rate is achieved.
 4. **Data-Safety Loop:** Automatically append security definitions in `firestore.rules` for any new Firestore collection.
-5. **Git Commit Loop:** Auto-stage and commit with conventional messages (`feat:`, `fix:`) upon passing tests.
+5. **Git Commit Convention:** Use conventional messages (`feat:`, `fix:`, `docs:`, ...) when the user asks for a commit — never commit or push automatically; `.claude/settings.json` gates both behind explicit approval.
 6. **Business Logic Trigger Loops:**
    * Attendance < 80% (SF2) → Auto-trigger LARDO risk flag.
    * Initial Grade < 70.00 → Auto-trigger DO 15 academic intervention flag.
@@ -97,12 +97,34 @@ Everything the first-run `SetupWizard` collects is also editable at any time fro
 * **Threat model (honest):** `settings/security` is readable by the `ictCoordinator` role itself. The key guards against accidental edits, a forgotten open tab, and a borrowed workstation — not against a determined ICT Coordinator.
 * **Academic Calendar is now data, not code:** school years and the three term date ranges live in `settings/schoolConfig.academicCalendar`, layered by `mergeAcademicCalendar()` over the built-in SY 2026–2027 fallback in `src/academicCalendar.js`. Consumers (`SF4.jsx`, `SMEAEnrollment.jsx`) read it through the `useAcademicCalendar()` hook. Terms stay fixed at three per DO 15, s. 2026 — they can be dated, never added or removed.
 
+### E. Permanent Architectural Constraints
+* No React Router — routing stays single-page `currentPage` state (§2, §4A).
+* Preserve the Firestore data model; no new collection without an explicit `firestore.rules` block (`firestore-schema-sync` skill / `schema-guardian` agent) and architectural sign-off.
+* Preserve `firestore.rules` — remember rules are additive (see `docs/ai/DECISIONS.md`), never assume a narrow nested rule overrides a broader parent grant.
+* Preserve official DepEd form layouts (SF1/SF2/SF4/SF8/SF9/SF10) — structural changes are a compliance risk, not a styling choice.
+* Preserve print safety (§17 conventions in `docs/ai/PROJECT-MEMORY.md`) — never let screen theme leak into `@media print`.
+* Preserve the School Settings key/lock (§4D) — don't weaken its verification or bypass the settings-lock gate.
+* Preserve the 3-term academic system — never reintroduce Q1–Q4 quarter terminology into new work.
+* Don't duplicate grading/transmutation logic — call into `src/utils/gradeComputations.js` / `transmutationTable.js`, never reimplement the weight math inline.
+
+### F. AI Development Rules
+* Inspect existing code before editing; read the file(s) you're about to change first.
+* Plan before multi-file work — a short bullet plan for anything touching 3+ files.
+* Prefer minimal diffs over rewrites; use targeted edits, not full-file replacement.
+* Reuse existing utilities/hooks/components (see `docs/ai/PROJECT-MEMORY.md` for the current inventory) before writing new ones.
+* Never add a dependency the existing stack (§2, §18) already covers.
+* Verify changes: run the targeted lint/test for what you touched before declaring done (Claude Code hooks in `.claude/settings.json` do this automatically on Edit/Write/Stop).
+* Report changed files and what was actually verified — never claim a check passed that didn't run.
+
+Long-term project memory that doesn't belong in this file lives in `docs/ai/PROJECT-MEMORY.md` (reusable utilities, data relationships, security/print/testing conventions) and `docs/ai/DECISIONS.md` (ADR-style architecture decisions).
+
 ---
 
-## 5. Deployment Commands
+## 5. Commit Convention
+Commit and push only when the user asks (`.claude/settings.json` requires approval for both). When asked, use a conventional message:
 ```bash
-git add CLAUDE.md
-git commit -m "docs: update project memory and CLAUDE.md for Claude Code Pro and Sonnet 5"
+git add <files>
+git commit -m "type: concise summary"
 git push origin master
 ```
 
@@ -122,13 +144,19 @@ Recurring domain workflows are packaged as skills so they run consistently inste
 * **`do15-grading-audit`** — Verifies grading logic (`src/utils/gradeComputations.js`, `src/utils/transmutationTable.js`, `ConsolidatedGrades.jsx`) against DO 15 s.2026 weights, the ST1/ST2/TE 30/30/40 exam split, and the Initial Grade < 70.00 intervention trigger.
 * **`lardo-safety-audit`** — Verifies attendance-based LARDO flags (`src/utils/lardoAutoResolve.js`, `LardoTracking.jsx`), the 14-day auto-resolve window, and DO 006 3-tier LRP role restrictions (`smeaCoordinator`, `principal`, `guidance` only).
 * **`print-safety-audit`** — Verifies printable components (`ReportCard.jsx`, `CertificateGenerator.jsx`, `IDGenerator.jsx`) keep a pure white `@media print` background with no dark/brand theme leakage.
-* **`firestore-schema-sync`** — Implements the Data-Safety Loop (Section 4B.4): any new Firestore collection gets a matching `firestore.rules` block before the change is considered done, then deploys rules directly via Bash (see memory `firestore-rules-deploy`).
+* **`firestore-schema-sync`** — Implements the Data-Safety Loop (Section 4B.4): any new Firestore collection gets a matching `firestore.rules` block before the change is considered done, then deploys directly via `npx firebase-tools deploy --only firestore:rules`.
 
 ### B. Specialist Agent Team (`.claude/agents/`)
-Mirrors the Strategist/Builder/QA-Gate pattern — Opus for analysis, Sonnet for execution:
-* **`grading-auditor`** (Opus, read-only analysis) — Reviews grading/LARDO changes for DO 15/DO 006 compliance before they ship.
-* **`schema-guardian`** (Sonnet, execution) — Writes the `firestore.rules` block for a new collection and deploys it.
-* **`qa-gate`** (Sonnet, gate) — Fails any change that doesn't pass `npm run lint && npm run test` and doesn't match the mandates in Section 3.
+Nine focused agents — Opus for read-only analysis, Sonnet for execution/gating. No agent duplicates another's job:
+* **`deped-domain-guardian`** (Opus, read-only analysis) — The single DepEd-compliance agent: 3-term calendar, official form layouts, and DO 15/DO 006/DO 017 rules (grading, LARDO, SHS tracks) already documented in the repo.
+* **`security-privacy-auditor`** (Opus, read-only analysis) — Audits learner PII, auth, Firestore access, and secrets for Data Privacy Act exposure.
+* **`feature-planner`** (Opus, read-only analysis) — Turns a complex feature request into an implementation-ready plan; never edits code.
+* **`schema-guardian`** (Sonnet, execution) — Detects Firestore schema/index drift in a diff, then writes and deploys the matching `firestore.rules` block.
+* **`test-automation-engineer`** (Sonnet, execution) — Adds/updates targeted Vitest coverage, prioritizing `src/utils/`, hooks, and critical workflows.
+* **`release-gate`** (Sonnet, gate) — The single final-verification agent: lint/test/build, unintended files, dependency drift, Firestore-rule gaps, print/dark-mode/accessibility spot-check, constraint check against §2/§3.
+* Plus the UI redesign chain (§7D note in `docs/ai/PROJECT-MEMORY.md`): `design-ux-architect` → `design-ui-designer` → `engineering-minimal-change-engineer` → `design-ui-finish-gate-reviewer` → `testing-accessibility-auditor` → `testing-performance-benchmarker` → `testing-reality-checker`.
+
+Use the smallest number of agents necessary — don't spawn a chain for a trivial task; Claude should work directly and just verify. Preferred routing: simple task → direct + verify; medium task → `feature-planner` → implementation → `release-gate`; UI task → the seven-phase redesign chain; data/schema task → `feature-planner` → `schema-guardian` (drift check) → implementation → tests → `release-gate`; security-sensitive task → `feature-planner` → `security-privacy-auditor` → implementation → `release-gate`.
 
 ### C. Autopilot
 A scheduled cloud routine runs the grading/LARDO/print/schema audit skills on a recurring cadence so drift is caught without a manual prompt. See `.claude/CRON.md` for the active schedule.
@@ -139,7 +167,7 @@ A scheduled cloud routine runs the grading/LARDO/print/schema audit skills on a 
 * **`engineering-*`** — general dev work the project skills above don't cover: `engineering-code-reviewer`, `engineering-software-architect`, `engineering-database-optimizer` (Firestore data modeling), `engineering-devops-automator` (GitHub Actions/deploy), `engineering-git-workflow-master`, `engineering-minimal-change-engineer`, `engineering-technical-writer`, `engineering-section-508-specialist` (accessibility).
 * **`security-*`** and **`data-privacy-officer`** — `security-appsec-engineer`, `security-architect`, `security-compliance-auditor`, `security-secrets-credential-engineer`, `security-ai-generated-code-auditor` (useful given this codebase is AI-written). Relevant beyond `firestore-schema-sync` because learner PII (grades, BMI, LRP/behavioral records) makes Philippine Data Privacy Act exposure a real concern, not just a Firestore-rules exercise.
 * **`design-*`** — `design-ui-designer`, `design-ux-architect`, `design-ux-researcher`, `design-ui-finish-gate-reviewer`, `design-inclusive-visuals-specialist`, for PWA UI/UX work.
-* **`testing-*`** — `testing-test-automation-engineer`, `testing-accessibility-auditor`, `testing-performance-benchmarker`, `testing-reality-checker`, alongside the project's own `qa-gate`.
+* **`testing-*`** — `testing-test-automation-engineer`, `testing-accessibility-auditor`, `testing-performance-benchmarker`, `testing-reality-checker`, alongside the project's own `test-automation-engineer` and `release-gate`.
 * **`product-*`** and **`project-management-*`** — `product-manager`, `product-feedback-synthesizer`, `project-management-project-shepherd`, for feature scoping/prioritization work.
 * **`specialized-codebase-archaeologist`**, **`specialized-document-generator`** (SF9/SF10/report-style document work), **`specialized-mcp-builder`** (if integrating an external MCP server).
 
