@@ -542,8 +542,8 @@ export default function AnecdotalRecords({ user }) {
 
                 {isExpanded && (
                   <div className="p-4 sm:p-5 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 space-y-4 text-xs">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="bg-white dark:bg-gray-800 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 space-y-1">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-gray-200 dark:divide-gray-700">
+                      <div className="space-y-1 md:pr-4">
                         <div className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs">
                           <NotebookPen size={13} className="text-primary" />
                           Observation / Event
@@ -553,7 +553,7 @@ export default function AnecdotalRecords({ user }) {
                         </p>
                       </div>
 
-                      <div className="bg-white dark:bg-gray-800 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 space-y-1">
+                      <div className="space-y-1 pt-3 md:pt-0 md:px-4">
                         <div className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs">
                           <CheckCircle2 size={13} className="text-emerald-600" />
                           Action / Intervention Taken
@@ -563,7 +563,7 @@ export default function AnecdotalRecords({ user }) {
                         </p>
                       </div>
 
-                      <div className="bg-white dark:bg-gray-800 p-3.5 rounded-lg border border-gray-200 dark:border-gray-700 space-y-1">
+                      <div className="space-y-1 pt-3 md:pt-0 md:pl-4">
                         <div className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs">
                           <Clock size={13} className="text-sky-600" />
                           Follow-up Plan
