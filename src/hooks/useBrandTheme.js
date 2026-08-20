@@ -52,6 +52,21 @@ function computeTextOnRoles(lightTheme, darkTheme) {
   };
 }
 
+// Cache key for the resolved CSS variables (not the raw theme object), so
+// index.html's pre-paint inline script can apply them with a plain
+// setProperty loop -- no color math duplicated outside this module.
+export const THEME_CACHE_KEY = "likha-theme-vars";
+
+function cacheThemeVars(vars) {
+  try {
+    if (vars) localStorage.setItem(THEME_CACHE_KEY, JSON.stringify(vars));
+    else localStorage.removeItem(THEME_CACHE_KEY);
+  } catch {
+    // localStorage unavailable (private browsing, quota) -- theme still
+    // applies for this session, it just won't survive a refresh instantly.
+  }
+}
+
 /**
  * Applies a theme object to document.documentElement.style as paired
  * light-mode/dark-mode CSS variables. If theme is null or missing, removes
@@ -62,6 +77,11 @@ function computeTextOnRoles(lightTheme, darkTheme) {
  * before dual-mode support existed (flat `{primary, accent, leaf, ...}`
  * only) -- the dark variant and text-on colors are derived on the fly for
  * the latter so older saved themes keep working without a data migration.
+ *
+ * Also mirrors the resolved vars into localStorage so the next page load
+ * can apply them synchronously (via the inline script in index.html)
+ * before Firestore's onSnapshot resolves, avoiding a flash of the default
+ * theme on refresh.
  */
 export function applyThemeToDocument(theme) {
   if (typeof document === "undefined" || !document.documentElement) return;
@@ -70,20 +90,40 @@ export function applyThemeToDocument(theme) {
   if (theme && typeof theme === "object" && theme.primary) {
     const darkTheme = theme.dark || deriveDarkThemeFromLight(theme);
     const textOn = theme.textOn || computeTextOnRoles(theme, darkTheme);
+    const resolvedVars = {};
 
     Object.entries(ROLE_VAR_SUFFIX).forEach(([key, suffix]) => {
-      if (theme[key]) root.setProperty(`--lm-${suffix}`, hexToRgbTriplet(theme[key]));
-      if (darkTheme?.[key]) root.setProperty(`--dm-${suffix}`, hexToRgbTriplet(darkTheme[key]));
+      if (theme[key]) {
+        const value = hexToRgbTriplet(theme[key]);
+        root.setProperty(`--lm-${suffix}`, value);
+        resolvedVars[`--lm-${suffix}`] = value;
+      }
+      if (darkTheme?.[key]) {
+        const value = hexToRgbTriplet(darkTheme[key]);
+        root.setProperty(`--dm-${suffix}`, value);
+        resolvedVars[`--dm-${suffix}`] = value;
+      }
     });
 
     TEXT_ON_ROLES.forEach((role) => {
-      if (textOn?.light?.[role]) root.setProperty(`--lm-text-on-${role}`, hexToRgbTriplet(textOn.light[role]));
-      if (textOn?.dark?.[role]) root.setProperty(`--dm-text-on-${role}`, hexToRgbTriplet(textOn.dark[role]));
+      if (textOn?.light?.[role]) {
+        const value = hexToRgbTriplet(textOn.light[role]);
+        root.setProperty(`--lm-text-on-${role}`, value);
+        resolvedVars[`--lm-text-on-${role}`] = value;
+      }
+      if (textOn?.dark?.[role]) {
+        const value = hexToRgbTriplet(textOn.dark[role]);
+        root.setProperty(`--dm-text-on-${role}`, value);
+        resolvedVars[`--dm-text-on-${role}`] = value;
+      }
     });
+
+    cacheThemeVars(resolvedVars);
   } else {
     THEME_CSS_VARS.forEach(({ varName }) => {
       root.removeProperty(varName);
     });
+    cacheThemeVars(null);
   }
 }
 
