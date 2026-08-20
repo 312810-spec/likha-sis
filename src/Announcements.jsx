@@ -362,20 +362,12 @@ export default function Announcements({ user, userRoles }) {
           )}
 
           <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={cancelCompose}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
+            <Button type="button" variant="secondary" onClick={cancelCompose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
+            </Button>
+            <Button type="submit" disabled={isSaving}>
               {isSaving ? "Posting..." : "Post Announcement"}
-            </button>
+            </Button>
           </div>
         </form>
       )}
