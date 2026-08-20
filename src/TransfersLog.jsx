@@ -409,7 +409,7 @@ export default function TransfersLog({ user }) {
                       <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         {t.transferDate ? t.transferDate : "—"}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 max-w-xs truncate">
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 max-w-xs break-words">
                         {t.reason || "—"}
                       </td>
                     </tr>

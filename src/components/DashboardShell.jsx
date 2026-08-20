@@ -203,7 +203,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
               {profileOpen && (
                 <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                    <div className="text-sm font-medium text-gray-900 truncate dark:text-gray-100">
+                    <div className="text-sm font-medium text-gray-900 break-all dark:text-gray-100">
                       {user?.email || 'User'}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">

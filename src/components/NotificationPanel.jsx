@@ -87,7 +87,7 @@ function AnnouncementRow({ announcement, onOpen }) {
       <div className="flex items-start gap-2">
         <Megaphone size={14} className="mt-0.5 flex-shrink-0 text-gray-400 dark:text-gray-500" />
         <div className="min-w-0">
-          <p className="text-xs font-medium text-gray-800 dark:text-gray-100 truncate">
+          <p className="text-xs font-medium text-gray-800 dark:text-gray-100 line-clamp-2">
             {announcement.title}
           </p>
           <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
@@ -108,7 +108,7 @@ function UpcomingRow({ entry }) {
     <div className="flex items-start gap-2 px-4 py-2">
       <CalendarDays size={14} className="mt-0.5 flex-shrink-0 text-gray-400 dark:text-gray-500" />
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-gray-800 dark:text-gray-100 truncate">{entry.title}</p>
+        <p className="text-xs text-gray-800 dark:text-gray-100 line-clamp-2">{entry.title}</p>
         <p className="text-[10px] text-gray-400 dark:text-gray-500">
           {label}
           {entry.subtitle ? ` — ${entry.subtitle}` : ''}
