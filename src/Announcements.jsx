@@ -33,8 +33,9 @@ import {
 } from "./utils/announcements.js";
 import { canPostAnnouncements } from "./pageAccess.js";
 import { toDateKey } from "./utils/philippineHolidays.js";
+import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 import {
-  ArrowLeft,
   Megaphone,
   FileText,
   FileSignature,
@@ -105,7 +106,7 @@ function TypeBadge({ typeId }) {
   );
 }
 
-export default function Announcements({ user, userRoles, goBack }) {
+export default function Announcements({ user, userRoles }) {
   const [announcements, setAnnouncements] = useState([]);
   const [loadError, setLoadError] = useState("");
   const [filter, setFilter] = useState("all");
@@ -201,40 +202,17 @@ export default function Announcements({ user, userRoles, goBack }) {
   const selectedType = ANNOUNCEMENT_TYPE_MAP[draft.type];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-12 animate-slide-up">
-      <div className="flex items-start justify-between gap-3 border-b border-gray-200 dark:border-gray-700 pb-4">
-        <div className="flex items-center gap-2">
-          {goBack && (
-            <button
-              type="button"
-              onClick={goBack}
-              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-              aria-label="Back to dashboard"
-            >
-              <ArrowLeft size={18} />
-            </button>
-          )}
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Megaphone className="text-primary" size={24} />
-              Announcements
-            </h1>
-            <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-              DepEd issuances, advisories, and school-wide notices.
-            </p>
-          </div>
-        </div>
-
-        {canPost && !composing && (
-          <button
-            type="button"
-            onClick={() => setComposing(true)}
-            className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all flex-shrink-0"
-          >
-            <Plus size={16} /> New Post
-          </button>
-        )}
-      </div>
+    <div className="max-w-none w-full space-y-6 pb-12">
+      <PageHeader
+        description="DepEd issuances, advisories, and school-wide notices."
+        actions={
+          canPost && !composing && (
+            <Button onClick={() => setComposing(true)}>
+              <Plus size={16} /> New Post
+            </Button>
+          )
+        }
+      />
 
       {successMessage && (
         <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 flex items-start gap-3 dark:bg-green-950/30 dark:border-green-800 dark:text-green-300 animate-fade-in">
