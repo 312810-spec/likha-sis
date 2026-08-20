@@ -108,6 +108,41 @@ export async function fetchExistingLearnersByLrn(db) {
   return map;
 }
 
+/**
+ * Auto-create any grade/section pair an SF1 import references but the
+ * section registry (schedules/{schoolYear}/sections) doesn't have yet --
+ * otherwise a freshly-imported grade level has learners but no section for
+ * School Settings / Class Program Generator to schedule against. Never
+ * touches a section that already exists (so a manually-assigned shiftId or
+ * adviser is never clobbered); the new section is written with an empty
+ * shiftId for an ICT Coordinator to assign afterward.
+ */
+async function autoCreateMissingSections(db, learners) {
+  const bySchoolYear = new Map();
+  learners.forEach((learner) => {
+    const schoolYear = String(learner.schoolYear || "").trim();
+    const gradeLevel = String(learner.gradeLevel || "").trim();
+    const section = String(learner.section || "").trim();
+    if (!schoolYear || !gradeLevel || !section) return;
+    if (!bySchoolYear.has(schoolYear)) bySchoolYear.set(schoolYear, new Map());
+    const id = `${gradeLevel}_${section}`.toLowerCase().replace(/\s+/g, "-");
+    bySchoolYear.get(schoolYear).set(id, { id, gradeLevel, name: section, shiftId: "" });
+  });
+
+  for (const [schoolYear, sectionsById] of bySchoolYear) {
+    const existingSnap = await getDocs(collection(db, "schedules", schoolYear, "sections"));
+    const existingIds = new Set(existingSnap.docs.map((d) => d.id));
+    const missing = [...sectionsById.values()].filter((s) => !existingIds.has(s.id));
+
+    for (let i = 0; i < missing.length; i += BATCH_LIMIT) {
+      const chunk = missing.slice(i, i + BATCH_LIMIT);
+      const batch = writeBatch(db);
+      chunk.forEach((s) => batch.set(doc(db, "schedules", schoolYear, "sections", s.id), s));
+      await batch.commit();
+    }
+  }
+}
+
 /** Check whether any prior successful import used the same file fingerprint. */
 export async function findPriorImport(db, fingerprints) {
   if (!fingerprints || fingerprints.length === 0) return null;
@@ -222,6 +257,10 @@ export async function executeImport(db, opts = {}) {
     const batch = writeBatch(db);
     chunk.forEach((d) => batch.update(d.ref, d.data));
     await batch.commit();
+  }
+
+  if (documentType === "sf1") {
+    await autoCreateMissingSections(db, [...toCreate, ...toUpdate].map((r) => r.learner));
   }
 
   const metadata = buildImportMetadata({

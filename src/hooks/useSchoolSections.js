@@ -7,19 +7,21 @@
 // source of truth for "what sections exist" instead of a second list.
 
 import { useCallback, useEffect, useState } from "react";
-import { collection, deleteDoc, doc, getDocs, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 
+// A live listener rather than a one-shot fetch, so a section an SF1 bulk
+// import auto-creates (see firestoreImport.js) shows up here immediately
+// instead of only after a remount/reselect forces a refetch.
 export default function useSchoolSections(schoolYear) {
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [version, setVersion] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
+    let unsubscribe = () => {};
 
-    async function load() {
+    async function subscribe() {
       if (!schoolYear) {
         setSections([]);
         setLoading(false);
@@ -27,41 +29,37 @@ export default function useSchoolSections(schoolYear) {
       }
       setLoading(true);
       setLoadError("");
-      try {
-        const snap = await getDocs(collection(db, "schedules", schoolYear, "sections"));
-        if (cancelled) return;
-        setSections(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      } catch (err) {
-        console.error("Failed to load sections:", err);
-        if (!cancelled) setLoadError("Could not load sections. Please refresh and try again.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+      unsubscribe = onSnapshot(
+        collection(db, "schedules", schoolYear, "sections"),
+        (snap) => {
+          setSections(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+          setLoading(false);
+        },
+        (err) => {
+          console.error("Failed to load sections:", err);
+          setLoadError("Could not load sections. Please refresh and try again.");
+          setLoading(false);
+        }
+      );
     }
 
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [schoolYear, version]);
-
-  const reload = useCallback(() => setVersion((v) => v + 1), []);
+    subscribe();
+    return () => unsubscribe();
+  }, [schoolYear]);
 
   const saveSection = useCallback(
     async (section) => {
       await setDoc(doc(db, "schedules", schoolYear, "sections", section.id), section);
-      reload();
     },
-    [schoolYear, reload]
+    [schoolYear]
   );
 
   const removeSection = useCallback(
     async (sectionId) => {
       await deleteDoc(doc(db, "schedules", schoolYear, "sections", sectionId));
-      reload();
     },
-    [schoolYear, reload]
+    [schoolYear]
   );
 
-  return { sections, loading, loadError, saveSection, removeSection, reload };
+  return { sections, loading, loadError, saveSection, removeSection };
 }
