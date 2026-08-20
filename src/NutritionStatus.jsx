@@ -24,13 +24,13 @@ import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import {
   Save,
   RefreshCw,
-  ArrowLeft,
-  HeartPulse,
   AlertCircle,
   CheckCircle2,
   Users,
   Printer,
 } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 
 // Converts an age in months to the "X yrs Y mos" convention used on the SF8 report.
 function formatAgeLabel(ageInMonths) {
@@ -47,7 +47,7 @@ function formatAgeLabel(ageInMonths) {
   return months > 0 ? `${years} yrs ${months} mos` : `${years} yrs`;
 }
 
-export default function NutritionStatus({ user, goBack }) {
+export default function NutritionStatus({ user }) {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
   const GRADE_OPTIONS = gradeOptions;
@@ -439,53 +439,32 @@ export default function NutritionStatus({ user, goBack }) {
         .sf8-hdr-value { text-align: left; }
       `}</style>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-3">
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform"
-              title="Go Back"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          )}
-          <div>
-            <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <HeartPulse className="w-6 h-6 text-rose-500" />
-              Nutrition Status Tracking
-            </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              DepEd / WHO 2007 Growth Reference (BMI-for-Age) baseline &amp; annual monitoring
-            </p>
-          </div>
-        </div>
-
-        {isLoaded && gridData.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm"
-            >
-              {isSaving ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {isSaving ? "Saving..." : "Save Nutrition Records"}
-            </button>
-            <button
-              type="button"
-              onClick={handlePrintReport}
-              className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm"
-            >
-              <Printer className="w-4 h-4" />
-              Print Report
-            </button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        description="DepEd / WHO 2007 Growth Reference (BMI-for-Age) baseline & annual monitoring"
+        actions={
+          isLoaded && gridData.length > 0 && (
+            <>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {isSaving ? "Saving..." : "Save Nutrition Records"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handlePrintReport}
+                className="!bg-emerald-600 !text-white !border-emerald-600 hover:!bg-emerald-700"
+              >
+                <Printer className="w-4 h-4" />
+                Print Report
+              </Button>
+            </>
+          )
+        }
+      />
 
       {/* Filter Bar */}
       <form
