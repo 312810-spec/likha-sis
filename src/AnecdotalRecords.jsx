@@ -643,17 +643,17 @@ export default function AnecdotalRecords({ user }) {
                           }
                           className="flex-1 text-xs px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:ring-1 focus:ring-primary"
                         />
-                        <button
+                        <Button
                           type="button"
+                          size="small"
                           disabled={
                             updatingRecordId === r.id ||
                             !(followUpNotes[r.id] || "").trim()
                           }
                           onClick={() => handleAddFollowUp(r.id)}
-                          className="px-3 py-1.5 bg-primary text-white font-medium rounded-lg hover:bg-primary-dark disabled:opacity-50 transition-colors"
                         >
                           Add Note
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -815,20 +815,12 @@ export default function AnecdotalRecords({ user }) {
 
               {/* Submit / Cancel buttons */}
               <div className="flex justify-end gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
-                <button
-                  type="button"
-                  onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
+                <Button type="button" variant="secondary" onClick={() => setIsFormOpen(false)}>
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-5 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm disabled:opacity-50 transition-colors"
-                >
+                </Button>
+                <Button type="submit" disabled={isSaving}>
                   {isSaving ? "Saving..." : "Save Record"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
