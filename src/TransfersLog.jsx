@@ -279,7 +279,7 @@ export default function TransfersLog({ user }) {
       )}
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card">
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
           <Filter size={14} /> Filter Records
         </div>
@@ -334,7 +334,7 @@ export default function TransfersLog({ user }) {
       </div>
 
       {/* Main List Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
           <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
             Transfers ({filteredTransfers.length})

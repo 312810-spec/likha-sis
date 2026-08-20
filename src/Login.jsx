@@ -52,7 +52,7 @@ function Login({ deactivated = false, onSwitchToParent }) {
       <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-accent/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-leaf/20 blur-3xl" />
 
-      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl shadow-black/20 p-8 dark:bg-gray-900 dark:shadow-black/50 animate-slide-up">
+      <div className="relative w-full max-w-sm bg-white rounded-xl shadow-2xl shadow-black/20 p-8 dark:bg-gray-900 dark:shadow-black/50">
         <div className="flex flex-col items-center mb-6">
           <div className="relative mb-3">
             <img

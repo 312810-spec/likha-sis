@@ -61,7 +61,7 @@ export default function WeatherCard({ onOpenSettings }) {
   const { weather, loading, error, stale, needsCoordinates, refresh } = useLocalWeather();
 
   const shell =
-    "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm";
+    "bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-card";
 
   if (needsCoordinates) {
     return (

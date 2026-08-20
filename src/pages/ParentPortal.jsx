@@ -47,7 +47,7 @@ function InfoRow({ label, value }) {
 
 function PlaceholderSection({ icon: Icon, title, description }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card">
       <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4">
         <Icon className="text-primary" size={18} />
         {title}
@@ -240,7 +240,7 @@ export default function ParentPortal({ user }) {
           return (
             <div key={learner.id} className="space-y-4 mb-8">
               {/* Learner Identity Card */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-800 pb-3">
                   <User className="text-primary" size={18} />
                   Learner Profile
@@ -255,7 +255,7 @@ export default function ParentPortal({ user }) {
               </div>
 
               {/* Enrollment Card */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card">
                 <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4 border-b border-gray-100 dark:border-gray-800 pb-3">
                   <Calendar className="text-primary" size={18} />
                   Current Enrollment

@@ -231,7 +231,7 @@ export default function Announcements({ user, userRoles }) {
       {composing && canPost && (
         <form
           onSubmit={handleSubmit}
-          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm space-y-4 animate-fade-in"
+          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card space-y-4 animate-fade-in"
         >
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">New Announcement</h2>
 
@@ -438,7 +438,7 @@ export default function Announcements({ user, userRoles }) {
             return (
               <li
                 key={a.id}
-                className={`bg-white dark:bg-gray-900 border rounded-xl p-5 shadow-sm ${
+                className={`bg-white dark:bg-gray-900 border rounded-xl p-5 shadow-card ${
                   expired
                     ? "border-gray-200 dark:border-gray-800 opacity-60"
                     : a.priority === "urgent"

@@ -43,7 +43,7 @@ export default function ImportCenter({ onNavigate }) {
               key={card.key}
               type="button"
               onClick={() => onNavigate(card.key)}
-              className="text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm hover:border-primary dark:hover:border-primary-light hover:shadow-md transition-all duration-200 group"
+              className="text-left bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-card hover:border-primary dark:hover:border-primary-light hover:shadow-md transition-all duration-200 group"
             >
               <div className="flex items-start gap-4">
                 <div

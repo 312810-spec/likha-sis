@@ -350,7 +350,7 @@ export default function AnecdotalRecords({ user }) {
       />
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3">
+      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card space-y-3">
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
           <Filter size={14} /> Filter Records
         </div>
@@ -452,7 +452,7 @@ export default function AnecdotalRecords({ user }) {
 
       {/* Main List */}
       {loadingRecords ? (
-        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm animate-pulse">
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card animate-pulse">
           <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-1/4" />
           <div className="h-16 bg-gray-100 dark:bg-gray-800 rounded" />
           <div className="h-16 bg-gray-100 dark:bg-gray-800 rounded" />
@@ -481,7 +481,7 @@ export default function AnecdotalRecords({ user }) {
             return (
               <div
                 key={r.id}
-                className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden transition-all"
+                className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card overflow-hidden transition-all"
               >
                 <div className="p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-1.5 flex-1">
