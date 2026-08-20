@@ -23,6 +23,9 @@ import {
 import { db, auth } from "../firebase";
 import { createTeacherAccount } from "../firebaseAdmin";
 import { ROLE_OPTIONS, ROLE_LABELS } from "../utils/roles.js";
+import useSchoolConfig from "../hooks/useSchoolConfig";
+import useAvailableSections from "../hooks/useAvailableSections";
+import useAcademicCalendar from "../hooks/useAcademicCalendar";
 import {
   isAccountActive,
   isEditableUserRow,
@@ -30,6 +33,13 @@ import {
 } from "../utils/userAccountManagement.js";
 
 export default function UserManagement({ user }) {
+  const { config } = useSchoolConfig();
+  const gradeOptions = (
+    config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"]
+  ).map((g) => g.replace(/^Grade\s+/i, ""));
+  const { schoolYears } = useAcademicCalendar();
+  const currentSchoolYear = schoolYears[0] || "2026-2027";
+
   // Form State
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,6 +52,10 @@ export default function UserManagement({ user }) {
   const [assignSubject, setAssignSubject] = useState("");
   const [assignGrade, setAssignGrade] = useState("");
   const [assignSection, setAssignSection] = useState("");
+  const { sections: assignSectionOptions } = useAvailableSections(
+    assignGrade ? `Grade ${assignGrade}` : "",
+    currentSchoolYear
+  );
 
   // Status & Feedback
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -61,6 +75,10 @@ export default function UserManagement({ user }) {
   const [editAssignSubject, setEditAssignSubject] = useState("");
   const [editAssignGrade, setEditAssignGrade] = useState("");
   const [editAssignSection, setEditAssignSection] = useState("");
+  const { sections: editAssignSectionOptions } = useAvailableSections(
+    editAssignGrade ? `Grade ${editAssignGrade}` : "",
+    currentSchoolYear
+  );
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [rowActionUserId, setRowActionUserId] = useState(null);
   const [viewingUser, setViewingUser] = useState(null);
@@ -576,27 +594,33 @@ export default function UserManagement({ user }) {
 
                 <div>
                   <label htmlFor="assignGradeInput" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Grade Level</label>
-                  <input
+                  <select
                     id="assignGradeInput"
-                    type="text"
                     value={assignGrade}
-                    onChange={(e) => setAssignGrade(e.target.value)}
-                    placeholder="e.g. 10"
+                    onChange={(e) => { setAssignGrade(e.target.value); setAssignSection(""); }}
                     className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                  />
+                  >
+                    <option value="">Select grade...</option>
+                    {gradeOptions.map((g) => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <label htmlFor="assignSectionInput" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Section</label>
                   <div className="flex gap-2">
-                    <input
+                    <select
                       id="assignSectionInput"
-                      type="text"
                       value={assignSection}
                       onChange={(e) => setAssignSection(e.target.value)}
-                      placeholder="e.g. Kindness"
                       className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                    />
+                    >
+                      <option value="">Select section...</option>
+                      {assignSectionOptions.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
                     <button
                       type="button"
                       onClick={handleAddAssignment}
@@ -895,26 +919,32 @@ export default function UserManagement({ user }) {
                                     </div>
                                     <div>
                                       <label htmlFor={`editAssignGrade-${u.id}`} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Grade Level</label>
-                                      <input
+                                      <select
                                         id={`editAssignGrade-${u.id}`}
-                                        type="text"
                                         value={editAssignGrade}
-                                        onChange={(e) => setEditAssignGrade(e.target.value)}
-                                        placeholder="e.g. 10"
+                                        onChange={(e) => { setEditAssignGrade(e.target.value); setEditAssignSection(""); }}
                                         className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                                      />
+                                      >
+                                        <option value="">Select grade...</option>
+                                        {gradeOptions.map((g) => (
+                                          <option key={g} value={g}>{g}</option>
+                                        ))}
+                                      </select>
                                     </div>
                                     <div>
                                       <label htmlFor={`editAssignSection-${u.id}`} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Section</label>
                                       <div className="flex gap-2">
-                                        <input
+                                        <select
                                           id={`editAssignSection-${u.id}`}
-                                          type="text"
                                           value={editAssignSection}
                                           onChange={(e) => setEditAssignSection(e.target.value)}
-                                          placeholder="e.g. Kindness"
                                           className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
-                                        />
+                                        >
+                                          <option value="">Select section...</option>
+                                          {editAssignSectionOptions.map((s) => (
+                                            <option key={s} value={s}>{s}</option>
+                                          ))}
+                                        </select>
                                         <button
                                           type="button"
                                           onClick={handleAddEditAssignment}

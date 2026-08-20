@@ -8,6 +8,7 @@ import { doc, updateDoc, addDoc, collection, serverTimestamp } from "firebase/fi
 import { db } from "./firebase";
 import { resizeImageToCanvas } from "./utils/resizeImage.js";
 import useSchoolConfig from "./hooks/useSchoolConfig";
+import useAvailableSections from "./hooks/useAvailableSections";
 import { validateLearnerField, validateLearnerForm, computeLearnerChanges } from "./utils/learnerValidation.js";
 import { X, AlertCircle, User, Upload } from "lucide-react";
 
@@ -43,6 +44,8 @@ function EditLearnerModal({ learner, currentUser, onClose, onSaved }) {
   const { config } = useSchoolConfig();
   const isSHS = formData.gradeLevel === "Grade 11" || formData.gradeLevel === "Grade 12";
   const electiveClusters = config?.shs?.electiveClusters || [];
+  const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
+  const { sections: availableSections } = useAvailableSections(formData.gradeLevel, formData.schoolYear);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
 
   function updateField(field, value) {
@@ -266,21 +269,34 @@ function EditLearnerModal({ learner, currentUser, onClose, onSaved }) {
 
             <label className={labelClass}>
               <span>Grade Level *</span>
-              <input
+              <select
                 className={fieldErrors.gradeLevel ? inputErrorClass : inputClass}
                 value={formData.gradeLevel || ""}
                 onChange={(e) => updateField("gradeLevel", e.target.value)}
-              />
+              >
+                <option value="">Select grade level...</option>
+                {gradeOptions.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
               {fieldErrors.gradeLevel && <span className="text-[11px] text-red-500">{fieldErrors.gradeLevel}</span>}
             </label>
 
             <label className={labelClass}>
               <span>Section *</span>
-              <input
+              <select
                 className={fieldErrors.section ? inputErrorClass : inputClass}
                 value={formData.section || ""}
                 onChange={(e) => updateField("section", e.target.value)}
-              />
+              >
+                <option value="">Select section...</option>
+                {availableSections.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+                {formData.section && !availableSections.includes(formData.section) && (
+                  <option value={formData.section}>{formData.section}</option>
+                )}
+              </select>
               {fieldErrors.section && <span className="text-[11px] text-red-500">{fieldErrors.section}</span>}
             </label>
 
