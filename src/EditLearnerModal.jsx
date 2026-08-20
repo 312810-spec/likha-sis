@@ -7,7 +7,9 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { resizeImageToCanvas } from "./utils/resizeImage.js";
 import useSchoolConfig from "./hooks/useSchoolConfig";
-import { X, AlertCircle, User, Upload } from "lucide-react";
+import { X, User, Upload } from "lucide-react";
+import Button from "./components/ui/Button";
+import Alert from "./components/ui/Alert";
 
 const MAX_PHOTO_SOURCE_BYTES = 15 * 1024 * 1024; // sanity cap on the original file before resizing
 
@@ -24,8 +26,8 @@ function calculateAge(birthDateString) {
   return age;
 }
 
-const inputClass = "w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors";
-const labelClass = "flex flex-col gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300";
+const inputClass = "w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors";
+const labelClass = "flex flex-col gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300";
 
 // Props:
 // - learner: the current learner object (must include its Firestore "id")
@@ -132,7 +134,7 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-gray-700 animate-slide-up"
+        className="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-gray-200 dark:border-gray-800 animate-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
@@ -140,7 +142,7 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
           <button
             onClick={onClose}
             disabled={isSaving}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:text-gray-200 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:text-gray-200 transition-colors"
             aria-label="Close"
           >
             <X size={18} />
@@ -149,10 +151,9 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
 
         <div className="p-6">
           {errorMessage && (
-            <div className="mb-4 flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400 animate-fade-in">
-              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-              <span>{errorMessage}</span>
-            </div>
+            <Alert variant="error" className="mb-4">
+              {errorMessage}
+            </Alert>
           )}
 
           <div className="flex items-center gap-4 mb-5">
@@ -166,7 +167,7 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
             <div>
               <label className={labelClass}>
                 Photo (for School ID)
-                <span className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors w-fit">
+                <span className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors w-fit">
                   <Upload size={13} />
                   {isProcessingPhoto ? "Processing..." : formData.photoURL ? "Change Photo" : "Upload Photo"}
                   <input type="file" accept="image/*" className="hidden" onChange={handlePhotoPick} disabled={isProcessingPhoto} />
@@ -259,7 +260,7 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
             )}
           </div>
 
-          <fieldset className="mt-5 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+          <fieldset className="mt-5 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <legend className="px-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Address</legend>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <label className={labelClass}>
@@ -281,7 +282,7 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
             </div>
           </fieldset>
 
-          <fieldset className="mt-5 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+          <fieldset className="mt-5 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <legend className="px-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Parents / Guardian</legend>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <label className={labelClass}>
@@ -310,21 +311,13 @@ function EditLearnerModal({ learner, onClose, onSaved }) {
           </label>
         </div>
 
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900 rounded-b-xl">
-          <button
-            onClick={onClose}
-            disabled={isSaving}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-[0.98] transition-all disabled:opacity-50"
-          >
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-900 rounded-b-lg">
+          <Button variant="secondary" onClick={onClose} disabled={isSaving}>
             Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving || isProcessingPhoto}
-            className="px-4 py-2 text-sm font-semibold text-white bg-primary rounded-lg shadow-sm hover:bg-primary-light active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-          >
+          </Button>
+          <Button variant="primary" onClick={handleSave} disabled={isSaving || isProcessingPhoto}>
             {isSaving ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

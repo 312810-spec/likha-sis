@@ -6,8 +6,6 @@ import {
   Users,
   Plus,
   Trash2,
-  CheckCircle2,
-  AlertCircle,
   Shield,
   Pencil,
   KeyRound,
@@ -23,6 +21,12 @@ import {
   isEditableUserRow,
   validateUserEditForm,
 } from "../utils/userAccountManagement.js";
+import PageHeader from "../components/ui/PageHeader";
+import Card from "../components/ui/Card";
+import Alert from "../components/ui/Alert";
+import Button from "../components/ui/Button";
+import Badge from "../components/ui/Badge";
+import EmptyState from "../components/ui/EmptyState";
 
 export default function UserManagement({ user }) {
   // Form State
@@ -359,35 +363,19 @@ export default function UserManagement({ user }) {
 
   return (
     <div className="font-sans text-gray-900 dark:text-gray-100 space-y-6 max-w-6xl mx-auto pb-12 animate-slide-up">
-      {/* Header Banner */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
-            <Shield className="text-primary" size={24} /> User Management
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Create teacher accounts, set system roles, and configure class/subject assignments.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Shield}
+        title="User Management"
+        description="Create teacher accounts, set system roles, and configure class/subject assignments."
+      />
 
       {/* Alert Messages */}
-      {successMessage && (
-        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-xl p-4 flex items-center gap-3 animate-fade-in">
-          <CheckCircle2 className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" size={20} />
-          <span className="text-sm font-medium">{successMessage}</span>
-        </div>
-      )}
+      {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
-      {errorMessage && (
-        <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-xl p-4 flex items-center gap-3 animate-fade-in">
-          <AlertCircle className="text-rose-600 dark:text-rose-400 flex-shrink-0" size={20} />
-          <span className="text-sm font-medium">{errorMessage}</span>
-        </div>
-      )}
+      {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
 
       {/* Create User Form Card */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+      <Card>
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3 mb-5">
           <UserPlus className="text-primary" size={18} /> Create New Teacher Account
         </h2>
@@ -405,7 +393,7 @@ export default function UserManagement({ user }) {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="e.g. Maria Santos"
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
                 required
               />
             </div>
@@ -420,7 +408,7 @@ export default function UserManagement({ user }) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. msantos@likhasis.com"
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
                 required
               />
             </div>
@@ -435,7 +423,7 @@ export default function UserManagement({ user }) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
                 required
                 minLength={6}
               />
@@ -453,7 +441,7 @@ export default function UserManagement({ user }) {
                 return (
                   <label
                     key={role.id}
-                    className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                    className={`flex items-center gap-2 p-2.5 rounded-md border text-xs font-medium cursor-pointer transition-colors ${
                       isChecked
                         ? "bg-primary/10 border-primary text-primary-dark dark:bg-primary-light/10 dark:border-primary-light dark:text-primary-light"
                         : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -474,7 +462,7 @@ export default function UserManagement({ user }) {
 
           {/* Repeatable Assignment Builder (Visible if Adviser or Subject Teacher checked) */}
           {showAssignmentsSection && (
-            <div className="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4 animate-fade-in">
+            <div className="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-4 animate-fade-in">
               <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
                 <h3 className="text-xs font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider">
                   Teacher Assignments
@@ -492,7 +480,7 @@ export default function UserManagement({ user }) {
                     id="assignRoleSelect"
                     value={assignRole}
                     onChange={(e) => setAssignRole(e.target.value)}
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                   >
                     {selectedRoles.includes("subjectTeacher") && (
                       <option value="subjectTeacher">Subject Teacher</option>
@@ -512,7 +500,7 @@ export default function UserManagement({ user }) {
                       value={assignSubject}
                       onChange={(e) => setAssignSubject(e.target.value)}
                       placeholder="e.g. Filipino"
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                     />
                   </div>
                 ) : (
@@ -523,7 +511,7 @@ export default function UserManagement({ user }) {
                       type="text"
                       disabled
                       placeholder="N/A (Adviser)"
-                      className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                      className="w-full px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-400 dark:text-gray-500 cursor-not-allowed"
                     />
                   </div>
                 )}
@@ -536,7 +524,7 @@ export default function UserManagement({ user }) {
                     value={assignGrade}
                     onChange={(e) => setAssignGrade(e.target.value)}
                     placeholder="e.g. 10"
-                    className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                   />
                 </div>
 
@@ -549,15 +537,11 @@ export default function UserManagement({ user }) {
                       value={assignSection}
                       onChange={(e) => setAssignSection(e.target.value)}
                       placeholder="e.g. Kindness"
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                     />
-                    <button
-                      type="button"
-                      onClick={handleAddAssignment}
-                      className="bg-primary text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-primary-light active:scale-[0.98] transition-all flex items-center gap-1 flex-shrink-0"
-                    >
+                    <Button variant="primary" onClick={handleAddAssignment} className="flex-shrink-0">
                       <Plus size={16} /> Add
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -570,7 +554,7 @@ export default function UserManagement({ user }) {
                     {assignments.map((item, idx) => (
                       <div
                         key={idx}
-                        className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-lg text-sm"
+                        className="flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-md text-sm"
                       >
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-primary dark:text-primary-light">
@@ -603,11 +587,7 @@ export default function UserManagement({ user }) {
 
           {/* Submit Button */}
           <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button type="submit" variant="primary" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>Creating Account...</>
               ) : (
@@ -615,13 +595,13 @@ export default function UserManagement({ user }) {
                   <UserPlus size={18} /> Create Account
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
 
       {/* Users Directory Table */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+      <Card>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Users className="text-primary" size={18} /> User Directory
@@ -634,10 +614,12 @@ export default function UserManagement({ user }) {
         {loadingUsers ? (
           <p className="text-sm text-gray-500 dark:text-gray-400 py-6 text-center">Loading users...</p>
         ) : userList.length === 0 ? (
-          <div className="text-center py-8 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
-            <p className="text-sm text-gray-500 dark:text-gray-400">No user documents found in the database.</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Create an account above to populate the directory.</p>
-          </div>
+          <EmptyState
+            icon={Users}
+            title="No user documents found in the database."
+            description="Create an account above to populate the directory."
+            className="border border-dashed border-gray-200 dark:border-gray-700 rounded-lg"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
@@ -673,9 +655,7 @@ export default function UserManagement({ user }) {
                         </td>
                         <td className="py-3 px-4 text-gray-600 dark:text-gray-300">{u.email || "—"}</td>
                         <td className="py-3 px-4">
-                          <span className="inline-block bg-primary/10 text-primary-dark dark:bg-primary-light/10 dark:text-primary-light text-xs px-2.5 py-1 rounded-md font-medium">
-                            {roleString}
-                          </span>
+                          <Badge tone="primary">{roleString}</Badge>
                         </td>
                         <td className="py-3 px-4 text-xs text-gray-600 dark:text-gray-300">
                           {assignmentList.length === 0 ? (
@@ -696,15 +676,9 @@ export default function UserManagement({ user }) {
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <span
-                            className={`inline-block text-xs px-2.5 py-1 rounded-md font-medium ${
-                              active
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400"
-                                : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-                            }`}
-                          >
+                          <Badge tone={active ? "success" : "neutral"}>
                             {active ? "Active" : "Deactivated"}
-                          </span>
+                          </Badge>
                         </td>
                         <td className="py-3 px-4">
                           {canManage ? (
@@ -760,7 +734,7 @@ export default function UserManagement({ user }) {
                                     type="text"
                                     value={editFullName}
                                     onChange={(e) => setEditFullName(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                                   />
                                 </div>
                                 <div>
@@ -772,7 +746,7 @@ export default function UserManagement({ user }) {
                                     value={u.email || ""}
                                     disabled
                                     title="Login email can only be changed by the account owner."
-                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                                   />
                                 </div>
                               </div>
@@ -787,7 +761,7 @@ export default function UserManagement({ user }) {
                                     return (
                                       <label
                                         key={role.id}
-                                        className={`flex items-center gap-2 p-2.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                                        className={`flex items-center gap-2 p-2.5 rounded-md border text-xs font-medium cursor-pointer transition-colors ${
                                           isChecked
                                             ? "bg-primary/10 border-primary text-primary-dark dark:bg-primary-light/10 dark:border-primary-light dark:text-primary-light"
                                             : "bg-white border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -807,7 +781,7 @@ export default function UserManagement({ user }) {
                               </div>
 
                               {showEditAssignments && (
-                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+                                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 space-y-3">
                                   <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
                                     <div>
                                       <label htmlFor={`editAssignRole-${u.id}`} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Assignment Role</label>
@@ -815,7 +789,7 @@ export default function UserManagement({ user }) {
                                         id={`editAssignRole-${u.id}`}
                                         value={editAssignRole}
                                         onChange={(e) => setEditAssignRole(e.target.value)}
-                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                                       >
                                         {editRoles.includes("subjectTeacher") && (
                                           <option value="subjectTeacher">Subject Teacher</option>
@@ -834,7 +808,7 @@ export default function UserManagement({ user }) {
                                         onChange={(e) => setEditAssignSubject(e.target.value)}
                                         disabled={editAssignRole !== "subjectTeacher"}
                                         placeholder={editAssignRole === "subjectTeacher" ? "e.g. Filipino" : "N/A (Adviser)"}
-                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:disabled:bg-gray-800"
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:disabled:bg-gray-800"
                                       />
                                     </div>
                                     <div>
@@ -845,7 +819,7 @@ export default function UserManagement({ user }) {
                                         value={editAssignGrade}
                                         onChange={(e) => setEditAssignGrade(e.target.value)}
                                         placeholder="e.g. 10"
-                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                                       />
                                     </div>
                                     <div>
@@ -857,15 +831,11 @@ export default function UserManagement({ user }) {
                                           value={editAssignSection}
                                           onChange={(e) => setEditAssignSection(e.target.value)}
                                           placeholder="e.g. Kindness"
-                                          className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                                         />
-                                        <button
-                                          type="button"
-                                          onClick={handleAddEditAssignment}
-                                          className="bg-primary text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-primary-light active:scale-[0.98] transition-all flex items-center gap-1 flex-shrink-0"
-                                        >
+                                        <Button variant="primary" onClick={handleAddEditAssignment} className="flex-shrink-0">
                                           <Plus size={16} />
-                                        </button>
+                                        </Button>
                                       </div>
                                     </div>
                                   </div>
@@ -875,7 +845,7 @@ export default function UserManagement({ user }) {
                                       {editAssignments.map((item, idx) => (
                                         <div
                                           key={idx}
-                                          className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-lg text-sm"
+                                          className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-2 rounded-md text-sm"
                                         >
                                           <div className="flex items-center gap-2">
                                             <span className="font-semibold text-primary dark:text-primary-light">
@@ -906,20 +876,12 @@ export default function UserManagement({ user }) {
                               )}
 
                               <div className="flex justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={handleCancelEdit}
-                                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
-                                >
+                                <Button type="button" variant="ghost" onClick={handleCancelEdit}>
                                   Cancel
-                                </button>
-                                <button
-                                  type="submit"
-                                  disabled={isSavingEdit}
-                                  className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
+                                </Button>
+                                <Button type="submit" variant="primary" disabled={isSavingEdit}>
                                   {isSavingEdit ? "Saving..." : "Save Changes"}
-                                </button>
+                                </Button>
                               </div>
                             </form>
                           </td>
@@ -932,7 +894,7 @@ export default function UserManagement({ user }) {
             </table>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

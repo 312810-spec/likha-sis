@@ -7,6 +7,34 @@ import useBrandTheme from '../hooks/useBrandTheme';
 import { ROLE_LABELS } from '../utils/roles.js';
 import Sidebar from './Sidebar';
 
+function HeaderClock() {
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const dateStr = now.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const timeStr = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+  return (
+    <div className="text-right hidden lg:block">
+      <div className="text-sm font-medium text-gray-700 dark:text-gray-200">{dateStr}</div>
+      <div className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{timeStr}</div>
+    </div>
+  );
+}
+
 function initialsFor(user) {
   const source = user?.displayName || user?.email || '';
   const parts = source.split(/[\s.@_]+/).filter(Boolean);
@@ -18,18 +46,12 @@ function initialsFor(user) {
 export default function DashboardShell({ children, currentPage, onNavigate, user, pageTitle = 'Dashboard', userRoles }) {
   useBrandTheme();
   const [mode, resolvedIsDark, setMode] = useDarkMode();
-  const [now, setNow] = useState(new Date());
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const notifRef = useRef(null);
   const profileRef = useRef(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Closes a dropdown when the user clicks anywhere outside of it
   useEffect(() => {
@@ -52,19 +74,6 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
       console.error('Logout failed:', error);
     }
   }
-
-  const dateStr = now.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-
-  const timeStr = now.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950" role="region" aria-label="Dashboard Shell">
@@ -98,10 +107,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-            <div className="text-right hidden lg:block">
-              <div className="text-sm font-medium text-gray-700 dark:text-gray-200">{dateStr}</div>
-              <div className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{timeStr}</div>
-            </div>
+            <HeaderClock />
 
             <div role="toolbar" aria-label={`Theme (resolved ${resolvedIsDark ? 'dark' : 'light'})`} className="inline-flex items-center rounded-full p-0.5 bg-gray-100 dark:bg-gray-800">
               <button
@@ -147,7 +153,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
               </button>
 
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
+                <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                     <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</h4>
                   </div>
@@ -173,7 +179,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
               </button>
 
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 dark:bg-gray-900 dark:border-gray-700 animate-fade-in overflow-hidden">
                   <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
                     <div className="text-sm font-medium text-gray-900 truncate dark:text-gray-100">
                       {user?.email || 'User'}

@@ -31,7 +31,6 @@ import {
   ChevronUp,
   Search,
   Filter,
-  ArrowLeft,
   MessageSquare,
   Send,
   ShieldAlert,
@@ -39,6 +38,10 @@ import {
   Gavel,
   AlertOctagon,
 } from "lucide-react";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import Button from "./components/ui/Button";
 
 const FIXED_RISK_FACTORS = [
   "Financial difficulty",
@@ -745,49 +748,23 @@ export default function LardoTracking({ user, userRoles, goBack }) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        <div>
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98] transition-transform"
-              type="button"
-            >
-              <ArrowLeft size={14} /> Back to Dashboard
-            </button>
-          )}
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-accent/10 dark:bg-accent/20 rounded-lg text-accent-dark dark:text-accent-light border border-accent/20">
-              <ShieldAlert size={22} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">LARDO Tracking</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Learners At Risk of Dropping Out — Monitoring &amp; Intervention System
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {activeTab === "discipline" ? (
-          <button
-            onClick={handleOpenIncidentForm}
-            className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform text-sm"
-            type="button"
-          >
-            <Plus size={16} /> Report Incident
-          </button>
-        ) : (
-          <button
-            onClick={handleOpenForm}
-            className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform text-sm"
-            type="button"
-          >
-            <Plus size={16} /> Flag a Learner
-          </button>
-        )}
-      </div>
+      <PageHeader
+        icon={ShieldAlert}
+        title="LARDO Tracking"
+        description="Learners At Risk of Dropping Out — Monitoring & Intervention System"
+        onBack={goBack}
+        actions={
+          activeTab === "discipline" ? (
+            <Button onClick={handleOpenIncidentForm}>
+              <Plus size={16} /> Report Incident
+            </Button>
+          ) : (
+            <Button onClick={handleOpenForm}>
+              <Plus size={16} /> Flag a Learner
+            </Button>
+          )
+        }
+      />
 
       {/* Tabs */}
       {canSeeDiscipline && (
@@ -818,7 +795,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
       )}
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <Card>
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
           <Filter size={14} /> Filter Records
         </div>
@@ -828,7 +805,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
             <select
               value={gradeLevelFilter}
               onChange={(e) => setGradeLevelFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              className="w-full text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             >
               {GRADE_OPTIONS.map((g) => (
                 <option key={g} value={g}>
@@ -845,7 +822,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
             <select
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              className="w-full text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             >
               <option value="">Select a section</option>
               {availableSections.map((sec) => (
@@ -866,15 +843,15 @@ export default function LardoTracking({ user, userRoles, goBack }) {
               placeholder="e.g. 2026-2027"
               value={schoolYearFilter}
               onChange={(e) => setSchoolYearFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+              className="w-full text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
             />
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Main List: Dropout Risk Monitoring */}
       {activeTab === "dropoutRisk" && (
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
           <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
             Flagged Learners ({filteredRecords.length})
@@ -888,9 +865,9 @@ export default function LardoTracking({ user, userRoles, goBack }) {
         </div>
 
         {recordsError && (
-          <div className="animate-fade-in p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 text-sm border-b border-red-100 dark:border-red-800">
+          <Alert variant="error" className="m-4">
             {recordsError}
-          </div>
+          </Alert>
         )}
 
         {loadingRecords ? (
@@ -1089,7 +1066,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
 
       {/* Main List: Behavioral Incidents (DO 006) */}
       {activeTab === "discipline" && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
             <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
               Behavioral Incidents ({filteredDisciplineRecords.length})
@@ -1103,9 +1080,9 @@ export default function LardoTracking({ user, userRoles, goBack }) {
           </div>
 
           {disciplineError && (
-            <div className="animate-fade-in p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 text-sm border-b border-red-100 dark:border-red-800">
+            <Alert variant="error" className="m-4">
               {disciplineError}
-            </div>
+            </Alert>
           )}
 
           {loadingDiscipline ? (
@@ -1307,7 +1284,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
       {/* Modal: Flag a Learner */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-xl w-full p-6 space-y-5 my-8 border border-gray-200 dark:border-gray-700 animate-slide-up">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-xl w-full p-6 space-y-5 my-8 border border-gray-200 dark:border-gray-700 animate-slide-up">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <AlertTriangle className="text-accent" size={20} /> Flag a Learner (LARDO)
@@ -1321,11 +1298,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
               </button>
             </div>
 
-            {formError && (
-              <div className="animate-fade-in p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 text-xs rounded-lg border border-red-100 dark:border-red-800 font-medium">
-                {formError}
-              </div>
-            )}
+            {formError && <Alert variant="error">{formError}</Alert>}
 
             <form onSubmit={handleSaveFlag} className="space-y-4">
               {/* Step 1: Learner selection */}
@@ -1458,7 +1431,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
       {/* Modal: Report Incident (DO 006) */}
       {isIncidentFormOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-xl w-full p-6 space-y-5 my-8 border border-gray-200 dark:border-gray-700 animate-slide-up">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-xl w-full p-6 space-y-5 my-8 border border-gray-200 dark:border-gray-700 animate-slide-up">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <Gavel className="text-accent" size={20} /> Report Incident (DO 006)
@@ -1472,11 +1445,7 @@ export default function LardoTracking({ user, userRoles, goBack }) {
               </button>
             </div>
 
-            {incidentFormError && (
-              <div className="animate-fade-in p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 text-xs rounded-lg border border-red-100 dark:border-red-800 font-medium">
-                {incidentFormError}
-              </div>
-            )}
+            {incidentFormError && <Alert variant="error">{incidentFormError}</Alert>}
 
             <form onSubmit={handleSaveIncident} className="space-y-4">
               {/* Step 1: Learner selection */}

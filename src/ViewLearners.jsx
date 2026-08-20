@@ -8,7 +8,12 @@ import { db } from "./firebase";
 import EditLearnerModal from "./EditLearnerModal";
 import { canEditLearners } from "./pageAccess.js";
 import useSchoolConfig from "./hooks/useSchoolConfig";
-import { ArrowLeft, Users, Pencil, Trash2, AlertCircle, UserSearch } from "lucide-react";
+import { Users, Pencil, Trash2, UserSearch } from "lucide-react";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import EmptyState from "./components/ui/EmptyState";
+import Button from "./components/ui/Button";
 
 function trackLabel(learner, electiveClusters) {
   if (!learner.track) return "";
@@ -110,13 +115,8 @@ function ViewLearners({ user, goBack, userRoles }) {
   // Show a loading message while data is being fetched.
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto animate-slide-up">
-        <button
-          onClick={goBack}
-          className="mb-4 flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={16} /> Back to Dashboard
-        </button>
+      <div className="max-w-6xl mx-auto animate-fade-in">
+        <PageHeader icon={Users} title="Saved Learners" onBack={goBack} />
         <div className="flex flex-col items-center justify-center gap-3 py-24 text-gray-400 dark:text-gray-500">
           <div className="w-8 h-8 border-2 border-gray-200 dark:border-gray-700 border-t-primary rounded-full animate-spin" />
           <p className="text-sm">Loading learners...</p>
@@ -126,26 +126,16 @@ function ViewLearners({ user, goBack, userRoles }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-slide-up">
-      <button
-        onClick={goBack}
-        className="mb-4 flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-      >
-        <ArrowLeft size={16} /> Back to Dashboard
-      </button>
+    <div className="max-w-6xl mx-auto animate-fade-in">
+      <PageHeader
+        icon={Users}
+        title="Saved Learners"
+        description={`Logged in as ${user.email} — viewing ${filteredLearners.length} of ${learners.length} learner${learners.length === 1 ? "" : "s"}`}
+        onBack={goBack}
+      />
 
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
-              <Users className="text-primary" size={24} />
-              Saved Learners
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Logged in as <span className="font-medium text-gray-700 dark:text-gray-200">{user.email}</span> — viewing {filteredLearners.length} of {learners.length} learner{learners.length === 1 ? "" : "s"}
-            </p>
-          </div>
-
+      <Card>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3">
           <div className="w-full sm:w-64">
             <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
               Filter by Grade & Section
@@ -153,7 +143,7 @@ function ViewLearners({ user, goBack, userRoles }) {
             <select
               value={filterValue}
               onChange={(e) => setFilterValue(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
             >
               {gradeSectionOptions.map((opt) => (
                 <option key={opt} value={opt}>
@@ -165,25 +155,21 @@ function ViewLearners({ user, goBack, userRoles }) {
         </div>
 
         {errorMessage && (
-          <div className="mt-4 flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400 animate-fade-in">
-            <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-            <span>{errorMessage}</span>
-          </div>
+          <Alert variant="error" className="mt-4">
+            {errorMessage}
+          </Alert>
         )}
 
         {filteredLearners.length === 0 && (
-          <div className="flex flex-col items-center justify-center gap-2 py-16 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl mt-4">
-            <UserSearch size={24} className="text-gray-300 dark:text-gray-600" />
-            <p className="text-sm text-gray-400 dark:text-gray-500">
-              {learners.length === 0
-                ? "No learners saved yet."
-                : "No learners match the selected filter."}
-            </p>
-          </div>
+          <EmptyState
+            icon={UserSearch}
+            title={learners.length === 0 ? "No learners saved yet." : "No learners match the selected filter."}
+            className="mt-4"
+          />
         )}
 
         {filteredLearners.length > 0 && (
-          <div className="overflow-x-auto mt-4 -mx-5 px-5">
+          <div className="overflow-x-auto mt-4 -mx-4 px-4 sm:-mx-5 sm:px-5">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-800/60 border-y border-gray-200 dark:border-gray-700">
@@ -223,18 +209,12 @@ function ViewLearners({ user, goBack, userRoles }) {
                     {isEditable && (
                       <td className={tdClass}>
                         <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setEditingLearner(l)}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/15 active:scale-[0.98] transition-all dark:bg-primary-light/10 dark:text-primary-light dark:border-primary-light/20"
-                          >
+                          <Button variant="secondary" size="compact" onClick={() => setEditingLearner(l)}>
                             <Pencil size={13} /> Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(l.id)}
-                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 active:scale-[0.98] transition-all dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50"
-                          >
+                          </Button>
+                          <Button variant="destructive" size="compact" onClick={() => handleDelete(l.id)}>
                             <Trash2 size={13} /> Delete
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     )}
@@ -244,7 +224,7 @@ function ViewLearners({ user, goBack, userRoles }) {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Edit learner modal: shown when an Edit button is clicked. */}
       {editingLearner && (

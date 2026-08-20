@@ -13,10 +13,14 @@ import {
   makeDefaultShsSubjects,
   makeDefaultShsClusters,
 } from "./utils/keyStagesConfig.js";
-import { ArrowLeft, Settings, Save, CheckCircle2, AlertCircle } from "lucide-react";
+import { Settings, Save } from "lucide-react";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import Button from "./components/ui/Button";
 
-const inputClass = "w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors";
-const labelClass = "flex flex-col gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300";
+const inputClass = "w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors";
+const labelClass = "flex flex-col gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300";
 
 const DEFAULT_SCHOOL_FIELDS = {
   schoolName: "",
@@ -175,54 +179,37 @@ export default function SchoolSettings({ goBack }) {
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto animate-slide-up">
-        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="h-6 w-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
-          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
+          <div className="h-6 w-48 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse" />
+          <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-12 animate-slide-up">
-      <div className="flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 pb-4">
-        {goBack && (
-          <button
-            type="button"
-            onClick={goBack}
-            className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-            aria-label="Back to dashboard"
-          >
-            <ArrowLeft size={18} />
-          </button>
-        )}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <Settings className="text-primary" size={24} />
-            School Settings
-          </h1>
-          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-            School identity, grade levels, and DO 017 SHS configuration.
-          </p>
-        </div>
-      </div>
+    <div className="max-w-3xl mx-auto pb-12 animate-slide-up">
+      <PageHeader
+        icon={Settings}
+        title="School Settings"
+        description="School identity, grade levels, and DO 017 SHS configuration."
+        onBack={goBack}
+      />
 
       {successMessage && (
-        <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 flex items-start gap-3 dark:bg-green-950/30 dark:border-green-800 dark:text-green-300 animate-fade-in">
-          <CheckCircle2 size={20} className="flex-shrink-0 mt-0.5" />
-          <p className="text-sm font-medium">{successMessage}</p>
-        </div>
+        <Alert variant="success" className="mb-6">
+          {successMessage}
+        </Alert>
       )}
 
       {errorMessage && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 flex items-start gap-3 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300 animate-fade-in">
-          <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
-          <p className="text-sm font-medium">{errorMessage}</p>
-        </div>
+        <Alert variant="error" className="mb-6">
+          {errorMessage}
+        </Alert>
       )}
 
       <form onSubmit={handleSave} className="space-y-6">
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+        <Card>
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">School Identity</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className={labelClass}>
@@ -258,9 +245,9 @@ export default function SchoolSettings({ goBack }) {
               <input className={inputClass} value={schoolData.principalPosition || ""} onChange={(e) => updateField("principalPosition", e.target.value)} />
             </label>
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+        <Card>
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Grade Levels Offered</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Which key stages does your school offer?</p>
           <div className="space-y-2">
@@ -289,10 +276,10 @@ export default function SchoolSettings({ goBack }) {
               </label>
             ))}
           </div>
-        </div>
+        </Card>
 
         {selectedKeyStages.ks4 && (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm space-y-5 animate-fade-in">
+          <Card className="space-y-5 animate-fade-in">
             <div>
               <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">SHS Configuration (DO 017, s.2026)</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -391,18 +378,14 @@ export default function SchoolSettings({ goBack }) {
                 ))}
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
         <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-          >
+          <Button type="submit" variant="primary" disabled={isSaving}>
             <Save size={16} />
             {isSaving ? "Saving..." : "Save Settings"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

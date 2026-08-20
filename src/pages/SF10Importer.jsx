@@ -8,7 +8,7 @@
 // SF10 record is linked to the canonical learner by LRN.
 
 import { useRef, useState } from "react";
-import { CheckCircle2, Loader2, Upload, X, AlertTriangle } from "lucide-react";
+import { CheckCircle2, Loader2, Upload, X, AlertTriangle, FileText } from "lucide-react";
 import { db } from "../firebase";
 import { analyzeSF10Files } from "../importers/sf10/importSF10.js";
 import {
@@ -20,6 +20,10 @@ import StepIndicator from "../components/import/StepIndicator";
 import StatCard from "../components/import/StatCard";
 import FileSummaryCard from "../components/import/FileSummaryCard";
 import PreviewTable from "../components/import/PreviewTable";
+import PageHeader from "../components/ui/PageHeader";
+import Card from "../components/ui/Card";
+import Alert from "../components/ui/Alert";
+import Button from "../components/ui/Button";
 
 const STEPS = ["Select Files", "Analyze", "Review", "Import", "Summary"];
 
@@ -137,19 +141,15 @@ export default function SF10Importer({ user }) {
   // ---- Render -------------------------------------------------------------
   return (
     <div className="max-w-6xl mx-auto space-y-5 animate-slide-up">
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">SF10 Import</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Learner's Permanent Academic Record (.xls / .xlsx)</p>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="SF10 Import"
+        description="Learner's Permanent Academic Record (.xls / .xlsx)"
+      />
 
       <StepIndicator steps={STEPS} current={step} />
 
-      {error && (
-        <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl px-4 py-3 text-sm animate-fade-in">
-          <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
+      {error && <Alert variant="error">{error}</Alert>}
 
       {step === 0 && (
         <SF10SelectStep
@@ -197,14 +197,14 @@ export default function SF10Importer({ user }) {
 // ---------------------------------------------------------------------------
 function SF10SelectStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+    <Card>
       <label
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
           if (e.dataTransfer.files?.length) onAdd(e.dataTransfer.files);
         }}
-        className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl py-12 px-4 cursor-pointer hover:border-leaf dark:hover:border-leaf-light transition-colors text-center"
+        className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg py-12 px-4 cursor-pointer hover:border-leaf dark:hover:border-leaf-light transition-colors text-center"
       >
         <input
           ref={inputRef}
@@ -225,7 +225,7 @@ function SF10SelectStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) {
         </p>
         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">.xls / .xlsx — one learner per form</p>
         <span
-          className="mt-4 px-4 py-2 rounded-lg bg-leaf text-white text-sm font-medium shadow-sm hover:bg-leaf-light transition-colors"
+          className="mt-4 px-4 py-2 rounded-lg bg-leaf text-white text-sm font-medium shadow-sm hover:bg-leaf-light transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
           onClick={(e) => {
             e.preventDefault();
             inputRef.current && inputRef.current.click();
@@ -261,18 +261,18 @@ function SF10SelectStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) {
           type="button"
           disabled={busy || files.length === 0}
           onClick={onAnalyze}
-          className="inline-flex items-center gap-2 bg-leaf text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-leaf-light active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium bg-leaf text-white hover:bg-leaf-light transition-colors duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
         >
           <CheckCircle2 size={16} /> Analyze Files
         </button>
       </div>
-    </div>
+    </Card>
   );
 }
 
 function SF10AnalyzingStep({ importing = false }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-12 shadow-sm flex flex-col items-center justify-center text-center">
+    <Card className="py-12 flex flex-col items-center justify-center text-center">
       <Loader2 size={32} className="animate-spin text-leaf mb-3" />
       <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
         {importing ? "Importing approved academic records…" : "Analyzing SF10 workbooks…"}
@@ -280,7 +280,7 @@ function SF10AnalyzingStep({ importing = false }) {
       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
         Detecting identity header · extracting learning areas &amp; grades · validating
       </p>
-    </div>
+    </Card>
   );
 }
 
@@ -288,7 +288,7 @@ function SF10ReviewStep({ batch, fileModels, onConfirm, onBack, busy, priorImpor
   const allRecords = fileModels.flatMap((f) => f.records || []);
   return (
     <div className="space-y-5">
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
+      <Card>
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Import Summary</h3>
         <div className="flex flex-wrap gap-3">
           <StatCard label="Files selected" value={batch.fileCount} />
@@ -299,18 +299,15 @@ function SF10ReviewStep({ batch, fileModels, onConfirm, onBack, busy, priorImpor
           <StatCard label="Errors" value={batch.errorCount} tone="error" />
         </div>
         {priorImport && (
-          <div className="mt-4 flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 rounded-xl px-4 py-3 text-sm">
-            <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-            <span>
-              One or more of these files appears to have already been imported
-              successfully (previous import {priorImport.id}). Duplicate records will be
-              skipped.
-            </span>
-          </div>
+          <Alert variant="warning" className="mt-4">
+            One or more of these files appears to have already been imported
+            successfully (previous import {priorImport.id}). Duplicate records will be
+            skipped.
+          </Alert>
         )}
-      </div>
+      </Card>
 
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
+      <Card>
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">File Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {fileModels.map((f, i) => (
@@ -322,7 +319,7 @@ function SF10ReviewStep({ batch, fileModels, onConfirm, onBack, busy, priorImpor
             />
           ))}
         </div>
-      </div>
+      </Card>
 
       <div className="space-y-2">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -332,14 +329,10 @@ function SF10ReviewStep({ batch, fileModels, onConfirm, onBack, busy, priorImpor
         <PreviewTable records={allRecords} columns={COLUMNS} />
       </div>
 
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        >
+      <Card className="flex flex-wrap items-center justify-between gap-3">
+        <Button variant="secondary" onClick={onBack}>
           ← Back to file selection
-        </button>
+        </Button>
         <div className="flex items-center gap-3">
           {batch.blockingErrors && (
             <span className="text-xs text-red-600 dark:text-red-400">Fix blocking errors before importing.</span>
@@ -348,12 +341,12 @@ function SF10ReviewStep({ batch, fileModels, onConfirm, onBack, busy, priorImpor
             type="button"
             disabled={busy || !batch.canImport}
             onClick={onConfirm}
-            className="inline-flex items-center gap-2 bg-leaf text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-leaf-light active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium bg-leaf text-white hover:bg-leaf-light transition-colors duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none disabled:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
           >
             <CheckCircle2 size={16} /> Confirm Import
           </button>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -362,7 +355,7 @@ function SF10ResultStep({ result, onDone }) {
   const ok = result && result.status === "success";
   const blocked = result && result.status === "blocked";
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8 shadow-sm text-center animate-fade-in">
+    <Card className="text-center animate-fade-in">
       <div
         className={`mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center ${
           blocked
@@ -394,11 +387,11 @@ function SF10ResultStep({ result, onDone }) {
       <button
         type="button"
         onClick={onDone}
-        className="mt-6 inline-flex items-center gap-2 bg-leaf text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-leaf-light active:scale-[0.99] transition-all"
+        className="mt-6 inline-flex items-center justify-center gap-2 h-9 px-4 rounded-md text-sm font-medium bg-leaf text-white hover:bg-leaf-light transition-colors duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
       >
         <Upload size={16} /> Import More Files
       </button>
-    </div>
+    </Card>
   );
 }
 

@@ -31,6 +31,11 @@ import {
   computeSectionAttendance,
   isDropoutRemark,
 } from "./utils/sf4Computations";
+import { ClipboardList } from "lucide-react";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import Button from "./components/ui/Button";
 
 // Normalize a learner's sex into "Male" | "Female" | "" so it matches the
 // computeSF4Rows contract, regardless of whether the doc stores "M"/"F" or
@@ -388,28 +393,17 @@ function SF4({ user, goBack }) {
       `}</style>
 
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="mb-2 text-xs font-semibold text-primary-light bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 border border-primary/20 rounded-lg px-3 py-1.5 transition-colors duration-150 active:scale-[0.98] no-print"
-              type="button"
-            >
-              ← Back to Dashboard
-            </button>
-          )}
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-            School Form 4 — Monthly Learner Movement and Attendance Report
-          </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user?.email || ""}</strong>
-          </p>
-        </div>
+      <div className="no-print">
+        <PageHeader
+          icon={ClipboardList}
+          title="School Form 4 — Monthly Learner Movement and Attendance Report"
+          description={`Logged in as: ${user?.email || ""}`}
+          onBack={goBack}
+        />
       </div>
 
       {/* Selectors */}
-      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm no-print">
+      <Card className="no-print">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
@@ -451,27 +445,18 @@ function SF4({ user, goBack }) {
             />
           </div>
         </div>
-      </div>
+      </Card>
       {/* Action buttons */}
       <div className="flex flex-wrap items-center gap-3 no-print">
-        <button
-          onClick={() => window.print()}
-          disabled={!hasSelection || loading || rows.length === 0}
-          className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
-          type="button"
-        >
+        <Button onClick={() => window.print()} disabled={!hasSelection || loading || rows.length === 0}>
           Print
-        </button>
-        {error && (
-          <span className="text-xs font-medium px-3 py-1.5 rounded-lg bg-red-500/10 text-red-700 dark:text-red-400">
-            {error}
-          </span>
-        )}
+        </Button>
+        {error && <Alert variant="error">{error}</Alert>}
       </div>
 
       {/* Mortality (Death) manual inputs */}
       {hasSelection && (
-        <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm no-print">
+        <Card className="no-print">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
@@ -511,21 +496,16 @@ function SF4({ user, goBack }) {
                 className="mt-1 w-28 text-sm text-right rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-1.5 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
               />
             </label>
-            <button
-              onClick={handleSaveMortality}
-              disabled={isSavingMortality}
-              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
-              type="button"
-            >
+            <Button onClick={handleSaveMortality} disabled={isSavingMortality}>
               {isSavingMortality ? "Saving…" : "Save Mortality"}
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Loading state */}
       {loading && (
-        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm no-print">
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm no-print">
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
@@ -534,12 +514,12 @@ function SF4({ user, goBack }) {
 
       {/* Guards */}
       {!loading && !hasSelection && (
-        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm no-print">
+        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm no-print">
           Select a grade level and month to view the movement report.
         </div>
       )}
       {!loading && hasSelection && rows.length === 0 && (
-        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm no-print">
+        <div className="p-8 text-center bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm no-print">
           No sections found for this grade level and school year.
         </div>
       )}

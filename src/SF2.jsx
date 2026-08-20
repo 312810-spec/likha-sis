@@ -16,10 +16,14 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
-import { Info } from "lucide-react";
+import { CalendarCheck } from "lucide-react";
 
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import { getWeekdays, makeAttendanceDocId } from "./utils/attendanceDates";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import Button from "./components/ui/Button";
 
 // Dropout reason codes (a1–f) per the DepEd NLS legend. Used both for the
 // "Legend & Guidelines" section and the per-learner Remarks dropdown options.
@@ -701,7 +705,7 @@ function SF2({ user, goBack }) {
   // Renders the collapsible "Legend & Guidelines" section (collapsed by default).
   function renderLegend() {
     return (
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
         <button
           type="button"
           onClick={() => setShowLegend((v) => !v)}
@@ -904,26 +908,17 @@ function SF2({ user, goBack }) {
       `}</style>
 
       {/* Header Bar */}
-      <div className="no-print bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        {goBack && (
-          <button
-            onClick={goBack}
-            className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
-            type="button"
-          >
-            ← Back to Dashboard
-          </button>
-        )}
-        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-          School Form 2 — Daily Attendance
-        </h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user?.email || ""}</strong>
-        </p>
+      <div className="no-print">
+        <PageHeader
+          icon={CalendarCheck}
+          title="School Form 2 — Daily Attendance"
+          description={`Logged in as: ${user?.email || ""}`}
+          onBack={goBack}
+        />
       </div>
 
       {/* Class + month pickers */}
-      <div className="no-print bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <Card className="no-print">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Class</label>
@@ -951,64 +946,54 @@ function SF2({ user, goBack }) {
             />
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Legend & Guidelines */}
       <div className="no-print">{renderLegend()}</div>
 
       {/* Class Summary + Signatures shown once a class with learners is selected */}
       {!loading && hasSelection && filteredLearners.length > 0 && (
-        <div className="no-print bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-6">
+        <Card className="no-print space-y-6">
           {renderSummary()}
           {renderSignatures()}
-        </div>
+        </Card>
       )}
 
       {/* Save button, Print Report & Status */}
       <div className="no-print flex flex-wrap items-center gap-3">
-        <button
-          onClick={handleSave}
-          disabled={isSaving || !hasSelection}
-          className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
-          type="button"
-        >
+        <Button onClick={handleSave} disabled={isSaving || !hasSelection}>
           {isSaving ? "Saving..." : "Save Month"}
-        </button>
+        </Button>
         {hasSelection && (
           <button
             onClick={() => {
               setShowPrintArea(true);
               setTimeout(() => window.print(), 150);
             }}
-            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98]"
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
             type="button"
           >
             🖨 Print Report
           </button>
         )}
         {statusMessage && (
-          <span
-            className={`text-xs font-medium px-3 py-1.5 rounded-lg animate-fade-in ${
-              statusMessage.startsWith("Attendance")
-                ? "bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light"
-                : "bg-red-500/10 text-red-700 dark:text-red-400"
-            }`}
-          >
+          <Alert variant={statusMessage.startsWith("Attendance") ? "success" : "error"}>
             {statusMessage}
-          </span>
+          </Alert>
         )}
       </div>
 
       {/* Auto-flag confirmation banners */}
       {pendingFlagCandidates.map((c) => (
-        <div key={c.docId} className="no-print animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4">
-          <Info className="w-4 h-4 shrink-0 text-yellow-700" />
+        <Alert key={c.docId} variant="warning" className="no-print animate-fade-in items-center">
+          <div className="flex flex-wrap items-center gap-4">
           <div className="flex-1">
             <div className="font-medium">This learner's attendance suggests a LARDO risk flag.</div>
             <div className="text-xs mt-0.5">Flag {c.learner.lastName || ""}, {c.learner.firstName || ""} for monitoring?</div>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              size="compact"
               onClick={async () => {
                 try {
                   const nowIso = new Date().toISOString();
@@ -1046,23 +1031,24 @@ function SF2({ user, goBack }) {
                   setStatusMessage("Failed to create LARDO record. Please try again.");
                 }
               }}
-              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
             >
               Flag for monitoring
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="compact"
               onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
             >
               Dismiss
-            </button>
+            </Button>
           </div>
-        </div>
+          </div>
+        </Alert>
       ))}
 
       {/* Loading state */}
       {loading && (
-        <div className="no-print space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="no-print space-y-3 p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
@@ -1071,19 +1057,19 @@ function SF2({ user, goBack }) {
 
       {/* Guards: nothing selected vs. no learners for this class */}
       {!loading && !hasSelection && (
-        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
+        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
           Select a class and month to begin
         </div>
       )}
       {!loading && hasSelection && filteredLearners.length === 0 && (
-        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
+        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
           No learners found for this class.
         </div>
       )}
 
       {/* Attendance grid */}
       {!loading && hasSelection && filteredLearners.length > 0 && (
-        <div className="no-print bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+        <div className="no-print bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
           <div className="overflow-x-auto max-h-[70vh]">
             <table className="w-full border-collapse text-xs">
               <thead>

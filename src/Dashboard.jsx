@@ -3,36 +3,34 @@ import { collection, getDocs, query, where } from 'firebase/firestore';
 import { Users, CheckCircle2, FileText, CalendarDays, Plus, ClipboardList, FilePlus2, ShieldAlert, Inbox, LifeBuoy } from 'lucide-react';
 import { db } from './firebase';
 import { canAccessPage } from './pageAccess.js';
+import Card from './components/ui/Card';
+import EmptyStatePrimitive from './components/ui/EmptyState';
+import Button from './components/ui/Button';
 
 function StatTile({ icon: Icon, tint, label, value }) {
   return (
-    <div className="flex-1 min-w-[180px] bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-200 flex items-center gap-3 dark:bg-gray-900 dark:border-gray-700">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${tint}`}>
+    <Card padded={false} className="flex-1 min-w-[180px] p-4 hover:shadow-sm transition-shadow duration-200 flex items-center gap-3">
+      <div className={`w-11 h-11 rounded-md flex items-center justify-center flex-shrink-0 ${tint}`}>
         <Icon size={20} />
       </div>
       <div className="min-w-0">
         <div className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-400">{label}</div>
         <div className="text-base font-semibold mt-0.5 text-gray-900 dark:text-gray-100 truncate">{value}</div>
       </div>
-    </div>
+    </Card>
   );
 }
 
-function EmptyState({ icon: Icon = Inbox, text }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 py-8 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
-      <Icon size={22} className="text-gray-300 dark:text-gray-600" />
-      <p className="text-sm text-gray-400 dark:text-gray-500">{text}</p>
-    </div>
-  );
+function EmptyState({ text }) {
+  return <EmptyStatePrimitive icon={Inbox} title={text} className="py-8 border border-dashed border-gray-200 dark:border-gray-700 rounded-lg" />;
 }
 
 function SectionCard({ title, children, className = '' }) {
   return (
-    <div className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm dark:bg-gray-900 dark:border-gray-700 ${className}`}>
+    <Card className={className}>
       {title && <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h4>}
       {children}
-    </div>
+    </Card>
   );
 }
 
@@ -73,7 +71,7 @@ function LardoRiskSummary({ goToLardo }) {
   return (
     <SectionCard className="animate-fade-in">
       <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-red-500/10 text-red-600 dark:bg-red-500/15 dark:text-red-400 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-md bg-red-500/10 text-red-600 dark:bg-red-500/15 dark:text-red-400 flex items-center justify-center shrink-0">
           <ShieldAlert size={17} />
         </div>
         <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">LARDO At-Risk Learners</h4>
@@ -111,12 +109,9 @@ function LardoRiskSummary({ goToLardo }) {
         </>
       )}
 
-      <button
-        onClick={goToLardo}
-        className="mt-4 w-full bg-primary text-white px-3 py-2.5 rounded-lg text-sm font-medium shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all duration-150"
-      >
+      <Button onClick={goToLardo} className="mt-4 w-full">
         Open LARDO Tracking
-      </button>
+      </Button>
     </SectionCard>
   );
 }
@@ -152,26 +147,17 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, userRoles })
             </div>
 
             <div className="mt-4">
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Quick access</div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Quick actions</div>
               <div className="flex flex-wrap gap-2 mt-2">
-                <button
-                  onClick={goToSF1}
-                  className="flex items-center gap-2 bg-primary text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all duration-150"
-                >
+                <Button onClick={goToSF1}>
                   <Plus size={16} /> Add Learner — SF1
-                </button>
-                <button
-                  onClick={goToViewLearners}
-                  className="flex items-center gap-2 bg-white text-primary border border-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 active:scale-[0.99] transition-all duration-150 dark:bg-gray-800 dark:text-primary-light dark:border-gray-700 dark:hover:bg-gray-700"
-                >
+                </Button>
+                <Button variant="secondary" onClick={goToViewLearners}>
                   <ClipboardList size={16} /> View Learners
-                </button>
-                <button
-                  onClick={goToSF2}
-                  className="flex items-center gap-2 bg-white text-primary border border-gray-200 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 active:scale-[0.99] transition-all duration-150 dark:bg-gray-800 dark:text-primary-light dark:border-gray-700 dark:hover:bg-gray-700"
-                >
+                </Button>
+                <Button variant="secondary" onClick={goToSF2}>
                   <FilePlus2 size={16} /> School Form 2
-                </button>
+                </Button>
               </div>
             </div>
           </SectionCard>
@@ -186,32 +172,9 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, userRoles })
         <aside className="space-y-4">
           {canSeeLardo && <LardoRiskSummary goToLardo={goToLardo} />}
 
-          <SectionCard title="Quick Actions">
-            <div className="flex flex-col gap-2 mt-3">
-              <button
-                onClick={goToSF1}
-                className="bg-primary text-white px-3 py-2.5 rounded-lg text-sm font-medium text-left shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all duration-150"
-              >
-                Add Learner → SF1
-              </button>
-              <button
-                onClick={goToViewLearners}
-                className="bg-white text-primary border border-gray-200 px-3 py-2.5 rounded-lg text-sm font-medium text-left hover:bg-gray-50 active:scale-[0.99] transition-all duration-150 dark:bg-gray-800 dark:text-primary-light dark:border-gray-700 dark:hover:bg-gray-700"
-              >
-                View Learners
-              </button>
-              <button
-                onClick={goToSF2}
-                className="bg-white text-primary border border-gray-200 px-3 py-2.5 rounded-lg text-sm font-medium text-left hover:bg-gray-50 active:scale-[0.99] transition-all duration-150 dark:bg-gray-800 dark:text-primary-light dark:border-gray-700 dark:hover:bg-gray-700"
-              >
-                School Form 2 → SF2
-              </button>
-            </div>
-          </SectionCard>
-
           <SectionCard>
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-md bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 flex items-center justify-center shrink-0">
                 <LifeBuoy size={17} />
               </div>
               <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Support</h4>

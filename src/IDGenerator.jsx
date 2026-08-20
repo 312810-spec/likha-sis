@@ -12,7 +12,11 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
-import { User } from "lucide-react";
+import { User, IdCard } from "lucide-react";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import Button from "./components/ui/Button";
 
 const CARD_W = 204; // px == 2.125in — standard CR80 ID card width, portrait
 const CARD_H = 324; // px == 3.375in — standard CR80 ID card height, portrait
@@ -275,13 +279,13 @@ function IDGenerator({ user, goBack }) {
         {goBack && (
           <button
             onClick={goBack}
-            className="no-print inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
             type="button"
           >
             ← Back to Dashboard
           </button>
         )}
-        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="space-y-3 p-6 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
           <div className="h-6 w-48 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
         </div>
@@ -293,31 +297,16 @@ function IDGenerator({ user, goBack }) {
     <div className="space-y-6 max-w-5xl mx-auto my-8 px-4">
       {/* ---- Controls (no-print) ---- */}
       <div className="no-print space-y-4 animate-slide-up">
-        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98]"
-              type="button"
-            >
-              ← Back to Dashboard
-            </button>
-          )}
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-            School ID Generator
-          </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user?.email || "Unknown user"}</strong>
-          </p>
-        </div>
+        <PageHeader
+          icon={IdCard}
+          title="School ID Generator"
+          description={`Logged in as: ${user?.email || "Unknown user"}`}
+          onBack={goBack}
+        />
 
-        {errorMessage && (
-          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-medium animate-fade-in">
-            {errorMessage}
-          </div>
-        )}
+        {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
 
-        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
+        <Card className="space-y-4">
           {/* Mode tabs */}
           <div className="inline-flex items-center rounded-full p-0.5 bg-gray-100 dark:bg-gray-800">
             <button
@@ -362,14 +351,9 @@ function IDGenerator({ user, goBack }) {
               </select>
 
               <div className="flex flex-wrap items-center gap-3 pt-4">
-                <button
-                  onClick={() => window.print()}
-                  disabled={!selectedLearner}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
-                  type="button"
-                >
+                <Button onClick={() => window.print()} disabled={!selectedLearner}>
                   Print ID (Front + Back)
-                </button>
+                </Button>
                 {!selectedLearner && (
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     Select a learner to enable printing.
@@ -421,14 +405,9 @@ function IDGenerator({ user, goBack }) {
                       </button>
                     </div>
 
-                    <button
-                      onClick={() => window.print()}
-                      disabled={sectionLearners.length === 0}
-                      className="px-5 py-2.5 bg-primary hover:bg-primary-dark text-white text-sm font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] disabled:opacity-50"
-                      type="button"
-                    >
+                    <Button onClick={() => window.print()} disabled={sectionLearners.length === 0}>
                       Print {side === "front" ? "Fronts" : "Backs"} ({sectionLearners.length})
-                    </button>
+                    </Button>
                   </div>
 
                   <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/60 rounded-lg px-3 py-2">
@@ -440,7 +419,7 @@ function IDGenerator({ user, goBack }) {
               )}
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* ---- Preview / print area ---- */}

@@ -7,9 +7,6 @@ import {
   GraduationCap,
   IdCard,
   BarChart3,
-  NotebookPen,
-  Pencil,
-  CalendarDays,
   UploadCloud,
   UserCog,
   ClipboardList,
@@ -24,37 +21,40 @@ import {
   X,
 } from 'lucide-react';
 
+// Keyed by page id (not label) so a label rename can't silently drop an icon.
 const icons = {
-  Dashboard: LayoutDashboard,
-  'User Management': UserCog,
-  Branding: Palette,
-  'Branding Settings': Palette,
-  'School Settings': Settings,
+  dashboard: LayoutDashboard,
+  userManagement: UserCog,
+  brandingSettings: Palette,
+  schoolSettings: Settings,
+  sf1: FileText,
+  sf2: FileText,
+  sf4: FileText,
+  classRecord: ClipboardList,
+  consolidatedGrades: Award,
+  reportCard: FileText,
+  sf10Generate: FileText,
+  viewLearners: Users,
+  lardoTracking: AlertTriangle,
+  nutritionStatus: HeartPulse,
+  transfersLog: ArrowLeftRight,
+  certificates: GraduationCap,
+  idGenerator: IdCard,
+  smeaEnrollment: BarChart3,
+  importCenter: UploadCloud,
+  sf1Import: UploadCloud,
+  sf10Import: UploadCloud,
+};
+
+// Group icons for section headers (visual grouping only, not navigable).
+const groupIcons = {
+  Learners: Users,
+  Grading: Award,
   'School Forms': FileText,
-  SF1: FileText,
-  SF2: FileText,
-  'SF4': FileText,
-  'School Form 4': FileText,
-  'Class Record': ClipboardList,
-  'Consolidated Grades': Award,
-  'Report Card (SF9)': FileText,
-  'SF10 Generator': FileText,
-  'View Learners': Users,
-  'LARDO Tracking': AlertTriangle,
-  'Nutrition Status': HeartPulse,
-  Transfers: ArrowLeftRight,
-  'Transfers Log': ArrowLeftRight,
-  Certificates: GraduationCap,
-  'ID Generator': IdCard,
   SMEA: BarChart3,
-  Enrollment: BarChart3,
-  'Anecdotal Records': NotebookPen,
-  Academic: NotebookPen,
-  Grades: Pencil,
-  Attendance: CalendarDays,
-  'Import Center': UploadCloud,
-  'SF1 Bulk Import': UploadCloud,
-  'SF10 Import': UploadCloud,
+  Documents: GraduationCap,
+  Imports: UploadCloud,
+  Administration: UserCog,
 };
 
 export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile = false, onCloseMobile }) {
@@ -70,11 +70,23 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
 
   const nav = [
     { label: 'Dashboard', page: 'dashboard' },
-    // NOTE: Access control for User Management will be restricted to ictCoordinator/principal roles in Phase B.
-    { label: 'User Management', page: 'userManagement' },
-    { label: 'Branding', page: 'brandingSettings' },
-    { label: 'School Settings', page: 'schoolSettings' },
-    { label: 'Import Center', page: 'importCenter' },
+    {
+      label: 'Learners',
+      children: [
+        { label: 'View Learners', page: 'viewLearners' },
+        { label: 'Transfers', page: 'transfersLog' },
+        { label: 'Nutrition Status', page: 'nutritionStatus' },
+      ],
+    },
+    {
+      label: 'Grading',
+      children: [
+        { label: 'Class Record', page: 'classRecord' },
+        { label: 'Consolidated Grades', page: 'consolidatedGrades' },
+        { label: 'Report Card (SF9)', page: 'reportCard' },
+        { label: 'SF10 Generator', page: 'sf10Generate' },
+      ],
+    },
     {
       label: 'School Forms',
       children: [
@@ -83,27 +95,33 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
         { label: 'SF4', page: 'sf4' },
       ],
     },
-    { label: 'Class Record', page: 'classRecord' },
-    { label: 'Consolidated Grades', page: 'consolidatedGrades' },
-    { label: 'Report Card (SF9)', page: 'reportCard' },
-    { label: 'SF10 Generator', page: 'sf10Generate' },
-    { label: 'View Learners', page: 'viewLearners' },
-    { label: 'LARDO Tracking', page: 'lardoTracking' },
-    { label: 'Nutrition Status', page: 'nutritionStatus' },
-    { label: 'Transfers', page: 'transfersLog' },
-    { label: 'Certificates', page: 'certificates' },
-    { label: 'ID Generator', page: 'idGenerator' },
     {
       label: 'SMEA',
+      children: [{ label: 'Enrollment', page: 'smeaEnrollment' }],
+    },
+    { label: 'LARDO Tracking', page: 'lardoTracking' },
+    {
+      label: 'Documents',
       children: [
-        { label: 'Enrollment', page: 'smeaEnrollment' },
+        { label: 'Certificates', page: 'certificates' },
+        { label: 'ID Generator', page: 'idGenerator' },
       ],
     },
     {
       label: 'Imports',
       children: [
+        { label: 'Import Center', page: 'importCenter' },
         { label: 'SF1 Bulk Import', page: 'sf1Import' },
         { label: 'SF10 Import', page: 'sf10Import' },
+      ],
+    },
+    // NOTE: Access control for User Management will be restricted to ictCoordinator/principal roles in Phase B.
+    {
+      label: 'Administration',
+      children: [
+        { label: 'User Management', page: 'userManagement' },
+        { label: 'School Settings', page: 'schoolSettings' },
+        { label: 'Branding', page: 'brandingSettings' },
       ],
     },
   ];
@@ -122,17 +140,6 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     })
     .filter(Boolean);
 
-  const future = [
-    {
-      label: 'SMEA',
-      children: [{ label: 'Anecdotal Records' }],
-    },
-    {
-      label: 'Academic',
-      children: [{ label: 'Grades' }, { label: 'Attendance' }],
-    },
-  ];
-
   function handleNavClick(page) {
     onNavigate(page);
     if (openMobile) {
@@ -140,8 +147,8 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     }
   }
 
-  function NavIcon({ label }) {
-    const Icon = icons[label];
+  function NavIcon({ page }) {
+    const Icon = icons[page];
     return Icon ? <Icon size={18} strokeWidth={2} /> : null;
   }
 
@@ -150,7 +157,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
       <button
         type="button"
         title={collapsed ? label : undefined}
-        className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
+        className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-all duration-150 ${
           active
             ? 'bg-white/15 text-white font-semibold shadow-sm dark:bg-white/10'
             : 'text-white/75 hover:bg-white/10 hover:text-white dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white'
@@ -162,7 +169,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
             active ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
           }`}
         />
-        <NavIcon label={label} />
+        <NavIcon page={page} />
         {!collapsed && <span className="truncate">{label}</span>}
       </button>
     );
@@ -216,7 +223,11 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
             item.children ? (
               <li key={item.label}>
                 {!collapsed && (
-                  <h3 className="px-3 pt-3 pb-1 text-[11px] uppercase tracking-wider text-accent-light/90 font-semibold dark:text-accent-light">
+                  <h3 className="px-3 pt-3 pb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-accent-light/90 font-semibold dark:text-accent-light">
+                    {(() => {
+                      const GroupIcon = groupIcons[item.label];
+                      return GroupIcon ? <GroupIcon size={12} /> : null;
+                    })()}
                     {item.label}
                   </h3>
                 )}
@@ -235,36 +246,6 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
             )
           )}
         </ul>
-
-        <div className="mt-6">
-          {!collapsed && (
-            <h3 className="px-3 pb-1 text-[11px] uppercase tracking-wider text-white/50 font-semibold dark:text-gray-500">Future</h3>
-          )}
-          <ul className="space-y-1">
-            {future.map((sec) => (
-              <li key={sec.label}>
-                {!collapsed && (
-                  <h3 className="px-3 pt-2 pb-1 text-xs text-white/50 dark:text-gray-500">{sec.label}</h3>
-                )}
-                <ul className="space-y-1">
-                  {sec.children.map((c) => (
-                    <li key={c.label}>
-                      <button
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/40 cursor-not-allowed dark:text-gray-500 ${collapsed ? 'justify-center' : ''}`}
-                        disabled
-                        type="button"
-                        title={collapsed ? `${c.label} (Coming Soon)` : undefined}
-                      >
-                        <NavIcon label={c.label} />
-                        {!collapsed && <span className="truncate">{c.label} <span className="text-[10px] opacity-70">(Soon)</span></span>}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </div>
       </nav>
 
       {openMobile && (

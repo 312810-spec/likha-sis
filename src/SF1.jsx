@@ -8,6 +8,11 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
+import { FileText } from "lucide-react";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import Button from "./components/ui/Button";
 
 // Calculates age from a birth date string (YYYY-MM-DD), as of today.
 // Note: official DepEd age is "as of 1st Friday of June" — we're using today's date
@@ -196,26 +201,17 @@ function SF1({ user, goBack }) {
       `}</style>
 
       {/* Header Bar */}
-      <div className="no-print bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        {goBack && (
-          <button
-            onClick={goBack}
-            className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150"
-            type="button"
-          >
-            ← Back to Dashboard
-          </button>
-        )}
-        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-          School Form 1 — Learner&apos;s Information Sheet
-        </h1>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Master list of learners enrolled in the class with DepEd SF1 standard demographic details
-        </p>
+      <div className="no-print">
+        <PageHeader
+          icon={FileText}
+          title="School Form 1 — Learner's Information Sheet"
+          description="Master list of learners enrolled in the class with DepEd SF1 standard demographic details"
+          onBack={goBack}
+        />
       </div>
 
       {/* Filter / Parameters Bar */}
-      <div className="no-print bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <Card className="no-print">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
@@ -317,10 +313,10 @@ function SF1({ user, goBack }) {
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Table Container */}
-      <div className="no-print bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="no-print bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -555,21 +551,12 @@ function SF1({ user, goBack }) {
 
       {/* Action Buttons */}
       <div className="no-print flex items-center gap-3">
-        <button
-          type="button"
-          onClick={addRow}
-          className="px-4 py-2 text-xs font-semibold text-primary dark:text-primary-light bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 border border-primary/20 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform"
-        >
+        <Button variant="secondary" size="compact" onClick={addRow}>
           + Add Learner Row
-        </button>
-        <button
-          type="button"
-          onClick={handleSaveAll}
-          disabled={isSaving}
-          className="px-4 py-2 text-xs font-semibold text-white bg-primary hover:bg-primary-dark rounded-lg shadow-sm disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform"
-        >
+        </Button>
+        <Button size="compact" onClick={handleSaveAll} disabled={isSaving}>
           {isSaving ? "Saving..." : "Save All to Database"}
-        </button>
+        </Button>
         {hasAnyName && (
           <button
             type="button"
@@ -577,7 +564,7 @@ function SF1({ user, goBack }) {
               setShowPrintArea(true);
               setTimeout(() => window.print(), 150);
             }}
-            className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform"
+            className="h-8 px-3 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md shadow-sm transition-colors duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
           >
             🖨 Print Register
           </button>
@@ -586,15 +573,9 @@ function SF1({ user, goBack }) {
 
       {/* Status Message */}
       {statusMessage && (
-        <div
-          className={`no-print animate-fade-in p-3.5 rounded-lg border text-xs font-medium ${
-            statusMessage.startsWith("Successfully")
-              ? "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300"
-              : "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300"
-          }`}
-        >
+        <Alert variant={statusMessage.startsWith("Successfully") ? "success" : "error"} className="no-print">
           {statusMessage}
-        </div>
+        </Alert>
       )}
 
       {/* Printable School Register (SF1) */}

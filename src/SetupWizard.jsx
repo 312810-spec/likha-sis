@@ -21,8 +21,12 @@ import {
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
-  AlertCircle,
 } from "lucide-react";
+import Button from "./components/ui/Button";
+import Alert from "./components/ui/Alert";
+
+const inputClass = "border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors";
+const labelClass = "text-sm font-medium text-gray-700";
 
 /**
  * Resizes an image file to max width/height preserving aspect ratio
@@ -371,7 +375,7 @@ function SetupWizard({ onComplete }) {
 
   return (
     <div className="min-h-screen bg-primary flex items-center justify-center p-4">
-      <div className={`w-full ${containerMaxWidth} bg-white rounded-xl shadow-lg p-6 sm:p-8 transition-all duration-200`}>
+      <div className={`w-full ${containerMaxWidth} bg-white rounded-lg shadow-lg p-6 sm:p-8 transition-all duration-200`}>
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold text-primary">LIKHA-SIS Setup</h2>
           <p className="text-sm text-gray-500 mt-1">Step {step} of 4</p>
@@ -385,60 +389,60 @@ function SetupWizard({ onComplete }) {
             }}
           >
             <div className="grid grid-cols-1 gap-3">
-              <label className="text-sm">School Name</label>
+              <label className={labelClass}>School Name</label>
               <input
-                className="border p-2 rounded"
+                className={inputClass}
                 value={schoolData.schoolName}
                 onChange={(e) => setSchoolData({ ...schoolData, schoolName: e.target.value })}
               />
               {errors.schoolName && <p className="text-red-600 text-sm">{errors.schoolName}</p>}
 
-              <label className="text-sm">School Address</label>
+              <label className={labelClass}>School Address</label>
               <input
-                className="border p-2 rounded"
+                className={inputClass}
                 value={schoolData.schoolAddress}
                 onChange={(e) => setSchoolData({ ...schoolData, schoolAddress: e.target.value })}
               />
 
-              <label className="text-sm">Region</label>
+              <label className={labelClass}>Region</label>
               <input
-                className="border p-2 rounded"
+                className={inputClass}
                 value={schoolData.region}
                 onChange={(e) => setSchoolData({ ...schoolData, region: e.target.value })}
               />
 
-              <label className="text-sm">Division Office</label>
+              <label className={labelClass}>Division Office</label>
               <input
-                className="border p-2 rounded"
+                className={inputClass}
                 value={schoolData.divisionOffice}
                 onChange={(e) => setSchoolData({ ...schoolData, divisionOffice: e.target.value })}
               />
 
-              <label className="text-sm">District</label>
+              <label className={labelClass}>District</label>
               <input
-                className="border p-2 rounded"
+                className={inputClass}
                 value={schoolData.district}
                 onChange={(e) => setSchoolData({ ...schoolData, district: e.target.value })}
               />
 
-              <label className="text-sm">Municipality / City / Province</label>
+              <label className={labelClass}>Municipality / City / Province</label>
               <input
-                className="border p-2 rounded"
+                className={inputClass}
                 value={schoolData.municipalityCityProvince}
                 onChange={(e) => setSchoolData({ ...schoolData, municipalityCityProvince: e.target.value })}
               />
 
-              <label className="text-sm">Principal Name</label>
+              <label className={labelClass}>Principal Name</label>
               <input
-                className="border p-2 rounded"
+                className={inputClass}
                 value={schoolData.principalName}
                 onChange={(e) => setSchoolData({ ...schoolData, principalName: e.target.value })}
               />
               {errors.principalName && <p className="text-red-600 text-sm">{errors.principalName}</p>}
 
-              <label className="text-sm">Principal Position</label>
+              <label className={labelClass}>Principal Position</label>
               <input
-                className="border p-2 rounded"
+                className={inputClass}
                 value={schoolData.principalPosition}
                 onChange={(e) => setSchoolData({ ...schoolData, principalPosition: e.target.value })}
               />
@@ -490,7 +494,7 @@ function SetupWizard({ onComplete }) {
                     {shsSubjects.map((subj, i) => (
                       <input
                         key={subj.id}
-                        className="border p-2 rounded text-sm"
+                        className={`${inputClass} text-sm`}
                         value={subj.name}
                         onChange={(e) => updateCoreSubjectName(i, e.target.value)}
                       />
@@ -518,10 +522,10 @@ function SetupWizard({ onComplete }) {
 
                   <div className="space-y-3">
                     {shsClusters.map((cluster, ci) => (
-                      <div key={cluster.id} className="border rounded-lg p-3 bg-gray-50/70">
+                      <div key={cluster.id} className="border border-gray-300 rounded-lg p-3 bg-gray-50/70">
                         <div className="flex items-center gap-2">
                           <input
-                            className="border p-1.5 rounded text-sm flex-1"
+                            className={`${inputClass} text-sm flex-1`}
                             value={cluster.name}
                             onChange={(e) => updateClusterName(ci, e.target.value)}
                           />
@@ -538,13 +542,13 @@ function SetupWizard({ onComplete }) {
                           {cluster.subjects.map((subj, si) => (
                             <div key={subj.id} className="flex items-center gap-1.5">
                               <input
-                                className="border p-1 rounded text-xs flex-1"
+                                className="border border-gray-300 rounded-md p-1 text-xs flex-1"
                                 placeholder="Subject name"
                                 value={subj.name}
                                 onChange={(e) => updateClusterSubject(ci, si, { name: e.target.value })}
                               />
                               <select
-                                className="border p-1 rounded text-xs"
+                                className="border border-gray-300 rounded-md p-1 text-xs"
                                 value={subj.weightProfile}
                                 onChange={(e) => updateClusterSubject(ci, si, { weightProfile: e.target.value })}
                               >
@@ -577,12 +581,9 @@ function SetupWizard({ onComplete }) {
 
             <div className="mt-6 flex justify-between">
               <div />
-              <button
-                type="submit"
-                className="bg-primary text-white px-4 py-2 rounded"
-              >
+              <Button type="submit" variant="primary">
                 Continue
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -593,39 +594,31 @@ function SetupWizard({ onComplete }) {
               This account will have full ICT Coordinator access to set up the rest of your school's system.
             </p>
 
-            <label className="text-sm">Full Name</label>
-            <input className="border p-2 rounded w-full mb-2" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <label className={labelClass}>Full Name</label>
+            <input className={`${inputClass} w-full mb-2`} value={fullName} onChange={(e) => setFullName(e.target.value)} />
             {errors.fullName && <p className="text-red-600 text-sm">{errors.fullName}</p>}
 
-            <label className="text-sm">Email</label>
-            <input className="border p-2 rounded w-full mb-2" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <label className={labelClass}>Email</label>
+            <input className={`${inputClass} w-full mb-2`} value={email} onChange={(e) => setEmail(e.target.value)} />
             {errors.email && <p className="text-red-600 text-sm">{errors.email}</p>}
 
-            <label className="text-sm">Password</label>
-            <input type="password" className="border p-2 rounded w-full mb-2" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <label className={labelClass}>Password</label>
+            <input type="password" className={`${inputClass} w-full mb-2`} value={password} onChange={(e) => setPassword(e.target.value)} />
             {errors.password && <p className="text-red-600 text-sm">{errors.password}</p>}
 
-            <label className="text-sm">Confirm Password</label>
-            <input type="password" className="border p-2 rounded w-full mb-2" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+            <label className={labelClass}>Confirm Password</label>
+            <input type="password" className={`${inputClass} w-full mb-2`} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
             {errors.confirmPassword && <p className="text-red-600 text-sm">{errors.confirmPassword}</p>}
 
             {submitError && <p className="text-red-600 text-sm mt-2">{submitError}</p>}
 
             <div className="mt-6 flex justify-between">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="px-4 py-2 rounded border"
-              >
+              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
                 Back
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-primary text-white px-4 py-2 rounded"
-              >
+              </Button>
+              <Button type="submit" variant="primary" disabled={isSubmitting}>
                 {isSubmitting ? "Creating account..." : "Create account & Continue"}
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -637,15 +630,14 @@ function SetupWizard({ onComplete }) {
             </p>
 
             {brandingError && (
-              <div className="p-3.5 rounded-lg bg-red-50 border border-red-200 text-red-800 flex items-start gap-2.5 text-xs font-medium">
-                <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                <span>{brandingError}</span>
-              </div>
+              <Alert variant="error" className="text-xs">
+                {brandingError}
+              </Alert>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Logo Upload */}
-              <div className="bg-gray-50/70 p-5 rounded-xl border border-gray-200 space-y-3">
+              <div className="bg-gray-50/70 p-5 rounded-lg border border-gray-200 space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
                     1
@@ -678,14 +670,10 @@ function SetupWizard({ onComplete }) {
                     id="setup-logo-input"
                   />
 
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition"
-                  >
+                  <Button type="button" variant="secondary" size="compact" onClick={() => fileInputRef.current?.click()}>
                     <Upload size={14} />
                     {uploadedLogoUrl ? "Change Logo" : "Upload Logo"}
-                  </button>
+                  </Button>
                   {uploadedLogoUrl && (
                     <span className="text-[11px] text-green-600 font-medium flex items-center gap-1">
                       <CheckCircle2 size={12} /> Ready for theme generation
@@ -695,7 +683,7 @@ function SetupWizard({ onComplete }) {
               </div>
 
               {/* Theme Generation */}
-              <div className="bg-gray-50/70 p-5 rounded-xl border border-gray-200 space-y-3">
+              <div className="bg-gray-50/70 p-5 rounded-lg border border-gray-200 space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
                     2
@@ -706,15 +694,17 @@ function SetupWizard({ onComplete }) {
                   Extracts dominant colors from your logo with readable contrast.
                 </p>
 
-                <button
+                <Button
                   type="button"
+                  variant="primary"
+                  size="compact"
+                  className="w-full"
                   disabled={isExtracting || !uploadedLogoUrl}
                   onClick={handleGenerateTheme}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 >
                   <Sparkles size={14} />
                   {isExtracting ? "Extracting Colors..." : "Generate Theme from Logo"}
-                </button>
+                </Button>
 
                 {extractedTheme ? (
                   <div className="space-y-2 pt-1">
@@ -798,21 +788,12 @@ function SetupWizard({ onComplete }) {
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={handleSkipBranding}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
+              <Button type="button" variant="secondary" onClick={handleSkipBranding}>
                 Skip for Now
-              </button>
-              <button
-                type="button"
-                disabled={isSavingBranding}
-                onClick={handleSaveBranding}
-                className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition shadow-sm disabled:opacity-50"
-              >
+              </Button>
+              <Button type="button" variant="primary" disabled={isSavingBranding} onClick={handleSaveBranding}>
                 {isSavingBranding ? "Saving..." : "Save and Continue"}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -832,7 +813,7 @@ function SetupWizard({ onComplete }) {
                       key={card.key}
                       type="button"
                       onClick={() => setActiveImporter(card.key)}
-                      className="text-left bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-primary hover:shadow-md transition-all group"
+                      className="text-left bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:border-primary hover:shadow-md transition-all group"
                     >
                       <div className="flex items-start gap-3.5">
                         <div
@@ -871,7 +852,7 @@ function SetupWizard({ onComplete }) {
                   </span>
                 </div>
 
-                <div className="border rounded-xl p-4 bg-gray-50/50">
+                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
                   {activeImporter === "sf1" && <SF1Importer user={auth.currentUser} />}
                   {activeImporter === "sf10" && <SF10Importer user={auth.currentUser} />}
                 </div>
@@ -879,20 +860,12 @@ function SetupWizard({ onComplete }) {
             )}
 
             <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={handleFinishSetup}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
+              <Button type="button" variant="secondary" onClick={handleFinishSetup}>
                 Skip for Now
-              </button>
-              <button
-                type="button"
-                onClick={handleFinishSetup}
-                className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition shadow-sm"
-              >
+              </Button>
+              <Button type="button" variant="primary" onClick={handleFinishSetup}>
                 Finish Setup
-              </button>
+              </Button>
             </div>
           </div>
         )}

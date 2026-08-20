@@ -22,13 +22,13 @@ import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
 import {
   Save,
   RefreshCw,
-  ArrowLeft,
   HeartPulse,
-  AlertCircle,
-  CheckCircle2,
   Users,
   Printer,
 } from "lucide-react";
+import PageHeader from "./components/ui/PageHeader";
+import Alert from "./components/ui/Alert";
+import Button from "./components/ui/Button";
 
 // Normalizes a learner's sex value ("M"/"F"/"Male"/"Female") to "M" | "F" | "" so
 // the SF8 printout can group rows by Male / Female reliably regardless of how the
@@ -427,58 +427,39 @@ export default function NutritionStatus({ user, goBack }) {
         .sf8-hdr-value { text-align: left; }
       `}</style>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-3">
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform"
-              title="Go Back"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          )}
-          <div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <HeartPulse className="w-6 h-6 text-rose-500" />
-              Nutrition Status Tracking
-            </h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              DepEd / WHO 2007 Growth Reference (BMI-for-Age) baseline &amp; annual monitoring
-            </p>
-          </div>
-        </div>
-
-        {isLoaded && gridData.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm"
-            >
-              {isSaving ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              {isSaving ? "Saving..." : "Save Nutrition Records"}
-            </button>
-            <button
-              type="button"
-              onClick={handlePrintReport}
-              className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm"
-            >
-              <Printer className="w-4 h-4" />
-              Print Report
-            </button>
-          </div>
-        )}
-      </div>
+      <PageHeader
+        icon={HeartPulse}
+        title="Nutrition Status Tracking"
+        description="DepEd / WHO 2007 Growth Reference (BMI-for-Age) baseline & annual monitoring"
+        onBack={goBack}
+        actions={
+          isLoaded && gridData.length > 0 ? (
+            <>
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {isSaving ? "Saving..." : "Save Nutrition Records"}
+              </Button>
+              <button
+                type="button"
+                onClick={handlePrintReport}
+                className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-md transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-1"
+              >
+                <Printer className="w-4 h-4" />
+                Print Report
+              </button>
+            </>
+          ) : null
+        }
+      />
 
       {/* Filter Bar */}
       <form
         onSubmit={handleLoad}
-        className="bg-white dark:bg-gray-900 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end"
+        className="bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end"
       >
         <div>
           <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
@@ -543,46 +524,33 @@ export default function NutritionStatus({ user, goBack }) {
         </div>
 
         <div>
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg disabled:opacity-50 transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm text-sm"
-          >
+          <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <Users className="w-4 h-4" />
             )}
             {isLoading ? "Loading..." : "Load Class"}
-          </button>
+          </Button>
         </div>
       </form>
 
       {/* Notifications */}
-      {errorMessage && (
-        <div className="animate-fade-in bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
-      )}
+      {errorMessage && <Alert variant="error" className="animate-fade-in">{errorMessage}</Alert>}
 
-      {statusMessage && (
-        <div className="animate-fade-in bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-          <span>{statusMessage}</span>
-        </div>
-      )}
+      {statusMessage && <Alert variant="success" className="animate-fade-in">{statusMessage}</Alert>}
 
       {/* Auto-flag confirmation banners */}
       {pendingFlagCandidates.map((c) => (
-        <div key={c.docId} className="animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4">
-          <AlertCircle className="w-4 h-4 shrink-0 text-yellow-700" />
+        <Alert key={c.docId} variant="warning" className="animate-fade-in items-center">
+          <div className="flex flex-wrap items-center gap-4">
           <div className="flex-1">
             <div className="font-medium">This learner's nutrition status suggests a LARDO risk flag.</div>
             <div className="text-xs mt-0.5">Flag {c.learner.lastName}, {c.learner.firstName} for monitoring?</div>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              size="compact"
               onClick={async () => {
                 try {
                   const nowIso = new Date().toISOString();
@@ -622,23 +590,24 @@ export default function NutritionStatus({ user, goBack }) {
                   setErrorMessage("Failed to create LARDO record. Please try again.");
                 }
               }}
-              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
             >
               Confirm
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="compact"
               onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
             >
               Dismiss
-            </button>
+            </Button>
           </div>
-        </div>
+          </div>
+        </Alert>
       ))}
 
       {/* Loading Skeleton */}
       {isLoading && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 space-y-3">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5 space-y-3">
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
           <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
@@ -647,7 +616,7 @@ export default function NutritionStatus({ user, goBack }) {
 
       {/* Grid */}
       {isLoaded && !isLoading && (
-        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
@@ -757,7 +726,7 @@ export default function NutritionStatus({ user, goBack }) {
 
       {/* Summary Panel */}
       {isLoaded && !isLoading && gridData.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 p-5 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 space-y-4">
           <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider flex items-center gap-2">
             <Users className="w-4 h-4 text-gray-600 dark:text-gray-400" />
             Nutritional Status Summary

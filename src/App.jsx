@@ -88,7 +88,7 @@ function App() {
   }, []);
 
   if (isChecking || usersCheckLoading || (user && profileLoading)) {
-    return <p style={{ textAlign: "center", marginTop: "80px" }}>Loading...</p>;
+    return <p className="text-center mt-20 text-sm text-gray-500 dark:text-gray-400">Loading...</p>;
   }
 
   if (!hasAnyUser) {
@@ -110,21 +110,14 @@ function App() {
   if (!hasAccess) {
     pageTitle = "Access Restricted";
     pageContent = (
-      <div style={{ textAlign: "center", marginTop: "80px", padding: "0 16px" }}>
-        <p style={{ fontSize: "16px", color: "#374151", marginBottom: "16px" }}>
+      <div className="max-w-md mx-auto mt-20 px-4 text-center animate-fade-in">
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
           You don't have access to this page. Contact your ICT Coordinator if you believe this is a mistake.
         </p>
         <button
+          type="button"
           onClick={() => setCurrentPage("dashboard")}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#1e3a8a",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontWeight: "500",
-          }}
+          className="h-9 px-4 rounded-md bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors active:scale-[0.98]"
         >
           Go to Dashboard
         </button>
@@ -198,7 +191,7 @@ function App() {
         break;
       case "smeaEnrollment":
         pageTitle = "SMEA — Enrollment";
-        pageContent = <SMEAEnrollment />;
+        pageContent = <SMEAEnrollment goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "importCenter":
         pageTitle = "Import Center";

@@ -17,7 +17,11 @@ import { getSubjectWeights } from "./utils/subjectWeights.js";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights.js";
 import { buildLearnerAcademicHistory } from "./utils/sf10Records.js";
 import { getSubjectRows, PRE_MATATAG_MAPEH_ROWS } from "./utils/subjectRows.js";
-import { ArrowLeft, Printer } from "lucide-react";
+import { FileText, Printer } from "lucide-react";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import Button from "./components/ui/Button";
 
 function fullName(learner) {
   if (!learner) return "";
@@ -252,13 +256,8 @@ export default function SF10Generator({ goBack }) {
         }
       `}</style>
 
-      <div className="no-print flex items-center gap-3">
-        {goBack && (
-          <button type="button" onClick={goBack} className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-            <ArrowLeft size={18} />
-          </button>
-        )}
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">SF10 Generator</h1>
+      <div className="no-print">
+        <PageHeader icon={FileText} title="SF10 Generator" onBack={goBack} />
       </div>
 
       <div className="no-print inline-flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
@@ -283,12 +282,12 @@ export default function SF10Generator({ goBack }) {
       </div>
 
       {errorMessage && (
-        <div className="no-print bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-xl p-4 text-sm">
-          {errorMessage}
+        <div className="no-print">
+          <Alert variant="error">{errorMessage}</Alert>
         </div>
       )}
 
-      <div className="no-print bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+      <Card className="no-print space-y-3">
         {mode === "single" && (
           <>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -298,7 +297,7 @@ export default function SF10Generator({ goBack }) {
               value={selectedLearnerId}
               onChange={(e) => setSelectedLearnerId(e.target.value)}
               disabled={loading}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm bg-gray-50 dark:bg-gray-800"
             >
               <option value="">-- Select a learner --</option>
               {sortedLearners.map((l) => (
@@ -319,7 +318,7 @@ export default function SF10Generator({ goBack }) {
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
               disabled={loading}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm bg-gray-50 dark:bg-gray-800"
             >
               <option value="">-- Select grade & section --</option>
               {sectionOptions.map((s) => (
@@ -330,16 +329,12 @@ export default function SF10Generator({ goBack }) {
         )}
 
         {((mode === "single" && selectedLearner) || (mode === "section" && sectionLearners.length > 0)) && (
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light"
-          >
+          <Button onClick={() => window.print()}>
             <Printer size={16} />
             {mode === "single" ? "Print SF10" : `Print SF10s (${sectionLearners.length})`}
-          </button>
+          </Button>
         )}
-      </div>
+      </Card>
 
       {mode === "single" && selectedLearner && (
         <div className="sf10-print-area">

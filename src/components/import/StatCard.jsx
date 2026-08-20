@@ -12,7 +12,7 @@ export default function StatCard({ label, value, tone = "default" }) {
     primary: "text-primary dark:text-primary-light",
   };
   return (
-    <div className="flex-1 min-w-[140px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 shadow-sm">
+    <div className="flex-1 min-w-[140px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-sm">
       <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
       <div className={`mt-1 text-xl font-semibold ${tones[tone] || tones.default}`}>{value}</div>
     </div>

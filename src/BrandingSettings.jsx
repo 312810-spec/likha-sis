@@ -11,11 +11,12 @@ import {
   Sparkles,
   Save,
   RotateCcw,
-  CheckCircle2,
-  AlertCircle,
   Image as ImageIcon,
-  ArrowLeft,
 } from "lucide-react";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import Button from "./components/ui/Button";
 
 export default function BrandingSettings({ goBack }) {
   const [currentLogo, setCurrentLogo] = useState(null);
@@ -169,50 +170,22 @@ export default function BrandingSettings({ goBack }) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-200 pb-4 dark:border-gray-700">
-        <div>
-          <div className="flex items-center gap-2">
-            {goBack && (
-              <button
-                type="button"
-                onClick={goBack}
-                className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-                aria-label="Back to dashboard"
-              >
-                <ArrowLeft size={18} />
-              </button>
-            )}
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Palette className="text-primary" size={24} />
-              School Branding & Dynamic Theme
-            </h1>
-          </div>
-          <p className="text-sm text-gray-500 mt-1 dark:text-gray-400">
-            Upload your school logo to extract brand colors and automatically customize LIKHA-SIS theme colors.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Palette}
+        title="School Branding & Dynamic Theme"
+        description="Upload your school logo to extract brand colors and automatically customize LIKHA-SIS theme colors."
+        onBack={goBack}
+      />
 
       {/* Alerts */}
-      {successMessage && (
-        <div className="p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 flex items-start gap-3 dark:bg-green-950/30 dark:border-green-800 dark:text-green-300">
-          <CheckCircle2 size={20} className="flex-shrink-0 mt-0.5" />
-          <p className="text-sm font-medium">{successMessage}</p>
-        </div>
-      )}
+      {successMessage && <Alert variant="success">{successMessage}</Alert>}
 
-      {errorMessage && (
-        <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 flex items-start gap-3 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300">
-          <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
-          <p className="text-sm font-medium">{errorMessage}</p>
-        </div>
-      )}
+      {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Step 1: Upload Logo */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4 dark:bg-gray-900 dark:border-gray-700">
+        <Card className="space-y-4">
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
               1
@@ -249,24 +222,20 @@ export default function BrandingSettings({ goBack }) {
               id="school-logo-input"
             />
 
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-            >
+            <Button variant="secondary" onClick={() => fileInputRef.current?.click()}>
               <Upload size={16} />
               {uploadedLogoUrl ? "Change Logo" : "Upload Logo"}
-            </button>
+            </Button>
             {uploadedLogoUrl && (
               <span className="text-xs text-green-600 font-medium dark:text-green-400">
                 ✓ Ready for theme generation
               </span>
             )}
           </div>
-        </div>
+        </Card>
 
         {/* Step 2: Generate Theme */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4 dark:bg-gray-900 dark:border-gray-700">
+        <Card className="space-y-4">
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
               2
@@ -279,15 +248,15 @@ export default function BrandingSettings({ goBack }) {
             Extracts dominant colors from the uploaded logo, ensures readable contrast, and calculates light/dark variants.
           </p>
 
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            className="w-full"
             disabled={isExtracting || (!uploadedLogoUrl && !currentLogo)}
             onClick={handleGenerateTheme}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             <Sparkles size={16} />
             {isExtracting ? "Extracting Colors..." : "Generate Theme from Logo"}
-          </button>
+          </Button>
 
           {/* Color Swatches */}
           {displayTheme ? (
@@ -368,12 +337,12 @@ export default function BrandingSettings({ goBack }) {
               No theme generated yet. Click "Generate Theme from Logo" to preview.
             </div>
           )}
-        </div>
+        </Card>
       </div>
 
       {/* Live Component Preview */}
       {displayTheme && (
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4 dark:bg-gray-900 dark:border-gray-700">
+        <Card className="space-y-4">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
             Live Component Preview
           </h2>
@@ -381,7 +350,7 @@ export default function BrandingSettings({ goBack }) {
             Preview how buttons, badges, and cards look with the extracted theme before saving.
           </p>
 
-          <div className="p-5 rounded-xl border border-gray-200 bg-gray-50 dark:bg-gray-800/60 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+          <div className="p-5 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-800/60 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
             {/* Sample Card */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden dark:bg-gray-900 dark:border-gray-700">
               <div
@@ -464,31 +433,26 @@ export default function BrandingSettings({ goBack }) {
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Action Footer */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <button
-          type="button"
-          disabled={isResetting || isSaving}
-          onClick={handleResetDefaults}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 transition disabled:opacity-50"
-        >
+        <Button variant="secondary" disabled={isResetting || isSaving} onClick={handleResetDefaults} className="w-full sm:w-auto">
           <RotateCcw size={16} />
           {isResetting ? "Resetting..." : "Reset to Default Colors"}
-        </button>
+        </Button>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button
-            type="button"
+          <Button
+            variant="primary"
             disabled={isSaving || (!uploadedLogoUrl && !extractedTheme)}
             onClick={handleSave}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-light transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto"
           >
             <Save size={16} />
             {isSaving ? "Saving..." : "Save Branding Settings"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

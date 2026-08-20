@@ -19,11 +19,15 @@ import {
   X,
   Search,
   Filter,
-  ArrowLeft,
   ArrowLeftRight,
   AlertTriangle,
-  CheckCircle2,
 } from "lucide-react";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import EmptyState from "./components/ui/EmptyState";
+import Badge from "./components/ui/Badge";
+import Button from "./components/ui/Button";
 
 export default function TransfersLog({ user, goBack }) {
   const { config } = useSchoolConfig();
@@ -260,50 +264,23 @@ export default function TransfersLog({ user, goBack }) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-        <div>
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="inline-flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium mb-2 transition-colors duration-150 active:scale-[0.98] transition-transform"
-              type="button"
-            >
-              <ArrowLeft size={14} /> Back to Dashboard
-            </button>
-          )}
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-leaf/10 dark:bg-leaf/20 rounded-lg text-leaf-dark dark:text-leaf-light border border-leaf/20">
-              <ArrowLeftRight size={22} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Transfers Tracking</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Record and manage learner transfers in and out of the school
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <button
-          onClick={handleOpenForm}
-          className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2.5 rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] transition-transform text-sm"
-          type="button"
-        >
-          <Plus size={16} /> Record a Transfer
-        </button>
-      </div>
+      <PageHeader
+        icon={ArrowLeftRight}
+        title="Transfers Tracking"
+        description="Record and manage learner transfers in and out of the school"
+        onBack={goBack}
+        actions={
+          <Button onClick={handleOpenForm}>
+            <Plus size={16} /> Record a Transfer
+          </Button>
+        }
+      />
 
       {/* Global Status Message */}
-      {statusMessage && (
-        <div className="animate-fade-in p-4 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 text-sm rounded-xl border border-emerald-200 dark:border-emerald-800 flex items-center gap-2">
-          <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-          <span>{statusMessage}</span>
-        </div>
-      )}
+      {statusMessage && <Alert variant="success">{statusMessage}</Alert>}
 
       {/* Filter Bar */}
-      <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+      <Card>
         <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
           <Filter size={14} /> Filter Records
         </div>
@@ -313,7 +290,7 @@ export default function TransfersLog({ user, goBack }) {
             <select
               value={gradeLevelFilter}
               onChange={(e) => setGradeLevelFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              className="w-full text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             >
               {GRADE_OPTIONS.map((g) => (
                 <option key={g} value={g}>
@@ -330,7 +307,7 @@ export default function TransfersLog({ user, goBack }) {
             <select
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              className="w-full text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             >
               <option value="">Select a section</option>
               {availableSections.map((sec) => (
@@ -351,14 +328,14 @@ export default function TransfersLog({ user, goBack }) {
               placeholder="e.g. 2026-2027"
               value={schoolYearFilter}
               onChange={(e) => setSchoolYearFilter(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+              className="w-full text-sm rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
             />
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Main List Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <Card padded={false} className="overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
           <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">
             Transfers ({filteredTransfers.length})
@@ -372,9 +349,9 @@ export default function TransfersLog({ user, goBack }) {
         </div>
 
         {transfersError && (
-          <div className="animate-fade-in p-4 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 text-sm border-b border-red-100 dark:border-red-800">
+          <Alert variant="error" className="m-4">
             {transfersError}
-          </div>
+          </Alert>
         )}
 
         {loadingTransfers ? (
@@ -384,13 +361,11 @@ export default function TransfersLog({ user, goBack }) {
             <div className="h-12 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
           </div>
         ) : filteredTransfers.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400 space-y-2">
-            <AlertTriangle className="mx-auto text-gray-300 dark:text-gray-600" size={40} />
-            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">No transfer records found.</div>
-            <p className="text-xs text-gray-400 dark:text-gray-500">
-              No transfers match the selected filters. Click &quot;+ Record a Transfer&quot; to add one.
-            </p>
-          </div>
+          <EmptyState
+            icon={AlertTriangle}
+            title="No transfer records found."
+            description={`No transfers match the selected filters. Click "+ Record a Transfer" to add one.`}
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm border-collapse">
@@ -420,13 +395,9 @@ export default function TransfersLog({ user, goBack }) {
                       </td>
                       <td className="px-4 py-3.5">
                         {isIn ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light border border-leaf/20">
-                            Transferred In
-                          </span>
+                          <Badge tone="success">Transferred In</Badge>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-500/10 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300 border border-gray-300 dark:border-gray-600">
-                            Transferred Out
-                          </span>
+                          <Badge tone="neutral">Transferred Out</Badge>
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-gray-700 dark:text-gray-300">{t.otherSchool || "—"}</td>
@@ -443,12 +414,12 @@ export default function TransfersLog({ user, goBack }) {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Modal: Record a Transfer */}
       {isFormOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-xl w-full p-6 space-y-5 my-8 border border-gray-200 dark:border-gray-700 animate-slide-up">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-xl w-full p-6 space-y-5 my-8 border border-gray-200 dark:border-gray-700 animate-slide-up">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
               <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <ArrowLeftRight className="text-leaf-dark dark:text-leaf-light" size={20} /> Record a Transfer
@@ -456,17 +427,13 @@ export default function TransfersLog({ user, goBack }) {
               <button
                 type="button"
                 onClick={() => setIsFormOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg transition-colors"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-md transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
-            {formError && (
-              <div className="animate-fade-in p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-300 text-xs rounded-lg border border-red-100 dark:border-red-800 font-medium">
-                {formError}
-              </div>
-            )}
+            {formError && <Alert variant="error">{formError}</Alert>}
 
             <form onSubmit={handleSaveTransfer} className="space-y-4">
               {/* Transfer Type */}
@@ -574,20 +541,12 @@ export default function TransfersLog({ user, goBack }) {
 
               {/* Modal Actions */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setIsFormOpen(false)}
-                  className="px-4 py-2 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform"
-                >
+                <Button type="button" variant="ghost" onClick={() => setIsFormOpen(false)}>
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="px-4 py-2 text-xs font-medium bg-primary hover:bg-primary-dark disabled:opacity-50 text-white rounded-lg transition-colors duration-150 active:scale-[0.98] transition-transform shadow-sm"
-                >
+                </Button>
+                <Button type="submit" disabled={isSaving}>
                   {isSaving ? "Saving..." : "Save Transfer"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

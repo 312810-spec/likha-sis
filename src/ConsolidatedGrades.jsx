@@ -10,9 +10,14 @@ import useAvailableSections from "./hooks/useAvailableSections";
 import { getSubjectWeights } from "./utils/subjectWeights";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { computeLearnerTermGrade } from "./utils/gradeComputations";
-import { ArrowLeft, Award, RefreshCw, Info } from "lucide-react";
+import { Award, RefreshCw, Info } from "lucide-react";
 
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
+import PageHeader from "./components/ui/PageHeader";
+import Card from "./components/ui/Card";
+import Alert from "./components/ui/Alert";
+import Button from "./components/ui/Button";
+import Badge from "./components/ui/Badge";
 
 export default function ConsolidatedGrades({ goBack, user }) {
   const { config } = useSchoolConfig();
@@ -246,109 +251,84 @@ export default function ConsolidatedGrades({ goBack, user }) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-slide-up">
-      {/* Top Banner / Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {goBack && (
-            <button
-              onClick={goBack}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary-light rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-150 active:scale-[0.98]"
-              title="Back to Dashboard"
-              type="button"
-            >
-              <ArrowLeft size={20} />
-            </button>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Award className="text-primary" size={26} />
-              Consolidated Grades
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Consolidated Final Grades and General Average per DO 15, s.2026.
-            </p>
-          </div>
-        </div>
-
-        {isLoaded && (
-          <button
-            onClick={() => setIsLoaded(false)}
-            className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 active:scale-[0.98] flex items-center gap-2"
-            type="button"
-          >
-            <RefreshCw size={16} />
-            Change Setup
-          </button>
-        )}
-      </div>
+      <PageHeader
+        icon={Award}
+        title="Consolidated Grades"
+        description="Consolidated Final Grades and General Average per DO 15, s.2026."
+        onBack={goBack}
+        actions={
+          isLoaded && (
+            <Button variant="secondary" onClick={() => setIsLoaded(false)}>
+              <RefreshCw size={16} />
+              Change Setup
+            </Button>
+          )
+        }
+      />
 
       {/* Error Banner */}
-      {errorMessage && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-medium animate-fade-in">
-          {errorMessage}
-        </div>
-      )}
+      {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
 
       {/* Auto-flag confirmation banners */}
       {pendingFlagCandidates.map((c) => (
-        <div key={c.docId} className="animate-fade-in bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center gap-4">
-          <Info className="w-4 h-4 shrink-0 text-yellow-700" />
-          <div className="flex-1">
-            <div className="font-medium">This learner's grades suggest a LARDO risk flag.</div>
-            <div className="text-xs mt-0.5">Flag {c.learner.name} for monitoring?</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={async () => {
-                try {
-                  const nowIso = new Date().toISOString();
-                  const newRecordData = {
-                    learnerId: c.learnerId,
-                    learnerLRN: "",
-                    learnerName: c.learner.name,
-                    gradeLevel: gradeLevel,
-                    section: section,
-                    schoolYear: c.schoolYear,
-                    riskFactors: c.trigger.riskFactors,
-                    status: "monitoring",
-                    interventions: [
-                      {
-                        date: nowIso,
-                        note: c.trigger.suggestedNote,
-                      },
-                    ],
-                    flaggedDate: nowIso,
-                    flaggedByEmail: user?.email || "",
-                    updatedAt: serverTimestamp(),
-                  };
+        <Alert key={c.docId} variant="warning" className="animate-fade-in">
+          <div className="flex flex-1 flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1">
+              <div className="font-medium">This learner's grades suggest a LARDO risk flag.</div>
+              <div className="text-xs mt-0.5">Flag {c.learner.name} for monitoring?</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="compact"
+                onClick={async () => {
+                  try {
+                    const nowIso = new Date().toISOString();
+                    const newRecordData = {
+                      learnerId: c.learnerId,
+                      learnerLRN: "",
+                      learnerName: c.learner.name,
+                      gradeLevel: gradeLevel,
+                      section: section,
+                      schoolYear: c.schoolYear,
+                      riskFactors: c.trigger.riskFactors,
+                      status: "monitoring",
+                      interventions: [
+                        {
+                          date: nowIso,
+                          note: c.trigger.suggestedNote,
+                        },
+                      ],
+                      flaggedDate: nowIso,
+                      flaggedByEmail: user?.email || "",
+                      updatedAt: serverTimestamp(),
+                    };
 
-                  await setDoc(doc(db, "lardoRecords", c.docId), newRecordData, { merge: true });
-                  setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId));
-                } catch (err) {
-                  console.error("Failed to create LARDO record:", err);
-                  setErrorMessage("Failed to create LARDO record. Please try again.");
-                }
-              }}
-              className="bg-primary hover:bg-primary-dark text-white px-3 py-1.5 rounded-lg text-sm font-medium"
-            >
-              Confirm
-            </button>
-            <button
-              onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1.5 rounded-lg text-sm"
-            >
-              Dismiss
-            </button>
+                    await setDoc(doc(db, "lardoRecords", c.docId), newRecordData, { merge: true });
+                    setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId));
+                  } catch (err) {
+                    console.error("Failed to create LARDO record:", err);
+                    setErrorMessage("Failed to create LARDO record. Please try again.");
+                  }
+                }}
+              >
+                Confirm
+              </Button>
+              <Button
+                variant="secondary"
+                size="compact"
+                onClick={() => setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId))}
+              >
+                Dismiss
+              </Button>
+            </div>
           </div>
-        </div>
+        </Alert>
       ))}
 
       {/* Setup / Filter Card */}
       {!isLoaded ? (
-        <form
-          onSubmit={handleLoad}
-          className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-xl space-y-4"
-        >
+        <Card className="max-w-xl">
+          <form onSubmit={handleLoad} className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Select Section Setup</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -359,7 +339,7 @@ export default function ConsolidatedGrades({ goBack, user }) {
               <select
                 value={gradeLevel}
                 onChange={(e) => setGradeLevel(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
               >
                 {GRADE_OPTIONS.map((g) => (
                   <option key={g} value={g}>
@@ -376,7 +356,7 @@ export default function ConsolidatedGrades({ goBack, user }) {
               <select
                 value={section}
                 onChange={(e) => setSection(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
               >
                 <option value="">Select a section</option>
                 {availableSections.map((sec) => (
@@ -400,15 +380,11 @@ export default function ConsolidatedGrades({ goBack, user }) {
               value={schoolYear}
               onChange={(e) => setSchoolYear(e.target.value)}
               placeholder="2026-2027"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2.5 px-4 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow-sm transition-colors duration-150 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
-          >
+          <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading ? (
               <>
                 <RefreshCw className="animate-spin" size={16} />
@@ -417,19 +393,20 @@ export default function ConsolidatedGrades({ goBack, user }) {
             ) : (
               "Load Consolidated Grades"
             )}
-          </button>
+          </Button>
 
           {isLoading && (
             <div className="space-y-3 pt-2">
-              <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
-              <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />
+              <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse" />
+              <div className="h-10 bg-gray-100 dark:bg-gray-800 rounded-md animate-pulse" />
             </div>
           )}
-        </form>
+          </form>
+        </Card>
       ) : (
         <div className="space-y-4">
           {/* Muted Helper Legend */}
-          <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-600 dark:text-gray-300">
+          <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-600 dark:text-gray-300">
             <Info size={16} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
             <span>
               Final Grade is the average of completed terms. A learner with fewer than 3 completed
@@ -438,7 +415,7 @@ export default function ConsolidatedGrades({ goBack, user }) {
           </div>
 
           {/* Consolidated Table Container */}
-          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <Card padded={false} className="overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/40">
               <div>
                 <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
@@ -510,9 +487,7 @@ export default function ConsolidatedGrades({ goBack, user }) {
                           {learner.genAvg}
                         </td>
                         <td className="px-4 py-2.5 text-center font-mono font-semibold">
-                          <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary-dark dark:bg-primary/20 dark:text-primary-light">
-                            {learner.rank}
-                          </span>
+                          <Badge tone="primary">{learner.rank}</Badge>
                         </td>
                       </tr>
                     ))
@@ -520,7 +495,7 @@ export default function ConsolidatedGrades({ goBack, user }) {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>

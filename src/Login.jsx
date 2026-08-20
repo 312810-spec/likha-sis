@@ -5,7 +5,9 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
-import { Mail, Lock, LogIn, AlertCircle, ShieldAlert } from "lucide-react";
+import { Mail, Lock, LogIn } from "lucide-react";
+import Button from "./components/ui/Button";
+import Alert from "./components/ui/Alert";
 
 function Login({ deactivated = false }) {
   // "State" is like a sticky note React watches — whenever it changes, the screen re-draws automatically.
@@ -51,7 +53,7 @@ function Login({ deactivated = false }) {
       <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-accent/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-leaf/20 blur-3xl" />
 
-      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl shadow-black/20 p-8 dark:bg-gray-900 dark:shadow-black/50 animate-slide-up">
+      <div className="relative w-full max-w-sm bg-white rounded-lg shadow-lg shadow-black/20 p-8 dark:bg-gray-900 dark:shadow-black/50 animate-slide-up">
         <div className="flex flex-col items-center mb-6">
           <img
             src="/Tingub%20National%20High%20School%28clear%29.png"
@@ -63,10 +65,9 @@ function Login({ deactivated = false }) {
         </div>
 
         {deactivated && (
-          <div className="mb-4 flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm dark:bg-amber-950/30 dark:border-amber-900/50 dark:text-amber-400 animate-fade-in">
-            <ShieldAlert size={16} className="flex-shrink-0 mt-0.5" />
-            <span>Your account has been deactivated. Contact your ICT Coordinator if you believe this is a mistake.</span>
-          </div>
+          <Alert variant="warning" className="mb-4">
+            Your account has been deactivated. Contact your ICT Coordinator if you believe this is a mistake.
+          </Alert>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -78,7 +79,7 @@ function Login({ deactivated = false }) {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white transition-colors text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:bg-gray-800"
+                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors dark:placeholder-gray-500"
                 placeholder="teacher@tinguibnhs.edu.ph"
               />
             </div>
@@ -92,29 +93,18 @@ function Login({ deactivated = false }) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white transition-colors text-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100 dark:placeholder-gray-500 dark:focus:bg-gray-800"
+                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors dark:placeholder-gray-500"
                 placeholder="Enter your password"
               />
             </div>
           </div>
 
-          {errorMessage && (
-            <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400 animate-fade-in">
-              <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
-              <span>{errorMessage}</span>
-            </div>
-          )}
+          {errorMessage && <Alert variant="error">{errorMessage}</Alert>}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold text-white shadow-sm transition-all duration-150 active:scale-[0.99] ${
-              isLoading ? "bg-primary-light cursor-not-allowed opacity-80" : "bg-primary hover:bg-primary-light hover:shadow-md"
-            }`}
-          >
+          <Button type="submit" variant="primary" disabled={isLoading} className="w-full">
             <LogIn size={18} />
             {isLoading ? "Logging in..." : "Log In"}
-          </button>
+          </Button>
         </form>
       </div>
     </div>
