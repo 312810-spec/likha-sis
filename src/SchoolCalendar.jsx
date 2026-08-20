@@ -212,7 +212,7 @@ export default function SchoolCalendar({ user, userRoles }) {
       {composing && canManage && (
         <form
           onSubmit={handleSubmit}
-          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm space-y-4 animate-fade-in"
+          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card space-y-4 animate-fade-in"
         >
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">New School Event</h2>
 
@@ -298,7 +298,7 @@ export default function SchoolCalendar({ user, userRoles }) {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700">
             <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
               {MONTH_LABELS[viewMonth]} {viewYear}
@@ -409,7 +409,7 @@ export default function SchoolCalendar({ user, userRoles }) {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card overflow-hidden">
             <h2 className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 text-sm font-semibold text-gray-900 dark:text-gray-100">
               Next 45 Days
             </h2>
@@ -451,7 +451,7 @@ export default function SchoolCalendar({ user, userRoles }) {
             )}
           </div>
 
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-4">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-4">
             <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Event Categories</h2>
             <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-3">
               Holidays follow Presidential Proclamation and can be moved; entries marked “subject to

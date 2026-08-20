@@ -1036,7 +1036,7 @@ function SetupWizard({ onComplete }) {
                       key={card.key}
                       type="button"
                       onClick={() => setActiveImporter(card.key)}
-                      className="text-left bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:border-primary hover:shadow-md transition-all group"
+                      className="text-left bg-white border border-gray-200 rounded-xl p-5 shadow-card hover:border-primary hover:shadow-md transition-all group"
                     >
                       <div className="flex items-start gap-3.5">
                         <div

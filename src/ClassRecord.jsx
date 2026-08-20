@@ -640,7 +640,7 @@ export default function ClassRecord({ user }) {
         /* SCORE GRID VIEW */
         <div className="space-y-4">
           {/* Info Summary Strip */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 text-sm shadow-sm">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 text-sm shadow-card">
             <div className="flex flex-wrap items-center gap-6">
               <div>
                 <span className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold">Class</span>

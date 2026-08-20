@@ -237,7 +237,7 @@ export default function SF1Importer({ user }) {
 // ---------------------------------------------------------------------------
 function SelectFilesStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card">
       <label
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
@@ -320,7 +320,7 @@ function SelectFilesStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) 
 // ---------------------------------------------------------------------------
 function AnalyzingStep({ importing = false }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-12 shadow-sm flex flex-col items-center justify-center text-center">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-12 shadow-card flex flex-col items-center justify-center text-center">
       <Loader2 size={32} className="animate-spin text-primary mb-3" />
       <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
         {importing ? "Importing approved records into Firestore…" : "Analyzing workbooks…"}
@@ -353,7 +353,7 @@ function ReviewStep({
   return (
     <div className="space-y-5">
       {/* Import Summary */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-card">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">Import Summary</h3>
         <div className="flex flex-wrap gap-3">
           <StatCard label="Files selected" value={batch.fileCount} />
@@ -396,7 +396,7 @@ function ReviewStep({
       </div>
 
       {/* File Summary */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-card">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">File Summary</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           <button
@@ -433,7 +433,7 @@ function ReviewStep({
       </div>
 
       {/* Confirm controls */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-card flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
           onClick={onBack}
@@ -473,7 +473,7 @@ function ResultStep({ result, onDone }) {
   const ok = result && result.status === "success";
   const blocked = result && result.status === "blocked";
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8 shadow-sm text-center animate-fade-in">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8 shadow-card text-center animate-fade-in">
       <div
         className={`mx-auto mb-4 w-16 h-16 rounded-full flex items-center justify-center ${
           blocked

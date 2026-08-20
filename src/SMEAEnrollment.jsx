@@ -139,7 +139,7 @@ function SMEAEnrollment() {
       />
 
       {/* 3-Term Academic Monitoring Status Cards */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm space-y-3">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-card space-y-3">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Calendar size={18} className="text-primary" />
@@ -222,7 +222,7 @@ function SMEAEnrollment() {
 
       {/* Other SMEA Indicators — attendance, nutrition, LARDO monitoring per grade */}
       {indicators.rows.length > 0 && (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-5">
           <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3">
             <Activity size={18} className="text-primary" />
             Other SMEA Indicators
@@ -277,7 +277,7 @@ function SMEAEnrollment() {
           </p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-5">
           <div className="overflow-x-auto -mx-5 px-5">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -353,7 +353,7 @@ function RowGroup({ row }) {
 // School year selector + term display (shared by all states).
 function ReportControls({ selectedSY, setSelectedSY, schoolYears, schoolYearLabel, termLabel }) {
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
           <BarChart3 className="text-primary" size={24} />

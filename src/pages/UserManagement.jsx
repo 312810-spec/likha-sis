@@ -424,7 +424,7 @@ export default function UserManagement({ user }) {
   return (
     <div className="font-sans text-gray-900 dark:text-gray-100 space-y-6 max-w-none w-full pb-12">
       {/* Header Banner */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-sm flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-5 shadow-card flex items-center justify-between">
         <div>
           <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
             <Shield className="text-primary" size={24} /> User Management
@@ -451,7 +451,7 @@ export default function UserManagement({ user }) {
       )}
 
       {/* Create User Form Card */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3 mb-5">
           <UserPlus className="text-primary" size={18} /> Create New Teacher Account
         </h2>
@@ -691,7 +691,7 @@ export default function UserManagement({ user }) {
       </div>
 
       {/* Users Directory Table */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Users className="text-primary" size={18} /> User Directory
@@ -1020,7 +1020,7 @@ export default function UserManagement({ user }) {
         )}
       </div>
       {/* ---- Parent Accounts Provisioning Panel ---- */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-3 mb-5">
           <Heart className="text-rose-500" size={18} /> Parent Accounts
         </h2>
@@ -1168,7 +1168,7 @@ export default function UserManagement({ user }) {
         ) : parentLinks.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-gray-600">No parent accounts have been created yet.</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
                 <tr>

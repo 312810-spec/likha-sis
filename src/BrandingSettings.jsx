@@ -283,7 +283,7 @@ export default function BrandingSettings({ goBack, embedded = false }) {
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start gap-6 space-y-6 lg:space-y-0">
       <div className="space-y-6">
         {/* Step 1: Upload Logo */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4 dark:bg-gray-900 dark:border-gray-700">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-card space-y-4 dark:bg-gray-900 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
               1
@@ -337,7 +337,7 @@ export default function BrandingSettings({ goBack, embedded = false }) {
         </div>
 
         {/* Step 2: Generate Theme */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4 dark:bg-gray-900 dark:border-gray-700">
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-card space-y-4 dark:bg-gray-900 dark:border-gray-700">
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center">
               2

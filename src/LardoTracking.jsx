@@ -999,7 +999,7 @@ export default function LardoTracking({ user, userRoles }) {
                             {interventionsList.map((entry, idx) => (
                               <div
                                 key={idx}
-                                className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200/80 dark:border-gray-700 shadow-2xs space-y-1"
+                                className="bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700 shadow-card space-y-1"
                               >
                                 <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
                                   <span className="font-mono">
@@ -1216,7 +1216,7 @@ export default function LardoTracking({ user, userRoles }) {
                               {actionsList.map((entry, idx) => (
                                 <div
                                   key={idx}
-                                  className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200/80 dark:border-gray-700 shadow-2xs space-y-1"
+                                  className="bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/80 dark:border-gray-700 shadow-card space-y-1"
                                 >
                                   <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
                                     <span className="font-mono">

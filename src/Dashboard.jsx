@@ -270,13 +270,13 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, goToSchoolSe
             </p>
 
             <div className="flex flex-wrap gap-2 mt-3">
-              <div className="flex-1 min-w-[140px] p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+              <div className="flex-1 min-w-[140px] p-3 rounded-xl border border-gray-100 dark:border-gray-700">
                 <div className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-400">Learner Summary</div>
                 <div className="mt-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200">
                   {statsLoading ? <StatSkeleton /> : statsError ? <TileEmptyState text="Stats unavailable" /> : `${formatCount(learnerStats.total)} learner${learnerStats.total === 1 ? '' : 's'} · ${learnerStats.gradeLevels} grade level${learnerStats.gradeLevels === 1 ? '' : 's'}`}
                 </div>
               </div>
-              <div className="flex-1 min-w-[140px] p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+              <div className="flex-1 min-w-[140px] p-3 rounded-xl border border-gray-100 dark:border-gray-700">
                 <div className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-400">Enrollment Summary</div>
                 <div className="mt-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200">
                   {statsLoading ? <StatSkeleton /> : statsError ? <TileEmptyState text="Stats unavailable" /> : `${formatCount(learnerStats.active)} active · ${formatCount(learnerStats.transferredOut)} transferred out`}
