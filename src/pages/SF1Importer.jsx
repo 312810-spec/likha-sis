@@ -26,6 +26,7 @@ import StatCard from "../components/import/StatCard";
 import FileSummaryCard from "../components/import/FileSummaryCard";
 import PreviewTable from "../components/import/PreviewTable";
 import IssueList from "../components/import/IssueList";
+import Button from "../components/Button.jsx";
 
 
 const STEPS = ["Select Files", "Analyze", "Review", "Import", "Summary"];
@@ -302,14 +303,9 @@ function SelectFilesStep({ files, onAdd, onRemove, onAnalyze, busy, inputRef }) 
       )}
 
       <div className="mt-5 flex justify-end">
-        <button
-          type="button"
-          disabled={busy || files.length === 0}
-          onClick={onAnalyze}
-          className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <Button type="button" disabled={busy || files.length === 0} onClick={onAnalyze}>
           <CheckCircle2 size={16} /> Analyze Files
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -509,13 +505,9 @@ function ResultStep({ result, onDone }) {
         <p className="text-sm text-gray-500 dark:text-gray-400">No import result available.</p>
       )}
 
-      <button
-        type="button"
-        onClick={onDone}
-        className="mt-6 inline-flex items-center gap-2 bg-primary text-white px-6 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all"
-      >
+      <Button type="button" onClick={onDone} className="mt-6">
         <Upload size={16} /> Import More Files
-      </button>
+      </Button>
     </div>
   );
 }
