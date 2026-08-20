@@ -11,6 +11,7 @@ import {
 } from "./utils/extractTheme.js";
 import { resizeImageToCanvas } from "./utils/resizeImage.js";
 import ThemeSuggestionPicker from "./components/ThemeSuggestionPicker.jsx";
+import Button from "./components/Button.jsx";
 import {
   Palette,
   Upload,
@@ -320,14 +321,10 @@ export default function BrandingSettings({ goBack, embedded = false }) {
               id="school-logo-input"
             />
 
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 shadow-sm transition dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-            >
+            <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()}>
               <Upload size={16} />
               {uploadedLogoUrl ? "Change Logo" : "Upload Logo"}
-            </button>
+            </Button>
             {uploadedLogoUrl && (
               <span className="text-xs text-green-600 font-medium dark:text-green-400">
                 ✓ Ready for theme generation
@@ -350,15 +347,15 @@ export default function BrandingSettings({ goBack, embedded = false }) {
             Extracts dominant colors from the uploaded logo, ensures readable contrast, and calculates light/dark variants.
           </p>
 
-          <button
+          <Button
             type="button"
             disabled={isExtracting || (!uploadedLogoUrl && !currentLogo)}
             onClick={handleGenerateTheme}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-light transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            className="w-full justify-center"
           >
             <Sparkles size={16} />
             {isExtracting ? "Extracting Colors..." : "Generate Theme from Logo"}
-          </button>
+          </Button>
 
           {/* Color Swatches */}
           {themeSuggestions.length > 0 ? (
@@ -528,26 +525,27 @@ export default function BrandingSettings({ goBack, embedded = false }) {
 
       {/* Action Footer */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <button
+        <Button
           type="button"
+          variant="secondary"
           disabled={isResetting || isSaving}
           onClick={handleResetDefaults}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 transition disabled:opacity-50"
+          className="w-full sm:w-auto justify-center"
         >
           <RotateCcw size={16} />
           {isResetting ? "Resetting..." : "Reset to Default Colors"}
-        </button>
+        </Button>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <button
+          <Button
             type="button"
             disabled={isSaving || (!uploadedLogoUrl && !extractedTheme)}
             onClick={handleSave}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-light transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto justify-center"
           >
             <Save size={16} />
             {isSaving ? "Saving..." : "Save Branding Settings"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

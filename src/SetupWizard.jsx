@@ -16,6 +16,7 @@ import { makeDefaultShift } from "./utils/scheduleModel.js";
 import SF1Importer from "./pages/SF1Importer";
 import SF10Importer from "./pages/SF10Importer";
 import { hashSettingsKey, validateSettingsKey, SETTINGS_KEY_MIN_LENGTH } from "./utils/settingsLock.js";
+import Button from "./components/Button.jsx";
 import {
   autofillSchoolData,
   DEPED_REGIONS,
@@ -800,14 +801,14 @@ function SetupWizard({ onComplete }) {
                             </option>
                           ))}
                         </select>
-                        <button
+                        <Button
                           type="button"
+                          size="small"
                           onClick={() => addSection(gradeLevel)}
                           disabled={shifts.length === 0}
-                          className="text-xs font-semibold text-white bg-primary hover:bg-primary-light disabled:opacity-50 rounded px-2.5 py-1.5"
                         >
                           + Add
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -817,12 +818,7 @@ function SetupWizard({ onComplete }) {
 
             <div className="mt-6 flex justify-between">
               <div />
-              <button
-                type="submit"
-                className="bg-primary text-white px-4 py-2 rounded"
-              >
-                Continue
-              </button>
+              <Button type="submit">Continue</Button>
             </div>
           </form>
         )}
@@ -880,20 +876,12 @@ function SetupWizard({ onComplete }) {
             {submitError && <p className="text-red-600 text-sm mt-2">{submitError}</p>}
 
             <div className="mt-6 flex justify-between">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="px-4 py-2 rounded border"
-              >
+              <Button type="button" variant="secondary" onClick={() => setStep(1)}>
                 Back
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="bg-primary text-white px-4 py-2 rounded"
-              >
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Creating account..." : "Create account & Continue"}
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -1002,21 +990,12 @@ function SetupWizard({ onComplete }) {
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={handleSkipBranding}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
+              <Button type="button" variant="secondary" onClick={handleSkipBranding}>
                 Skip for Now
-              </button>
-              <button
-                type="button"
-                disabled={isSavingBranding}
-                onClick={handleSaveBranding}
-                className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition shadow-sm disabled:opacity-50"
-              >
+              </Button>
+              <Button type="button" disabled={isSavingBranding} onClick={handleSaveBranding}>
                 {isSavingBranding ? "Saving..." : "Save and Continue"}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -1083,20 +1062,12 @@ function SetupWizard({ onComplete }) {
             )}
 
             <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={handleFinishSetup}
-                className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-              >
+              <Button type="button" variant="secondary" onClick={handleFinishSetup}>
                 Skip for Now
-              </button>
-              <button
-                type="button"
-                onClick={handleFinishSetup}
-                className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-semibold hover:bg-primary-light transition shadow-sm"
-              >
+              </Button>
+              <Button type="button" onClick={handleFinishSetup}>
                 Finish Setup
-              </button>
+              </Button>
             </div>
           </div>
         )}
