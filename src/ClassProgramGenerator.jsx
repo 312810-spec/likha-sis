@@ -352,9 +352,9 @@ export default function ClassProgramGenerator({ goBack, userRoles = [] }) {
             <ArrowLeft size={18} />
           </button>
         )}
-        <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100">
+        <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100">
           Class Program &amp; Teacher&rsquo;s Load
-        </h1>
+        </h2>
         <span className="text-sm text-gray-500 dark:text-gray-400">S.Y. {schoolYear}</span>
       </div>
 

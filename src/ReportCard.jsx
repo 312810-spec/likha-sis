@@ -324,7 +324,7 @@ export default function ReportCard({ goBack }) {
             </button>
           )}
           <div>
-            <h1 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100">Report Card (SF9)</h1>
+            <h2 className="font-display text-2xl font-semibold text-gray-900 dark:text-gray-100">Report Card (SF9)</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Learner&apos;s Performance Report per DO 15, s.2026, Annex G
             </p>

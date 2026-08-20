@@ -161,9 +161,9 @@ function CertificateGenerator({ user, goBack }) {
               ← Back to Dashboard
             </button>
           )}
-          <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
+          <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">
             Certificate Generator
-          </h1>
+          </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Logged in as: <strong className="text-gray-700 dark:text-gray-300">{user.email}</strong>
           </p>

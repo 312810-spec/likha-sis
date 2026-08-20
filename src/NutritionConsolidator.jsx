@@ -181,10 +181,10 @@ export default function NutritionConsolidator({ goBack }) {
             </button>
           )}
           <div>
-            <h1 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <h2 className="font-display text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <ClipboardList className="w-6 h-6 text-rose-500" />
               Nutrition Status Consolidator
-            </h1>
+            </h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               School-wide Baseline / Endline BMI + Height-for-Age rollup
             </p>
