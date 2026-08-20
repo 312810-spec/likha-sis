@@ -104,7 +104,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             <div className="text-right hidden lg:block">
               <div className="text-sm font-medium text-gray-700 dark:text-gray-200">{dateStr}</div>
-              <div className="text-xs text-gray-400 dark:text-gray-500 tabular-nums">{timeStr}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">{timeStr}</div>
             </div>
 
             <div role="toolbar" aria-label={`Theme (resolved ${resolvedIsDark ? 'dark' : 'light'})`} className="relative inline-flex items-center rounded-full p-0.5 bg-gray-100 dark:bg-gray-800">
@@ -206,7 +206,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
                     <div className="text-sm font-medium text-gray-900 truncate dark:text-gray-100">
                       {user?.email || 'User'}
                     </div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       {(userRoles || []).map((r) => ROLE_LABELS[r] || r).join(', ') || 'No roles assigned'}
                     </div>
                   </div>

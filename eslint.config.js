@@ -14,7 +14,11 @@ export default defineConfig([
   // noise: the weekly sweep in .claude/CRON.md chains
   // `npm run lint && npm run test`, so a non-zero lint exit from another
   // branch's code silently skips the tests and the audit skills.
-  globalIgnores(['dist', '.infographic-build', '.claude/worktrees']),
+  // .gemini/skills and .claude/skills/impeccable vendor a third-party
+  // screenshot script (modern-screenshot.umd.js) as plugin content, not
+  // project source -- linting it against this project's browser-only config
+  // produces false no-undef/no-redeclare errors from its UMD wrapper.
+  globalIgnores(['dist', '.infographic-build', '.claude/worktrees', '.gemini', '.claude/skills/impeccable']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

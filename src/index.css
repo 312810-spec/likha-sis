@@ -84,6 +84,36 @@
 
 body {
   font-family: "Public Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-ink) / 0.2) transparent;
+}
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+body::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--color-ink) / 0.18);
+  border-radius: 9999px;
+}
+body::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--color-ink) / 0.3);
+}
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Selection and keyboard focus are browser surfaces every design system
+   forgets -- theme them from the same brand tokens everything else uses,
+   instead of leaving the OS default blue. */
+::selection {
+  background-color: rgb(var(--color-primary) / 0.28);
+  color: rgb(var(--color-ink));
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--color-primary));
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .font-tabular {
@@ -144,5 +174,29 @@ body {
     height: auto !important;
     overflow: visible !important;
     min-height: 0 !important;
+  }
+}
+
+/* Users who ask for reduced motion get essentially none -- every decorative
+   transition/animation collapses to near-instant. The wildcard rule alone
+   can't reach elements under .theme-transition * (see index.css above):
+   that selector carries a class in its specificity and its own !important,
+   so a bare `*` rule of equal or lower specificity can never override it
+   regardless of !important or source order. It has to be named explicitly,
+   at equal specificity, after its own declaration -- which is what the
+   second block below does. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .theme-transition,
+  .theme-transition * {
+    transition: none !important;
   }
 }
