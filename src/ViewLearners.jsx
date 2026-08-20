@@ -8,7 +8,8 @@ import { db } from "./firebase";
 import EditLearnerModal from "./EditLearnerModal";
 import { canEditLearners } from "./pageAccess.js";
 import useSchoolConfig from "./hooks/useSchoolConfig";
-import { ArrowLeft, Users, Pencil, Trash2, AlertCircle, UserSearch } from "lucide-react";
+import { Pencil, Trash2, AlertCircle, UserSearch } from "lucide-react";
+import PageHeader from "./components/PageHeader.jsx";
 
 function trackLabel(learner, electiveClusters) {
   if (!learner.track) return "";
@@ -35,7 +36,7 @@ function calculateAge(birthDateString) {
   return age;
 }
 
-function ViewLearners({ user, goBack, userRoles }) {
+function ViewLearners({ user, userRoles }) {
   const { config } = useSchoolConfig();
   const electiveClusters = config?.shs?.electiveClusters || [];
   // learners: array of learner objects from Firestore, each with its document id included.
@@ -110,13 +111,8 @@ function ViewLearners({ user, goBack, userRoles }) {
   // Show a loading message while data is being fetched.
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto animate-slide-up">
-        <button
-          onClick={goBack}
-          className="mb-4 flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-        >
-          <ArrowLeft size={16} /> Back to Dashboard
-        </button>
+      <div className="max-w-none w-full">
+        <PageHeader description="Saved learners" />
         <div className="flex flex-col items-center justify-center gap-3 py-24 text-gray-400 dark:text-gray-500">
           <div className="w-8 h-8 border-2 border-gray-200 dark:border-gray-700 border-t-primary rounded-full animate-spin" />
           <p className="text-sm">Loading learners...</p>
@@ -126,44 +122,24 @@ function ViewLearners({ user, goBack, userRoles }) {
   }
 
   return (
-    <div className="max-w-6xl mx-auto animate-slide-up">
-      <button
-        onClick={goBack}
-        className="mb-4 flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+    <div className="max-w-none w-full space-y-6">
+      <PageHeader
+        description={`Viewing ${filteredLearners.length} of ${learners.length} learner${learners.length === 1 ? "" : "s"}`}
       >
-        <ArrowLeft size={16} /> Back to Dashboard
-      </button>
+        <select
+          value={filterValue}
+          onChange={(e) => setFilterValue(e.target.value)}
+          className="px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+        >
+          {gradeSectionOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      </PageHeader>
 
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-card p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 tracking-tight">
-              <Users className="text-primary" size={24} />
-              Saved Learners
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Logged in as <span className="font-medium text-gray-700 dark:text-gray-200">{user.email}</span> — viewing {filteredLearners.length} of {learners.length} learner{learners.length === 1 ? "" : "s"}
-            </p>
-          </div>
-
-          <div className="w-full sm:w-64">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1.5">
-              Filter by Grade & Section
-            </label>
-            <select
-              value={filterValue}
-              onChange={(e) => setFilterValue(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
-            >
-              {gradeSectionOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
         {errorMessage && (
           <div className="mt-4 flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg text-red-700 text-sm dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400 animate-fade-in">
             <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
