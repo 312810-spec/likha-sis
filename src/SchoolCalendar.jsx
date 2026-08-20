@@ -275,24 +275,20 @@ export default function SchoolCalendar({ user, userRoles }) {
           {formError && <p className="text-xs font-medium text-red-600 dark:text-red-400">{formError}</p>}
 
           <div className="flex justify-end gap-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={() => {
                 setComposing(false);
                 setDraft(emptyEvent());
                 setFormError("");
               }}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="bg-primary text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
+            </Button>
+            <Button type="submit" disabled={isSaving}>
               {isSaving ? "Saving..." : "Save Event"}
-            </button>
+            </Button>
           </div>
         </form>
       )}

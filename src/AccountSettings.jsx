@@ -12,6 +12,7 @@ import { ROLE_OPTIONS, ROLE_LABELS } from "./utils/roles.js";
 import { validateSelfRoleEdit } from "./utils/userAccountManagement.js";
 import { Save, KeyRound, CheckCircle2, AlertCircle } from "lucide-react";
 import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 
 const inputClass = "w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors";
 const labelClass = "flex flex-col gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300";
@@ -280,14 +281,10 @@ export default function AccountSettings({ user }) {
           )}
 
           <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={isSavingProfile}
-              className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
+            <Button type="submit" disabled={isSavingProfile}>
               <Save size={15} />
               {isSavingProfile ? "Saving..." : "Save Profile"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -328,14 +325,10 @@ export default function AccountSettings({ user }) {
           </div>
 
           <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={isChangingPassword}
-              className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-            >
+            <Button type="submit" disabled={isChangingPassword}>
               <KeyRound size={15} />
               {isChangingPassword ? "Changing..." : "Change Password"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
