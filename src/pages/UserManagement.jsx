@@ -26,6 +26,7 @@ import { ROLE_OPTIONS, ROLE_LABELS } from "../utils/roles.js";
 import useSchoolConfig from "../hooks/useSchoolConfig";
 import useAvailableSections from "../hooks/useAvailableSections";
 import useAcademicCalendar from "../hooks/useAcademicCalendar";
+import Button from "../components/Button.jsx";
 import {
   isAccountActive,
   isEditableUserRow,
@@ -621,13 +622,9 @@ export default function UserManagement({ user }) {
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
-                    <button
-                      type="button"
-                      onClick={handleAddAssignment}
-                      className="bg-primary text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-primary-light active:scale-[0.98] transition-all flex items-center gap-1 flex-shrink-0"
-                    >
+                    <Button type="button" size="small" onClick={handleAddAssignment} className="flex-shrink-0">
                       <Plus size={16} /> Add
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -673,11 +670,7 @@ export default function UserManagement({ user }) {
 
           {/* Submit Button */}
           <div className="pt-2 flex justify-end">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
                 <>Creating Account...</>
               ) : (
@@ -685,7 +678,7 @@ export default function UserManagement({ user }) {
                   <UserPlus size={18} /> Create Account
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -945,13 +938,14 @@ export default function UserManagement({ user }) {
                                             <option key={s} value={s}>{s}</option>
                                           ))}
                                         </select>
-                                        <button
+                                        <Button
                                           type="button"
+                                          size="small"
                                           onClick={handleAddEditAssignment}
-                                          className="bg-primary text-white px-3 py-2 rounded-lg text-sm font-medium shadow-sm hover:bg-primary-light active:scale-[0.98] transition-all flex items-center gap-1 flex-shrink-0"
+                                          className="flex-shrink-0"
                                         >
                                           <Plus size={16} />
-                                        </button>
+                                        </Button>
                                       </div>
                                     </div>
                                   </div>
@@ -992,20 +986,12 @@ export default function UserManagement({ user }) {
                               )}
 
                               <div className="flex justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={handleCancelEdit}
-                                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
-                                >
+                                <Button type="button" variant="secondary" onClick={handleCancelEdit}>
                                   Cancel
-                                </button>
-                                <button
-                                  type="submit"
-                                  disabled={isSavingEdit}
-                                  className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light active:scale-[0.99] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
+                                </Button>
+                                <Button type="submit" disabled={isSavingEdit}>
                                   {isSavingEdit ? "Saving..." : "Save Changes"}
-                                </button>
+                                </Button>
                               </div>
                             </form>
                           </td>

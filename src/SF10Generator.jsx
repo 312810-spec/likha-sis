@@ -20,6 +20,7 @@ import { buildLearnerAcademicHistory } from "./utils/sf10Records.js";
 import { getSubjectRows, PRE_MATATAG_MAPEH_ROWS } from "./utils/subjectRows.js";
 import { Printer } from "lucide-react";
 import PageHeader from "./components/PageHeader.jsx";
+import Button from "./components/Button.jsx";
 
 function fullName(learner) {
   if (!learner) return "";
@@ -351,14 +352,10 @@ export default function SF10Generator() {
         )}
 
         {((mode === "single" && selectedLearner) || (mode === "section" && sectionLearners.length > 0)) && (
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-primary-light"
-          >
+          <Button type="button" onClick={() => window.print()}>
             <Printer size={16} />
             {mode === "single" ? "Print SF10" : `Print SF10s (${sectionLearners.length})`}
-          </button>
+          </Button>
         )}
       </div>
 
