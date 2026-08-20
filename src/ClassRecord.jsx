@@ -677,7 +677,7 @@ export default function ClassRecord({ user }) {
                       Learner Name
                     </th>
                     {/* Written Work Section */}
-                    <th className="px-2 py-1 text-center border-r border-white/20" colSpan={wwItems.length + 2}>
+                    <th className="px-2 py-1.5 text-center border-r border-white/20" colSpan={wwItems.length + 2}>
                       <div className="flex items-center justify-between gap-2 px-1">
                         <span>WRITTEN WORK ({(subjectWeights.ww * 100).toFixed(0)}%)</span>
                         <button
@@ -692,7 +692,7 @@ export default function ClassRecord({ user }) {
                     </th>
 
                     {/* Performance Tasks Section */}
-                    <th className="px-2 py-1 text-center border-r border-white/20" colSpan={ptItems.length + 2}>
+                    <th className="px-2 py-1.5 text-center border-r border-white/20" colSpan={ptItems.length + 2}>
                       <div className="flex items-center justify-between gap-2 px-1">
                         <span>PERFORMANCE TASKS ({(subjectWeights.pt * 100).toFixed(0)}%)</span>
                         <button
@@ -707,12 +707,12 @@ export default function ClassRecord({ user }) {
                     </th>
 
                     {/* Quarterly Assessment / Exam Section */}
-                    <th className="px-2 py-1 text-center border-r border-white/20" colSpan={5}>
+                    <th className="px-2 py-1.5 text-center border-r border-white/20" colSpan={5}>
                       QUARTERLY EXAM ({(subjectWeights.ex * 100).toFixed(0)}%)
                     </th>
 
                     {/* Final Grade Summary Section */}
-                    <th className="px-2 py-1 text-center" colSpan={3}>
+                    <th className="px-2 py-1.5 text-center" colSpan={3}>
                       SUMMARY
                     </th>
                   </tr>
@@ -721,7 +721,7 @@ export default function ClassRecord({ user }) {
                   <tr className="bg-primary-light text-white sticky top-[33px] z-20 text-[11px] font-semibold border-b border-primary-dark">
                     {/* WW sub-headers */}
                     {wwItems.map((item, idx) => (
-                      <th key={item.id} className="px-2 py-1 text-center border-r border-white/20 min-w-[60px]">
+                      <th key={item.id} className="px-2 py-1.5 text-center border-r border-white/20 min-w-[60px]">
                         <div className="flex items-center justify-center gap-1">
                           <span>WW{idx + 1}</span>
                           <button
@@ -735,16 +735,16 @@ export default function ClassRecord({ user }) {
                         </div>
                       </th>
                     ))}
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
                       <Tooltip position="bottom" label="Written Work Percentage Score">WW PS</Tooltip>
                     </th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
                       <Tooltip position="bottom" label="Written Work Weighted Score">WW WS</Tooltip>
                     </th>
 
                     {/* PT sub-headers */}
                     {ptItems.map((item, idx) => (
-                      <th key={item.id} className="px-2 py-1 text-center border-r border-white/20 min-w-[60px]">
+                      <th key={item.id} className="px-2 py-1.5 text-center border-r border-white/20 min-w-[60px]">
                         <div className="flex items-center justify-center gap-1">
                           <span>PT{idx + 1}</span>
                           <button
@@ -758,38 +758,38 @@ export default function ClassRecord({ user }) {
                         </div>
                       </th>
                     ))}
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
                       <Tooltip position="bottom" label="Performance Task Percentage Score">PT PS</Tooltip>
                     </th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
                       <Tooltip position="bottom" label="Performance Task Weighted Score">PT WS</Tooltip>
                     </th>
 
                     {/* EX sub-headers */}
-                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 min-w-[55px]">
                       <Tooltip position="bottom" label="Summative Test 1 — 30% of the Exam component">ST1</Tooltip>
                     </th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 min-w-[55px]">
                       <Tooltip position="bottom" label="Summative Test 2 — 30% of the Exam component">ST2</Tooltip>
                     </th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 min-w-[55px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 min-w-[55px]">
                       <Tooltip position="bottom" label="Term Exam — 40% of the Exam component">TE</Tooltip>
                     </th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
                       <Tooltip position="bottom" label="Exam Percentage Score">EX PS</Tooltip>
                     </th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
                       <Tooltip position="bottom" label="Exam Weighted Score">EX WS</Tooltip>
                     </th>
 
                     {/* Summary sub-headers */}
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-accent-dark/80 min-w-[70px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-accent-dark/80 min-w-[70px]">
                       <Tooltip position="bottom" label="Raw computed grade before DO 15 transmutation">Init Grade</Tooltip>
                     </th>
-                    <th className="px-2 py-1 text-center border-r border-white/20 bg-accent-dark/90 min-w-[70px]">
+                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-accent-dark/90 min-w-[70px]">
                       <Tooltip position="bottom" label="Final grade after transmutation table">Term Grade</Tooltip>
                     </th>
-                    <th className="px-2 py-1 text-center min-w-[130px]">Description</th>
+                    <th className="px-2 py-1.5 text-center min-w-[130px]">Description</th>
                   </tr>
                 </thead>
 
@@ -802,7 +802,7 @@ export default function ClassRecord({ user }) {
 
                     {/* WW HPS Inputs */}
                     {wwItems.map((item, idx) => (
-                      <td key={item.id} className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
+                      <td key={item.id} className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
                         <input
                           type="number"
                           min="0"
@@ -813,12 +813,12 @@ export default function ClassRecord({ user }) {
                         />
                       </td>
                     ))}
-                    <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                    <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
+                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
+                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
 
                     {/* PT HPS Inputs */}
                     {ptItems.map((item, idx) => (
-                      <td key={item.id} className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
+                      <td key={item.id} className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
                         <input
                           type="number"
                           min="0"
@@ -829,12 +829,12 @@ export default function ClassRecord({ user }) {
                         />
                       </td>
                     ))}
-                    <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                    <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
+                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
+                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
 
                     {/* Exam HPS Inputs -- disabled when this subject's weight profile
                         has no exam component (Tech-Pro, DO 15's 20/80/0 profile) */}
-                    <td className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
+                    <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
                       <input
                         type="number"
                         min="0"
@@ -846,7 +846,7 @@ export default function ClassRecord({ user }) {
                         placeholder={subjectWeights.ex === 0 ? "N/A" : "0"}
                       />
                     </td>
-                    <td className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
+                    <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
                       <input
                         type="number"
                         min="0"
@@ -858,7 +858,7 @@ export default function ClassRecord({ user }) {
                         placeholder={subjectWeights.ex === 0 ? "N/A" : "0"}
                       />
                     </td>
-                    <td className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
+                    <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
                       <input
                         type="number"
                         min="0"
@@ -870,13 +870,13 @@ export default function ClassRecord({ user }) {
                         placeholder={subjectWeights.ex === 0 ? "N/A" : "0"}
                       />
                     </td>
-                    <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                    <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
+                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
+                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
 
                     {/* Summary HPS row place-holders */}
-                    <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                    <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                    <td className="px-2 py-1 text-center bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
+                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
+                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
+                    <td className="px-2 py-1.5 text-center bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
                   </tr>
 
                   {/* Learner Rows */}
@@ -910,7 +910,7 @@ export default function ClassRecord({ user }) {
 
                           {/* WW Score Inputs */}
                           {wwItems.map((item) => (
-                            <td key={item.id} className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
+                            <td key={item.id} className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
                               <input
                                 type="number"
                                 min="0"
@@ -921,16 +921,16 @@ export default function ClassRecord({ user }) {
                               />
                             </td>
                           ))}
-                          <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
+                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
                             {formatComputed(wwPS)}
                           </td>
-                          <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
+                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
                             {formatComputed(wwWS)}
                           </td>
 
                           {/* PT Score Inputs */}
                           {ptItems.map((item) => (
-                            <td key={item.id} className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
+                            <td key={item.id} className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
                               <input
                                 type="number"
                                 min="0"
@@ -941,15 +941,15 @@ export default function ClassRecord({ user }) {
                               />
                             </td>
                           ))}
-                          <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
+                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
                             {formatComputed(ptPS)}
                           </td>
-                          <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
+                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
                             {formatComputed(ptWS)}
                           </td>
 
                           {/* Exam Score Inputs */}
-                          <td className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
+                          <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
                             <input
                               type="number"
                               min="0"
@@ -959,7 +959,7 @@ export default function ClassRecord({ user }) {
                               className="w-12 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-center text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
                             />
                           </td>
-                          <td className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
+                          <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
                             <input
                               type="number"
                               min="0"
@@ -969,7 +969,7 @@ export default function ClassRecord({ user }) {
                               className="w-12 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-center text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
                             />
                           </td>
-                          <td className="px-1 py-1 border-r border-gray-200 dark:border-gray-700 text-center">
+                          <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
                             <input
                               type="number"
                               min="0"
@@ -979,21 +979,21 @@ export default function ClassRecord({ user }) {
                               className="w-12 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-center text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
                             />
                           </td>
-                          <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
+                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
                             {formatComputed(exPS)}
                           </td>
-                          <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
+                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
                             {formatComputed(exWS)}
                           </td>
 
                           {/* Summary Columns */}
-                          <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/10 dark:bg-accent/20 font-mono font-medium text-gray-800 dark:text-gray-200">
+                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/10 dark:bg-accent/20 font-mono font-medium text-gray-800 dark:text-gray-200">
                             {formatComputed(initialGrade)}
                           </td>
-                          <td className="px-2 py-1 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/20 dark:bg-accent/30 font-bold text-gray-900 dark:text-gray-100">
+                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/20 dark:bg-accent/30 font-bold text-gray-900 dark:text-gray-100">
                             {termGrade !== null ? termGrade : "—"}
                           </td>
-                          <td className="px-2 py-1 text-left bg-gray-50 dark:bg-gray-800/40 text-[11px] text-gray-700 dark:text-gray-300 font-medium truncate max-w-[150px]" title={description || ""}>
+                          <td className="px-2 py-1.5 text-left bg-gray-50 dark:bg-gray-800/40 text-[11px] text-gray-700 dark:text-gray-300 font-medium truncate max-w-[150px]" title={description || ""}>
                             {description || "—"}
                           </td>
                         </tr>

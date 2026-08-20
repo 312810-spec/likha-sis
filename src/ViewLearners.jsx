@@ -106,7 +106,7 @@ function ViewLearners({ user, userRoles }) {
   const isEditable = canEditLearners(userRoles);
 
   const thClass = "px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 whitespace-nowrap";
-  const tdClass = "px-3 py-2.5 text-gray-700 dark:text-gray-200 whitespace-nowrap";
+  const tdClass = "px-3 py-3 text-gray-700 dark:text-gray-200 whitespace-nowrap";
 
   // Show a loading message while data is being fetched.
   if (loading) {

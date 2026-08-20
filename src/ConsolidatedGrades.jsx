@@ -435,19 +435,19 @@ export default function ConsolidatedGrades({ user }) {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 sticky top-0 z-20 text-xs font-semibold uppercase tracking-wider">
-                    <th className="px-4 py-3 sticky left-0 z-30 bg-gray-50 dark:bg-gray-800 min-w-[220px]">
+                    <th className="px-4 py-2.5 sticky left-0 z-30 bg-gray-50 dark:bg-gray-800 min-w-[220px]">
                       Learner Name
                     </th>
-                    <th className="px-3 py-3 text-center min-w-[60px]">Sex</th>
+                    <th className="px-3 py-2.5 text-center min-w-[60px]">Sex</th>
                     {subjectsList.map((subj) => (
-                      <th key={subj} className="px-3 py-3 text-center min-w-[110px]">
+                      <th key={subj} className="px-3 py-2.5 text-center min-w-[110px]">
                         {subj}
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-center bg-accent/15 text-accent-dark dark:bg-accent/25 dark:text-accent-light font-bold min-w-[120px]">
+                    <th className="px-4 py-2.5 text-center bg-accent/15 text-accent-dark dark:bg-accent/25 dark:text-accent-light font-bold min-w-[120px]">
                       General Average
                     </th>
-                    <th className="px-4 py-3 text-center min-w-[80px]">Rank</th>
+                    <th className="px-4 py-2.5 text-center min-w-[80px]">Rank</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-sm text-gray-800 dark:text-gray-200">
@@ -467,11 +467,11 @@ export default function ConsolidatedGrades({ user }) {
                         key={learner.id}
                         className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150 bg-white dark:bg-gray-900"
                       >
-                        <td className="px-4 py-2.5 font-medium text-gray-900 dark:text-gray-100 sticky left-0 z-10 bg-white dark:bg-gray-900 group-hover:bg-inherit truncate max-w-[240px]">
+                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 sticky left-0 z-10 bg-white dark:bg-gray-900 group-hover:bg-inherit truncate max-w-[240px]">
                           <span className="text-gray-400 dark:text-gray-500 font-normal mr-2">{idx + 1}.</span>
                           {learner.name}
                         </td>
-                        <td className="px-3 py-2.5 text-center text-gray-600 dark:text-gray-400 font-mono">
+                        <td className="px-3 py-3 text-center text-gray-600 dark:text-gray-400 font-mono">
                           {learner.sex}
                         </td>
                         {subjectsList.map((subj) => {
@@ -485,10 +485,10 @@ export default function ConsolidatedGrades({ user }) {
                             </td>
                           );
                         })}
-                        <td className="px-4 py-2.5 text-center font-mono font-bold text-accent-dark dark:text-accent-light bg-accent/10 dark:bg-accent/20">
+                        <td className="px-4 py-3 text-center font-mono font-bold text-accent-dark dark:text-accent-light bg-accent/10 dark:bg-accent/20">
                           {learner.genAvg}
                         </td>
-                        <td className="px-4 py-2.5 text-center font-mono font-semibold">
+                        <td className="px-4 py-3 text-center font-mono font-semibold">
                           <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary-dark dark:bg-primary/20 dark:text-primary-light">
                             {learner.rank}
                           </span>

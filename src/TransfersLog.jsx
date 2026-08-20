@@ -372,12 +372,12 @@ export default function TransfersLog({ user }) {
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wider sticky top-0 z-10">
-                  <th className="px-4 py-3">Learner Name</th>
-                  <th className="px-4 py-3">Grade &amp; Section</th>
-                  <th className="px-4 py-3">Transfer Type</th>
-                  <th className="px-4 py-3">Other School</th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Reason</th>
+                  <th className="px-4 py-2.5">Learner Name</th>
+                  <th className="px-4 py-2.5">Grade &amp; Section</th>
+                  <th className="px-4 py-2.5">Transfer Type</th>
+                  <th className="px-4 py-2.5">Other School</th>
+                  <th className="px-4 py-2.5">Date</th>
+                  <th className="px-4 py-2.5">Reason</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -385,16 +385,16 @@ export default function TransfersLog({ user }) {
                   const isIn = t.transferType === "in";
                   return (
                     <tr key={t.id} className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150">
-                      <td className="px-4 py-3.5 font-medium text-gray-900 dark:text-gray-100">
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                         <div>{t.learnerName}</div>
                         {t.learnerLRN && (
                           <div className="text-xs text-gray-400 dark:text-gray-500 font-mono">LRN: {t.learnerLRN}</div>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-gray-300">
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
                         {t.gradeLevel} {t.section ? `- ${t.section}` : ""}
                       </td>
-                      <td className="px-4 py-3.5">
+                      <td className="px-4 py-3">
                         {isIn ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-leaf/10 text-leaf-dark dark:bg-leaf/20 dark:text-leaf-light border border-leaf/20">
                             Transferred In
@@ -405,11 +405,11 @@ export default function TransfersLog({ user }) {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3.5 text-gray-700 dark:text-gray-300">{t.otherSchool || "—"}</td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                      <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{t.otherSchool || "—"}</td>
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         {t.transferDate ? t.transferDate : "—"}
                       </td>
-                      <td className="px-4 py-3.5 text-gray-600 dark:text-gray-400 max-w-xs truncate">
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400 max-w-xs truncate">
                         {t.reason || "—"}
                       </td>
                     </tr>

@@ -244,17 +244,17 @@ function SMEAEnrollment() {
                     (row.nutrition.severelyWastedPct ?? 0) + (row.nutrition.wastedPct ?? 0);
                   return (
                     <tr key={row.grade} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                      <td className="px-3 py-2.5 text-gray-900 dark:text-gray-100 font-medium">{row.grade}</td>
-                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">
+                      <td className="px-3 py-3 text-gray-900 dark:text-gray-100 font-medium">{row.grade}</td>
+                      <td className="px-3 py-3 text-gray-700 dark:text-gray-300">
                         {row.attendanceRate === null ? "—" : `${row.attendanceRate.toFixed(1)}%`}
                       </td>
-                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">
+                      <td className="px-3 py-3 text-gray-700 dark:text-gray-300">
                         {row.nutrition.weighedCount === 0 ? "—" : `${(row.nutrition.normalPct ?? 0).toFixed(1)}%`}
                       </td>
-                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">
+                      <td className="px-3 py-3 text-gray-700 dark:text-gray-300">
                         {row.nutrition.weighedCount === 0 ? "—" : `${wastedPct.toFixed(1)}%`}
                       </td>
-                      <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{row.lardoMonitoringCount}</td>
+                      <td className="px-3 py-3 text-gray-700 dark:text-gray-300">{row.lardoMonitoringCount}</td>
                     </tr>
                   );
                 })}
@@ -294,10 +294,10 @@ function SMEAEnrollment() {
                   <RowGroup key={row.grade} row={row} />
                 ))}
                 <tr className="bg-primary/5 dark:bg-primary/10 font-semibold text-gray-900 dark:text-gray-100">
-                  <td className="px-3 py-2.5" colSpan={2}>TOTAL</td>
-                  <td className="px-3 py-2.5">{report.totalMale}</td>
-                  <td className="px-3 py-2.5">{report.totalFemale}</td>
-                  <td className="px-3 py-2.5">{report.totalLearners}</td>
+                  <td className="px-3 py-3" colSpan={2}>TOTAL</td>
+                  <td className="px-3 py-3">{report.totalMale}</td>
+                  <td className="px-3 py-3">{report.totalFemale}</td>
+                  <td className="px-3 py-3">{report.totalLearners}</td>
                 </tr>
               </tbody>
             </table>
@@ -329,22 +329,22 @@ function RowGroup({ row }) {
       {row.sections.map((s) => (
         <tr key={s.section} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
           {s === row.sections[0] && (
-            <td className="px-3 py-2.5 text-gray-900 dark:text-gray-100 font-medium align-top" rowSpan={row.sections.length}>
+            <td className="px-3 py-3 text-gray-900 dark:text-gray-100 font-medium align-top" rowSpan={row.sections.length}>
               {row.grade}
             </td>
           )}
-          <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{s.section}</td>
-          <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{s.male}</td>
-          <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{s.female}</td>
-          <td className="px-3 py-2.5 text-gray-700 dark:text-gray-300">{s.total}</td>
+          <td className="px-3 py-3 text-gray-700 dark:text-gray-300">{s.section}</td>
+          <td className="px-3 py-3 text-gray-700 dark:text-gray-300">{s.male}</td>
+          <td className="px-3 py-3 text-gray-700 dark:text-gray-300">{s.female}</td>
+          <td className="px-3 py-3 text-gray-700 dark:text-gray-300">{s.total}</td>
         </tr>
       ))}
       <tr className="bg-gray-50/70 dark:bg-gray-800/40 text-xs font-semibold text-gray-500 dark:text-gray-400">
-        <td className="px-3 py-2">Subtotal — {row.grade}</td>
-        <td className="px-3 py-2"></td>
-        <td className="px-3 py-2">{row.male}</td>
-        <td className="px-3 py-2">{row.female}</td>
-        <td className="px-3 py-2">{row.total}</td>
+        <td className="px-3 py-3">Subtotal — {row.grade}</td>
+        <td className="px-3 py-3"></td>
+        <td className="px-3 py-3">{row.male}</td>
+        <td className="px-3 py-3">{row.female}</td>
+        <td className="px-3 py-3">{row.total}</td>
       </tr>
     </>
   );

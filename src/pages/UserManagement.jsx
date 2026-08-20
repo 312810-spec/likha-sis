@@ -713,12 +713,12 @@ export default function UserManagement({ user }) {
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  <th className="py-3 px-4">Full Name</th>
-                  <th className="py-3 px-4">Email</th>
-                  <th className="py-3 px-4">Roles</th>
-                  <th className="py-3 px-4">Assignments</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Actions</th>
+                  <th className="py-2.5 px-4">Full Name</th>
+                  <th className="py-2.5 px-4">Email</th>
+                  <th className="py-2.5 px-4">Roles</th>
+                  <th className="py-2.5 px-4">Assignments</th>
+                  <th className="py-2.5 px-4">Status</th>
+                  <th className="py-2.5 px-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -1172,10 +1172,10 @@ export default function UserManagement({ user }) {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Parent Name</th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Email</th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Linked Learner(s)</th>
-                  <th className="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider">Parent Name</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider">Email</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider">Linked Learner(s)</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
