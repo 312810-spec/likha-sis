@@ -51,7 +51,7 @@ function StatTile({ icon: Icon, tint, label, children }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-400">{label}</div>
-        <div className="font-tabular text-base font-semibold mt-0.5 text-gray-900 dark:text-gray-100 truncate">{children}</div>
+        <div className="font-tabular text-base font-semibold mt-0.5 text-gray-900 dark:text-gray-100 break-words">{children}</div>
       </div>
     </div>
   );
@@ -65,7 +65,7 @@ function TileEmptyState({ icon: Icon = Inbox, text }) {
   return (
     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
       <Icon size={13} className="flex-shrink-0" />
-      <span className="truncate">{text}</span>
+      <span className="break-words">{text}</span>
     </span>
   );
 }

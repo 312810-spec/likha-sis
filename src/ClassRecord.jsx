@@ -898,7 +898,7 @@ export default function ClassRecord({ user }) {
                           className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150 even:bg-gray-50/50 dark:even:bg-gray-800/30 bg-white dark:bg-gray-900"
                         >
                           {/* Name Column */}
-                          <td className="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700 font-medium text-gray-800 dark:text-gray-100 sticky left-0 z-10 bg-inherit truncate max-w-[220px]" title={nameDisplay}>
+                          <td className="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700 font-medium text-gray-800 dark:text-gray-100 sticky left-0 z-10 bg-inherit break-words max-w-[220px]" title={nameDisplay}>
                             <span className="text-gray-400 dark:text-gray-500 font-normal mr-2">{index + 1}.</span>
                             {nameDisplay}
                           </td>
@@ -988,7 +988,7 @@ export default function ClassRecord({ user }) {
                           <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/20 dark:bg-accent/30 font-bold text-gray-900 dark:text-gray-100">
                             {termGrade !== null ? termGrade : "—"}
                           </td>
-                          <td className="px-2 py-1.5 text-left bg-gray-50 dark:bg-gray-800/40 text-[11px] text-gray-700 dark:text-gray-300 font-medium truncate max-w-[150px]" title={description || ""}>
+                          <td className="px-2 py-1.5 text-left bg-gray-50 dark:bg-gray-800/40 text-[11px] text-gray-700 dark:text-gray-300 font-medium break-words max-w-[150px]" title={description || ""}>
                             {description || "—"}
                           </td>
                         </tr>
