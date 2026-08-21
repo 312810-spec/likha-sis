@@ -13,6 +13,7 @@ import {
   getUpcomingHolidays,
   toDateKey,
   HOLIDAY_TYPE_LABELS,
+  PHILIPPINE_HOLIDAYS,
 } from "./philippineHolidays.js";
 import academicCalendar from "../academicCalendar.js";
 
@@ -129,6 +130,26 @@ function isLeapYear(year) {
   return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
 }
 
+function normalizeEntryTitle(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+// Static Philippine holidays grouped by date, normalized for comparison, so
+// a DepEd-synced calendar event landing on an existing holiday date (e.g. a
+// DepEd issuance also listing "Independence Day") doesn't render as two
+// separate entries on the same day (spec: avoid duplicate holidays/events).
+const HOLIDAY_TITLES_BY_DATE = PHILIPPINE_HOLIDAYS.reduce((acc, holiday) => {
+  (acc[holiday.date] = acc[holiday.date] || []).push(normalizeEntryTitle(holiday.name));
+  return acc;
+}, {});
+
+function duplicatesExistingHoliday(dateKey, title) {
+  const holidayNames = HOLIDAY_TITLES_BY_DATE[dateKey];
+  if (!holidayNames) return false;
+  const normalized = normalizeEntryTitle(title);
+  return holidayNames.some((name) => name === normalized || name.includes(normalized) || normalized.includes(name));
+}
+
 /** Projects each user's birthdate onto the viewed year (recurring yearly). */
 export function birthdayEntries(users = [], viewYear) {
   const entries = [];
@@ -150,20 +171,34 @@ export function birthdayEntries(users = [], viewYear) {
   return entries;
 }
 
-/** Expands a PAGASA weather advisory's validity window into one entry per day. */
+const ADVISORY_TYPE_LABELS = {
+  tropicalCyclone: "Tropical Cyclone Bulletin",
+  weatherAdvisory: "Weather Advisory",
+  heavyRainfallWarning: "Heavy Rainfall Warning",
+  rainfallAdvisory: "Rainfall Advisory",
+  thunderstormAdvisory: "Thunderstorm Advisory",
+};
+
+/** Expands a PAGASA advisory's validity window into one entry per day. */
 function advisoryEntries(advisories = []) {
   const entries = [];
   for (const advisory of advisories) {
     if (!advisory?.issuedAt) continue;
-    const title = `${advisory.cycloneName || "Weather Advisory"} — Signal No. ${advisory.signalNumber ?? "?"}`;
+    // Older/legacy docs have no advisoryType and were always cyclone bulletins.
+    const isCyclone = (advisory.advisoryType || "tropicalCyclone") === "tropicalCyclone";
+    const title = isCyclone
+      ? `${advisory.cycloneName || "Tropical Cyclone"} — Signal No. ${advisory.signalNumber ?? "?"}`
+      : advisory.headline || ADVISORY_TYPE_LABELS[advisory.advisoryType] || "Weather Advisory";
     for (const dateKey of expandDateRange(advisory.issuedAt, advisory.validUntil)) {
       entries.push({
         kind: "advisory",
         dateKey,
         title,
-        subtitle: advisory.headline || "",
+        subtitle: "DOST-PAGASA Advisory",
         tone: "red",
         id: advisory.id,
+        sourceUrl: advisory.sourceUrl || "",
+        syncedAt: advisory.updatedAt || "",
       });
     }
   }
@@ -177,13 +212,17 @@ function depedCalendarEntries(events = []) {
   for (const event of events) {
     if (!event?.startDate) continue;
     for (const dateKey of expandDateRange(event.startDate, event.endDate)) {
+      if (duplicatesExistingHoliday(dateKey, event.title)) continue;
       entries.push({
         kind: "depedCalendar",
         dateKey,
         title: event.title,
-        subtitle: "DepEd Official Calendar",
+        subtitle: "Official DepEd",
         tone: "blue",
         id: event.id,
+        sourceTitle: event.sourceTitle || "",
+        sourceUrl: event.sourceUrl || "",
+        syncedAt: event.syncedAt || event.updatedAt || "",
       });
     }
   }

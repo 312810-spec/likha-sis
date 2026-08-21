@@ -31,6 +31,29 @@ rework.
   salt) verification for the School Settings key, built on the Web Crypto
   API with no npm dependency. Any future "sensitive settings" gate should
   reuse this, not add a second hashing scheme.
+- `scripts/external-calendar/` — the free, GitHub Actions-run sync for
+  `depedCalendarEvents` and `weatherAdvisories` (see
+  `docs/ai/DECISIONS.md`). A standalone Node package (own
+  `package.json`/`vitest.config.js`), never imported from `src/` or
+  `functions/`. `depedSourceDiscovery.mjs` ranks live-discovered DepEd
+  Order/Memorandum posts instead of a hard-coded URL;
+  `depedCalendarParser.mjs` parses an HTML table, DepEd's "Annex B"
+  calendar-matrix format (`parseDepedAnnexCalendarText` -- month headers
+  followed by day/day-range rows with one or more bulleted activities), and
+  a generic single-line PDF format; `lib/ocrPdf.mjs` OCRs a DepEd PDF with
+  no text layer via Poppler + Tesseract (free, local, never an AI API --
+  see `docs/ai/DECISIONS.md`) so `parseDepedAnnexCalendarText` still has
+  text to work with; `pagasaParser.mjs` parses the official Tropical
+  Cyclone Bulletin
+  (HTML first, a linked PDF only as a fallback, scoped to the page's
+  current-status section and never its "Archive" section),
+  Weather Advisory, and PRSD regional rainfall/thunderstorm pages;
+  `lib/schoolLocation.mjs` maps a school's DepEd region to one of PAGASA's
+  5 real PRSD slugs (`ncrprsd`/`nlprsd`/`slprsd`/`visprsd`/`minprsd`);
+  `lib/firestoreWriter.mjs` has the idempotent-upsert and
+  keep-last-known-good-on-failure logic both sync scripts share. Run
+  `npm test` inside `scripts/external-calendar/` for its own suite — it is
+  not part of the root `npm run test`.
 
 ## Important data relationships
 

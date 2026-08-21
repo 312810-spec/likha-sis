@@ -18,12 +18,14 @@ export default defineConfig([
   // screenshot script (modern-screenshot.umd.js) as plugin content, not
   // project source -- linting it against this project's browser-only config
   // produces false no-undef/no-redeclare errors from its UMD wrapper.
-  // functions/pagasa-sync is a standalone Node/Docker project (Cloud Run
-  // service, not part of the Vite app or the standard Firebase Functions
-  // buildpack) with its own package.json; it uses Node globals
-  // (process, Buffer) this browser-only config doesn't define. It's
-  // verified separately with `node --check`, not this ESLint config.
-  globalIgnores(['dist', '.infographic-build', '.claude/worktrees', '.gemini', '.claude/skills/impeccable', 'functions/pagasa-sync']),
+  // scripts/external-calendar is a standalone Node project (its own
+  // package.json, run only by .github/workflows/sync-official-calendar.yml)
+  // using ESM .mjs files with Node globals (process, Buffer, fetch) this
+  // browser-only config doesn't define -- the `files: ['**/*.{js,jsx}']`
+  // glob below doesn't match .mjs anyway, but it's called out here too since
+  // that's the more legible signal for why it isn't linted by this config.
+  // It has its own `npm test` (vitest) run from inside that directory.
+  globalIgnores(['dist', '.infographic-build', '.claude/worktrees', '.gemini', '.claude/skills/impeccable', 'scripts/external-calendar']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

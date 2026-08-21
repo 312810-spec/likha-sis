@@ -74,6 +74,22 @@ function relativeLabel(dateKey) {
   return `in ${days} days`;
 }
 
+// Synced DepEd/PAGASA entries carry source metadata (sourceTitle, sourceUrl,
+// syncedAt) that a plain title/subtitle tooltip doesn't show. Native title
+// attributes support newlines, so this stays a hover tooltip rather than a
+// new modal component -- enough to satisfy "click/view shows the source"
+// without adding UI surface for what's otherwise a sync-architecture change.
+function entryTooltip(entry) {
+  const lines = [entry.subtitle ? `${entry.title} — ${entry.subtitle}` : entry.title];
+  if (entry.sourceTitle) lines.push(entry.sourceTitle);
+  if (entry.sourceUrl) lines.push(entry.sourceUrl);
+  if (entry.syncedAt) {
+    const synced = new Date(entry.syncedAt);
+    if (!Number.isNaN(synced.getTime())) lines.push(`Last synced: ${synced.toLocaleString()}`);
+  }
+  return lines.join("\n");
+}
+
 export default function SchoolCalendar({ user, userRoles }) {
   const today = useMemo(() => new Date(), []);
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -124,9 +140,10 @@ export default function SchoolCalendar({ user, userRoles }) {
     return () => unsubscribe();
   }, []);
 
-  // PAGASA tropical cyclone bulletins, synced by the pagasa-sync Cloud Run
-  // service (functions/pagasa-sync) -- decoupled from how that job parses
-  // bulletins; this just reads the collection it writes.
+  // PAGASA advisories, synced by scripts/external-calendar/syncPagasaAdvisories.mjs
+  // (run on a schedule by .github/workflows/sync-official-calendar.yml) --
+  // decoupled from how that job parses bulletins; this just reads the
+  // collection it writes.
   useEffect(() => {
     const q = query(collection(db, "weatherAdvisories"), orderBy("issuedAt", "desc"), limit(20));
     const unsubscribe = onSnapshot(
@@ -137,9 +154,10 @@ export default function SchoolCalendar({ user, userRoles }) {
     return () => unsubscribe();
   }, []);
 
-  // DepEd's published official School Calendar, synced daily by the
-  // syncDepedCalendar scheduled Cloud Function (functions/syncDepedCalendar.js)
-  // -- supplementary/informational only, never overrides Term 1/2/3 boundaries.
+  // DepEd's published official School Calendar, synced daily by
+  // scripts/external-calendar/syncDepedCalendar.mjs (run on a schedule by
+  // .github/workflows/sync-official-calendar.yml) -- supplementary/
+  // informational only, never overrides Term 1/2/3 boundaries.
   useEffect(() => {
     const q = query(collection(db, "depedCalendarEvents"), orderBy("startDate", "desc"), limit(200));
     const unsubscribe = onSnapshot(
@@ -477,7 +495,7 @@ export default function SchoolCalendar({ user, userRoles }) {
                   {day.entries.slice(0, 3).map((entry, i) => (
                     <div
                       key={`${entry.kind}-${entry.id || entry.title}-${i}`}
-                      title={entry.subtitle ? `${entry.title} — ${entry.subtitle}` : entry.title}
+                      title={entryTooltip(entry)}
                       className={`px-1 py-0.5 rounded text-[10px] leading-tight line-clamp-2 break-words ${
                         ENTRY_TONES[entry.tone] || ENTRY_TONES.blue
                       }`}

@@ -256,8 +256,8 @@ describe("schoolCalendar", () => {
       }];
       const entries = advisoryEntries(advisories);
       expect(entries).toEqual([
-        { kind: "advisory", dateKey: "2026-08-20", title: "Typhoon Test — Signal No. 2", subtitle: "Signal No. 2 raised over Region V", tone: "red", id: "adv1" },
-        { kind: "advisory", dateKey: "2026-08-21", title: "Typhoon Test — Signal No. 2", subtitle: "Signal No. 2 raised over Region V", tone: "red", id: "adv1" },
+        { kind: "advisory", dateKey: "2026-08-20", title: "Typhoon Test — Signal No. 2", subtitle: "DOST-PAGASA Advisory", tone: "red", id: "adv1", sourceUrl: "", syncedAt: "" },
+        { kind: "advisory", dateKey: "2026-08-21", title: "Typhoon Test — Signal No. 2", subtitle: "DOST-PAGASA Advisory", tone: "red", id: "adv1", sourceUrl: "", syncedAt: "" },
       ]);
     });
 
@@ -280,10 +280,18 @@ describe("schoolCalendar", () => {
         kind: "depedCalendar",
         dateKey: "2026-09-15",
         title: "Term 1 Final Examinations",
-        subtitle: "DepEd Official Calendar",
+        subtitle: "Official DepEd",
         tone: "blue",
         id: "dc1",
+        sourceTitle: "",
+        sourceUrl: "",
+        syncedAt: "",
       });
+    });
+
+    it("skips a DepEd event that duplicates an existing static holiday on the same date", () => {
+      const events = [{ id: "dc2", title: "Independence Day", startDate: "2026-06-12", endDate: "2026-06-12" }];
+      expect(depedCalendarEntries(events)).toEqual([]);
     });
   });
 });

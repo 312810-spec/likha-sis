@@ -116,6 +116,18 @@ Everything the first-run `SetupWizard` collects is also editable at any time fro
 * Verify changes: run the targeted lint/test for what you touched before declaring done (Claude Code hooks in `.claude/settings.json` do this automatically on Edit/Write/Stop).
 * Report changed files and what was actually verified — never claim a check passed that didn't run.
 
+### G. Free-First Infrastructure Mandate
+Standing, project-wide: prefer solutions that require no payment, no paid API key, and no billing-enabled cloud service whenever a reasonable free alternative exists.
+* Prefer free/keyless official APIs and public government sources.
+* Prefer existing Firebase Spark/free-quota capabilities.
+* Prefer GitHub Actions or client-side/background mechanisms that fit free quotas.
+* Prefer free/open-source libraries.
+* Do not introduce a paid SaaS/API.
+* Do not require Cloud Run, Cloud Functions, Cloud Scheduler, or another billing-enabled service when a free alternative can reasonably solve the problem.
+* Never enable billing automatically.
+* If something genuinely cannot be implemented reliably for free, stop and report the limitation before adding a paid dependency.
+* Don't remove existing paid infrastructure blindly if it's used elsewhere — retire it deliberately, once its free replacement is verified working, and only after calling out any billing-enabled resources the user should manually disable.
+
 Long-term project memory that doesn't belong in this file lives in `docs/ai/PROJECT-MEMORY.md` (reusable utilities, data relationships, security/print/testing conventions) and `docs/ai/DECISIONS.md` (ADR-style architecture decisions).
 
 ---

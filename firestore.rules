@@ -315,18 +315,22 @@ service cloud.firestore {
       allow write: if hasAnyRole(["principal", "ictCoordinator"]);
     }
 
-    // ---- weatherAdvisories (DOST-PAGASA tropical cyclone bulletins) ----
-    // Populated only by the syncPagasaBulletins scheduled Cloud Function via
-    // the Admin SDK, which bypasses these rules -- so no client write path
-    // is granted here at all.
+    // ---- weatherAdvisories (DOST-PAGASA advisories) ----
+    // Populated only by scripts/external-calendar/syncPagasaAdvisories.mjs,
+    // run on a schedule by .github/workflows/sync-official-calendar.yml via
+    // the Admin SDK (a service-account GitHub secret), which bypasses these
+    // rules -- so no client write path is granted here at all. Formerly a
+    // scheduled Cloud Run service (see docs/ai/DECISIONS.md).
     match /weatherAdvisories/{advisoryId} {
       allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
     }
 
     // ---- depedCalendarEvents (parsed DepEd official school calendar) ----
-    // Populated only by the syncDepedCalendar scheduled Cloud Function via
-    // the Admin SDK. Supplementary/informational only -- never authoritative
-    // for Term 1/2/3 boundaries, which stay owned by settings/schoolConfig.
+    // Populated only by scripts/external-calendar/syncDepedCalendar.mjs, run
+    // on a schedule by .github/workflows/sync-official-calendar.yml via the
+    // Admin SDK. Supplementary/informational only -- never authoritative for
+    // Term 1/2/3 boundaries, which stay owned by settings/schoolConfig.
+    // Formerly a scheduled Cloud Function (see docs/ai/DECISIONS.md).
     match /depedCalendarEvents/{eventId} {
       allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "stakeholder", "ictCoordinator", "smeaCoordinator", "guidance"]);
     }
