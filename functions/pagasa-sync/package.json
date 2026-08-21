@@ -1,0 +1,12 @@
+{
+  "name": "likha-sis-pagasa-sync",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "20" },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "pagasa-parser": "^2.2.4",
+    "@pagasa-parser/source-pdf": "^1.1.9"
+  }
+}

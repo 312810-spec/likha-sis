@@ -18,7 +18,12 @@ export default defineConfig([
   // screenshot script (modern-screenshot.umd.js) as plugin content, not
   // project source -- linting it against this project's browser-only config
   // produces false no-undef/no-redeclare errors from its UMD wrapper.
-  globalIgnores(['dist', '.infographic-build', '.claude/worktrees', '.gemini', '.claude/skills/impeccable']),
+  // functions/pagasa-sync is a standalone Node/Docker project (Cloud Run
+  // service, not part of the Vite app or the standard Firebase Functions
+  // buildpack) with its own package.json; it uses Node globals
+  // (process, Buffer) this browser-only config doesn't define. It's
+  // verified separately with `node --check`, not this ESLint config.
+  globalIgnores(['dist', '.infographic-build', '.claude/worktrees', '.gemini', '.claude/skills/impeccable', 'functions/pagasa-sync']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

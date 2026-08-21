@@ -8,6 +8,7 @@ import {
   EVENT_CATEGORIES,
   WEEKDAY_LABELS,
   birthdayEntries,
+  advisoryEntries,
 } from "../schoolCalendar.js";
 
 function findDay(month, dateKey) {
@@ -239,6 +240,28 @@ describe("schoolCalendar", () => {
     it("skips users with no birthdate", () => {
       const users = [{ id: "u3", fullName: "No Date" }];
       expect(birthdayEntries(users, 2026)).toEqual([]);
+    });
+  });
+
+  describe("advisoryEntries", () => {
+    it("expands a bulletin's validity window into one entry per day", () => {
+      const advisories = [{
+        id: "adv1",
+        cycloneName: "Typhoon Test",
+        signalNumber: 2,
+        issuedAt: "2026-08-20",
+        validUntil: "2026-08-21",
+        headline: "Signal No. 2 raised over Region V",
+      }];
+      const entries = advisoryEntries(advisories);
+      expect(entries).toEqual([
+        { kind: "advisory", dateKey: "2026-08-20", title: "Typhoon Test — Signal No. 2", subtitle: "Signal No. 2 raised over Region V", tone: "red", id: "adv1" },
+        { kind: "advisory", dateKey: "2026-08-21", title: "Typhoon Test — Signal No. 2", subtitle: "Signal No. 2 raised over Region V", tone: "red", id: "adv1" },
+      ]);
+    });
+
+    it("returns nothing when there are no active advisories", () => {
+      expect(advisoryEntries([])).toEqual([]);
     });
   });
 });
