@@ -9,6 +9,7 @@ import {
   WEEKDAY_LABELS,
   birthdayEntries,
   advisoryEntries,
+  depedCalendarEntries,
 } from "../schoolCalendar.js";
 
 function findDay(month, dateKey) {
@@ -262,6 +263,27 @@ describe("schoolCalendar", () => {
 
     it("returns nothing when there are no active advisories", () => {
       expect(advisoryEntries([])).toEqual([]);
+    });
+  });
+
+  describe("depedCalendarEntries", () => {
+    it("expands a DepEd calendar event's date range", () => {
+      const events = [{
+        id: "dc1",
+        title: "Term 1 Final Examinations",
+        startDate: "2026-09-15",
+        endDate: "2026-09-19",
+      }];
+      const entries = depedCalendarEntries(events);
+      expect(entries).toHaveLength(5);
+      expect(entries[0]).toEqual({
+        kind: "depedCalendar",
+        dateKey: "2026-09-15",
+        title: "Term 1 Final Examinations",
+        subtitle: "DepEd Official Calendar",
+        tone: "blue",
+        id: "dc1",
+      });
     });
   });
 });
