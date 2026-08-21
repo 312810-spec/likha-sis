@@ -37,6 +37,10 @@ export default defineConfig({
       ]
     },
     workbox: {
+      // The app bundle has grown past Workbox's 2 MiB precache default
+      // (SF1/SF2 redesigns added several components) -- raise the ceiling
+      // rather than leave the main bundle uncached for offline/PWA use.
+      maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       // Default runtime caching for images and CSS
       runtimeCaching: [
         {
