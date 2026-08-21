@@ -514,11 +514,28 @@ Task 7 is complete; deploy `firestore:rules` only in the meantime.)
 
 ---
 
-## Task 6: `syncPagasaBulletins` scheduled function
+## Task 6: `syncPagasaBulletins` (Cloud Run custom container, NOT a standard Firebase Function)
+
+> **Revised after implementation.** The original plan assumed
+> `pagasa-parser` was a self-contained HTML/text parser callable from a
+> standard Firebase Functions Node buildpack. Investigation during
+> implementation found `pagasa-parser` is an abstract base package with
+> no working parser of its own; the only plugin that can read PAGASA's
+> real, live bulletins is `@pagasa-parser/source-pdf`, which requires a
+> Java runtime (`tabula-java`) that the standard Firebase Functions Node
+> buildpack cannot provide. Ruling (approved by the user): migrate this
+> one sync job to a custom container on Cloud Run with a JRE baked in,
+> triggered by Cloud Scheduler over authenticated HTTP — it stays a
+> sibling of `functions/`, just not deployed through `firebase deploy
+> --only functions`. `functions/index.js` (Task 5) does NOT export this
+> job; it lives in its own directory and its own deploy path.
 
 **Files:**
-- Create: `functions/syncPagasaBulletins.js`
-- Modify: `functions/package.json` (add `pagasa-parser` dependency)
+- Create: `functions/pagasa-sync/Dockerfile`
+- Create: `functions/pagasa-sync/package.json`
+- Create: `functions/pagasa-sync/index.js`
+- Create: `functions/pagasa-sync/.gitignore`
+- Create: `functions/pagasa-sync/DEPLOY.md` (manual deploy steps — `gcloud` deployment is not run by the implementer; it requires the user's own `gcloud` auth and one-time IAM setup, documented here for the user/Task 9 to execute)
 - Modify: `src/utils/schoolCalendar.js` (add `advisoryEntries`, wire into `buildCalendarMonth`/`getUpcomingEntries`)
 - Modify: `src/SchoolCalendar.jsx` (subscribe to `weatherAdvisories`)
 - Test: `src/utils/__tests__/schoolCalendar.test.js`
@@ -527,81 +544,202 @@ Task 7 is complete; deploy `firestore:rules` only in the meantime.)
 - Produces (client side): `advisoryEntries(advisories)` → `Array<{kind: "advisory", dateKey, title, subtitle, tone: "red", id}>`, exported from `schoolCalendar.js`. Reads Firestore docs shaped `{signalNumber, cycloneName, affectedAreas, issuedAt, validUntil, headline, sourceUrl}` (`issuedAt`/`validUntil` as `"YYYY-MM-DD"` strings).
 - Consumes: nothing from earlier tasks besides the existing `entries`/`order` composition in `buildCalendarMonth`.
 
-- [ ] **Step 1: Add `pagasa-parser` to `functions/package.json`**
+- [ ] **Step 1: `functions/pagasa-sync/package.json`**
 
-Add to `dependencies`: `"pagasa-parser": "^1.0.0"` (use whatever the
-latest published major version is — check with `npm view pagasa-parser
-version` before pinning). Run `cd functions && npm install && cd ..`.
+```json
+{
+  "name": "likha-sis-pagasa-sync",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "20" },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "pagasa-parser": "^2.2.4",
+    "@pagasa-parser/source-pdf": "^1.1.9"
+  }
+}
+```
 
-- [ ] **Step 2: Write `functions/syncPagasaBulletins.js`**
+Run `npm view @pagasa-parser/source-pdf` first and confirm the real
+exported entrypoint name/shape before writing Step 3 — the brief-author
+guess below is illustrative, not guaranteed correct; adapt it to
+whatever `@pagasa-parser/source-pdf`'s actual README/exports show,
+the same way Task 6's original investigation had to.
+
+- [ ] **Step 2: `functions/pagasa-sync/Dockerfile`**
+
+```dockerfile
+FROM node:20-slim
+
+# tabula-java (used by @pagasa-parser/source-pdf) needs a JRE.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    default-jre-headless \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm install --omit=dev
+COPY . .
+
+ENV PORT=8080
+EXPOSE 8080
+CMD ["node", "index.js"]
+```
+
+- [ ] **Step 3: `functions/pagasa-sync/index.js`**
+
+A plain HTTP server (Cloud Run's contract: listen on `$PORT`, respond
+to POST). Cloud Scheduler calls this URL every 30 minutes with an
+authenticated OIDC token; Cloud Run's IAM (not this code) rejects
+unauthenticated calls, so the handler itself doesn't need to re-check
+auth.
 
 ```javascript
-// functions/syncPagasaBulletins.js
-// Runs every 30 minutes. Fetches PAGASA's current public tropical cyclone
-// bulletin and writes structured advisory data to Firestore. When there is
-// no active cyclone this clears the collection -- PAGASA doesn't issue
-// bulletins outside cyclone events, so an empty collection is the normal
-// state, not an error.
+// functions/pagasa-sync/index.js
+// Cloud Run service (NOT a Firebase Function) -- triggered by Cloud
+// Scheduler every 30 minutes over authenticated HTTP. Needs a JRE for
+// @pagasa-parser/source-pdf's tabula-java dependency, which the
+// standard Firebase Functions buildpack can't provide.
 
-import { onSchedule } from "firebase-functions/v2/scheduler";
+import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { parseBulletin } from "pagasa-parser";
+// Adjust this import to @pagasa-parser/source-pdf's real exported API
+// (confirmed in Step 1) -- illustrative name only:
+import { PdfSource } from "@pagasa-parser/source-pdf";
+
+initializeApp();
 
 const PAGASA_BULLETIN_LIST_URL = "https://www.pagasa.dost.gov.ph/tropical-cyclone/severe-weather-bulletin";
 
-export const syncPagasaBulletins = onSchedule(
-  { schedule: "every 30 minutes", region: "asia-southeast1", timeoutSeconds: 60 },
-  async () => {
-    const db = getFirestore();
-    const collection = db.collection("weatherAdvisories");
+async function syncBulletins() {
+  const db = getFirestore();
+  const collection = db.collection("weatherAdvisories");
 
-    let bulletins = [];
-    try {
-      const listResponse = await fetch(PAGASA_BULLETIN_LIST_URL);
-      if (!listResponse.ok) {
-        console.warn(`PAGASA bulletin list fetch failed: ${listResponse.status}`);
-        return;
-      }
-      const html = await listResponse.text();
-      bulletins = await parseBulletin(html);
-    } catch (error) {
-      console.error("Failed to fetch/parse PAGASA bulletin:", error);
-      return;
-    }
-
-    const existing = await collection.get();
-    const batch = db.batch();
-    for (const doc of existing.docs) batch.delete(doc.ref);
-
-    for (const bulletin of bulletins) {
-      const ref = collection.doc();
-      batch.set(ref, {
-        signalNumber: bulletin.signalNumber ?? null,
-        cycloneName: bulletin.cycloneName ?? "",
-        affectedAreas: bulletin.affectedAreas ?? [],
-        issuedAt: bulletin.issuedAt ?? "",
-        validUntil: bulletin.validUntil ?? "",
-        headline: bulletin.headline ?? "",
-        sourceUrl: PAGASA_BULLETIN_LIST_URL,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-
-    await batch.commit();
+  let bulletins = [];
+  try {
+    // Adapt to the real source-pdf API: locate the current bulletin PDF
+    // URL from the listing page, then parse it. Exact call shape depends
+    // on what Step 1's investigation found.
+    const source = new PdfSource({ url: PAGASA_BULLETIN_LIST_URL });
+    bulletins = await source.getBulletins();
+  } catch (error) {
+    console.error("Failed to fetch/parse PAGASA bulletin:", error);
+    return { synced: 0, error: String(error) };
   }
-);
+
+  const existing = await collection.get();
+  const batch = db.batch();
+  for (const doc of existing.docs) batch.delete(doc.ref);
+
+  for (const bulletin of bulletins) {
+    const ref = collection.doc();
+    batch.set(ref, {
+      signalNumber: bulletin.signalNumber ?? null,
+      cycloneName: bulletin.cycloneName ?? "",
+      affectedAreas: bulletin.affectedAreas ?? [],
+      issuedAt: bulletin.issuedAt ?? "",
+      validUntil: bulletin.validUntil ?? "",
+      headline: bulletin.headline ?? "",
+      sourceUrl: PAGASA_BULLETIN_LIST_URL,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  await batch.commit();
+  return { synced: bulletins.length };
+}
+
+const server = Bun?.serve ? null : await import("node:http");
+const port = process.env.PORT || 8080;
+
+server.createServer(async (req, res) => {
+  if (req.method !== "POST") {
+    res.writeHead(405).end("Method Not Allowed");
+    return;
+  }
+  try {
+    const result = await syncBulletins();
+    res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(result));
+  } catch (error) {
+    console.error("syncBulletins failed:", error);
+    res.writeHead(500).end("Internal Server Error");
+  }
+}).listen(port, () => console.log(`pagasa-sync listening on ${port}`));
 ```
 
-(The exact shape `parseBulletin` returns depends on the installed
-`pagasa-parser` version's actual API — during implementation, run `npm
-view pagasa-parser` and check its README/exports, and adjust the field
-mapping above to match. The Firestore document shape written
-(`signalNumber`, `cycloneName`, `affectedAreas`, `issuedAt`,
-`validUntil`, `headline`, `sourceUrl`, `updatedAt`) is what the client
-in Step 4 depends on — keep that shape stable even if the parser's raw
-output field names differ.)
+(The `Bun?.serve` line is a leftover-looking artifact — just use Node's
+built-in `http` module directly: `import { createServer } from
+"node:http";` and `createServer(async (req, res) => { ... }).listen(port)`.
+Simplify Step 3's server bootstrap to plain `node:http`, no conditional.)
 
-- [ ] **Step 3: Write the failing client-side test**
+- [ ] **Step 4: `functions/pagasa-sync/.gitignore`**
+
+```
+node_modules/
+```
+
+- [ ] **Step 4b: Remove the now-incorrect `syncPagasaBulletins` export from `functions/index.js`**
+
+Task 5 created `functions/index.js` with:
+```javascript
+export { syncPagasaBulletins } from "./syncPagasaBulletins.js";
+export { syncDepedCalendar } from "./syncDepedCalendar.js";
+```
+Since `pagasa-sync` is now a standalone Cloud Run service (not a
+Firebase Function export), remove the first line. `functions/index.js`
+should now read:
+```javascript
+import { initializeApp } from "firebase-admin/app";
+
+initializeApp();
+
+export { syncDepedCalendar } from "./syncDepedCalendar.js";
+```
+(`syncDepedCalendar` still doesn't exist yet — Task 7 creates it, same
+as before this revision.)
+
+- [ ] **Step 5: `functions/pagasa-sync/DEPLOY.md`**
+
+```markdown
+# Deploying pagasa-sync
+
+This is a Cloud Run service, not a Firebase Function -- it needs a JRE
+for @pagasa-parser/source-pdf, which Firebase's standard Node buildpack
+can't provide. Deploy manually (one-time setup + redeploy on changes):
+
+## One-time setup
+
+    gcloud run deploy pagasa-sync \
+      --source functions/pagasa-sync \
+      --region asia-southeast1 \
+      --no-allow-unauthenticated \
+      --project likha-sis
+
+    # Create a dedicated service account for Cloud Scheduler to call this
+    # service with, and grant it Cloud Run Invoker on this service:
+    gcloud iam service-accounts create pagasa-sync-invoker \
+      --project likha-sis
+    gcloud run services add-iam-policy-binding pagasa-sync \
+      --region asia-southeast1 \
+      --member="serviceAccount:pagasa-sync-invoker@likha-sis.iam.gserviceaccount.com" \
+      --role="roles/run.invoker"
+
+    # Schedule it every 30 minutes:
+    gcloud scheduler jobs create http pagasa-sync-job \
+      --schedule="*/30 * * * *" \
+      --uri="$(gcloud run services describe pagasa-sync --region asia-southeast1 --format='value(status.url)')" \
+      --http-method=POST \
+      --oidc-service-account-email="pagasa-sync-invoker@likha-sis.iam.gserviceaccount.com" \
+      --location=asia-southeast1 \
+      --project likha-sis
+
+## Redeploy after code changes
+
+    gcloud run deploy pagasa-sync --source functions/pagasa-sync --region asia-southeast1 --project likha-sis
+```
+
+- [ ] **Step 6: Write the failing client-side test**
 
 Add to `src/utils/__tests__/schoolCalendar.test.js`:
 
@@ -631,12 +769,12 @@ describe("advisoryEntries", () => {
 });
 ```
 
-- [ ] **Step 4: Run test to verify it fails**
+- [ ] **Step 7: Run test to verify it fails**
 
-Run: `npx vitest run src/utils/__tests__/schoolCalendar.test.js --reporter=compact`
+Run: `npx vitest run src/utils/__tests__/schoolCalendar.test.js`
 Expected: FAIL — `advisoryEntries` is not exported.
 
-- [ ] **Step 5: Implement `advisoryEntries` in `src/utils/schoolCalendar.js`**
+- [ ] **Step 8: Implement `advisoryEntries` in `src/utils/schoolCalendar.js`**
 
 Add alongside `birthdayEntries`:
 
@@ -671,12 +809,12 @@ Wire into `getUpcomingEntries` the same way (destructure
 `weatherAdvisories = []`, spread `advisoryEntries(weatherAdvisories)`
 into its `entries` array too).
 
-- [ ] **Step 6: Run test to verify it passes**
+- [ ] **Step 9: Run test to verify it passes**
 
-Run: `npx vitest run src/utils/__tests__/schoolCalendar.test.js --reporter=compact`
+Run: `npx vitest run src/utils/__tests__/schoolCalendar.test.js`
 Expected: PASS
 
-- [ ] **Step 7: Subscribe to `weatherAdvisories` in `SchoolCalendar.jsx`**
+- [ ] **Step 10: Subscribe to `weatherAdvisories` in `SchoolCalendar.jsx`**
 
 Following the exact pattern of the existing `announcements` `useEffect`
 (around line 109 of `src/SchoolCalendar.jsx`), add:
@@ -703,20 +841,24 @@ existing legend line covers it — no new legend row needed, but rename
 that legend label from "Suspension" to "Suspension / Weather Advisory"
 so it's not misleading).
 
-- [ ] **Step 8: Lint**
+- [ ] **Step 11: Lint**
 
-Run: `npx eslint src/SchoolCalendar.jsx src/utils/schoolCalendar.js functions/syncPagasaBulletins.js`
-Expected: no errors (functions/ is outside the frontend ESLint config's
-scope in most Vite setups — if `eslint .` errors on `functions/` because
-it's picked up unintentionally, add `functions/` to `.eslintignore` or
-the flat config's `ignores` array).
+Run: `npx eslint src/SchoolCalendar.jsx src/utils/schoolCalendar.js`
+Expected: no errors. (`functions/pagasa-sync/` is a separate Node/Docker
+project outside the frontend ESLint config's scope — don't lint it with
+the frontend `eslint` config; a plain `node --check functions/pagasa-sync/index.js`
+is enough to confirm syntax validity.)
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 12: Commit**
 
 ```bash
-git add functions/syncPagasaBulletins.js functions/package.json src/utils/schoolCalendar.js src/utils/__tests__/schoolCalendar.test.js src/SchoolCalendar.jsx
-git commit -m "feat: add PAGASA tropical cyclone bulletin sync and calendar advisory entries"
+git add functions/pagasa-sync/ src/utils/schoolCalendar.js src/utils/__tests__/schoolCalendar.test.js src/SchoolCalendar.jsx
+git commit -m "feat: add PAGASA tropical cyclone bulletin sync (Cloud Run) and calendar advisory entries"
 ```
+
+Note: `functions/pagasa-sync/DEPLOY.md`'s `gcloud` commands are not run
+by this task — they require the user's own `gcloud` auth and one-time
+IAM setup, and are executed later (Task 9 or by the user directly).
 
 ---
 
@@ -1159,8 +1301,12 @@ git commit -m "feat: render personnel birthdays and weather forecast strip on th
 - [ ] **Step 1: Deploy functions**
 
 Run: `npx firebase-tools deploy --only functions`
-Expected: `syncPagasaBulletins` and `syncDepedCalendar` both deploy
-successfully as scheduled functions.
+Expected: `syncDepedCalendar` deploys successfully as a scheduled
+Firebase Function. (`pagasa-sync` is NOT part of this deploy — per
+Task 6's revision, it's a separate Cloud Run service. Follow
+`functions/pagasa-sync/DEPLOY.md`'s `gcloud` commands separately; they
+require the user's own `gcloud` auth and one-time IAM setup and are not
+run automatically as part of this task.)
 
 - [ ] **Step 2: Manually trigger each function once to verify end-to-end**
 
