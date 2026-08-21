@@ -28,6 +28,8 @@ import {
   getUpcomingEntries,
 } from "./utils/schoolCalendar.js";
 import { toDateKey, daysUntil } from "./utils/philippineHolidays.js";
+import { fetchForecast } from "./utils/weather.js";
+import useSchoolConfig from "./hooks/useSchoolConfig.js";
 import { canManageSchoolEvents } from "./pageAccess.js";
 import PageHeader from "./components/PageHeader.jsx";
 import Button from "./components/Button.jsx";
@@ -81,7 +83,11 @@ export default function SchoolCalendar({ user, userRoles }) {
   const [announcements, setAnnouncements] = useState([]);
   const [weatherAdvisories, setWeatherAdvisories] = useState([]);
   const [depedCalendarEvents, setDepedCalendarEvents] = useState([]);
+  const [personnel, setPersonnel] = useState([]);
+  const [forecast, setForecast] = useState([]);
   const [loadError, setLoadError] = useState("");
+
+  const { config: schoolConfig } = useSchoolConfig();
 
   const [composing, setComposing] = useState(false);
   const [draft, setDraft] = useState(emptyEvent);
@@ -144,6 +150,42 @@ export default function SchoolCalendar({ user, userRoles }) {
     return () => unsubscribe();
   }, []);
 
+  // Personnel birthdays -- read the same users collection Reports/User
+  // Management already subscribe to, so birthdayEntries() in
+  // utils/schoolCalendar.js has something to render.
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      collection(db, "users"),
+      (snap) => setPersonnel(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      () => setPersonnel([])
+    );
+    return () => unsubscribe();
+  }, []);
+
+  // General weather forecast (Open-Meteo) for the school's own coordinates --
+  // fetched once on mount and refreshed hourly. Distinct from the official
+  // PAGASA weatherAdvisories collection above.
+  useEffect(() => {
+    if (!schoolConfig?.latitude || !schoolConfig?.longitude) return undefined;
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const data = await fetchForecast(schoolConfig.latitude, schoolConfig.longitude);
+        if (!cancelled) setForecast(data);
+      } catch (error) {
+        console.error("Failed to fetch weather forecast:", error);
+      }
+    }
+
+    load();
+    const interval = setInterval(load, 60 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [schoolConfig?.latitude, schoolConfig?.longitude]);
+
   const month = useMemo(
     () =>
       buildCalendarMonth(viewYear, viewMonth, {
@@ -151,19 +193,20 @@ export default function SchoolCalendar({ user, userRoles }) {
         announcements,
         weatherAdvisories,
         depedCalendarEvents,
+        users: personnel,
         today,
       }),
-    [viewYear, viewMonth, schoolEvents, announcements, weatherAdvisories, depedCalendarEvents, today]
+    [viewYear, viewMonth, schoolEvents, announcements, weatherAdvisories, depedCalendarEvents, personnel, today]
   );
 
   const upcoming = useMemo(
     () =>
       getUpcomingEntries(
-        { schoolEvents, announcements, weatherAdvisories, depedCalendarEvents, limit: 10 },
+        { schoolEvents, announcements, weatherAdvisories, depedCalendarEvents, users: personnel, limit: 10 },
         today,
         45
       ),
-    [schoolEvents, announcements, weatherAdvisories, depedCalendarEvents, today]
+    [schoolEvents, announcements, weatherAdvisories, depedCalendarEvents, personnel, today]
   );
 
   function shiftMonth(delta) {
@@ -241,6 +284,32 @@ export default function SchoolCalendar({ user, userRoles }) {
           )
         }
       />
+
+      {forecast.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {forecast.map((day) => (
+            <div
+              key={day.dateKey}
+              className={`flex-shrink-0 w-20 text-center px-2 py-2 rounded-lg border text-xs ${
+                day.severe
+                  ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30"
+                  : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+              }`}
+            >
+              <p className="font-semibold text-gray-700 dark:text-gray-200">
+                {new Date(`${day.dateKey}T00:00:00`).toLocaleDateString("en-US", { weekday: "short" })}
+              </p>
+              <p className="text-gray-500 dark:text-gray-400">
+                {Math.round(day.tempMaxC)}°/{Math.round(day.tempMinC)}°
+              </p>
+              {day.severe && <p className="text-red-600 dark:text-red-400 font-medium mt-0.5">Severe</p>}
+            </div>
+          ))}
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 self-center ml-1">
+            General forecast — not an official PAGASA bulletin.
+          </p>
+        </div>
+      )}
 
       {loadError && (
         <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 flex items-start gap-3 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300 animate-fade-in">
