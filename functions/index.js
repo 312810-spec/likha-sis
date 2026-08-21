@@ -6,5 +6,4 @@ import { initializeApp } from "firebase-admin/app";
 
 initializeApp();
 
-export { syncPagasaBulletins } from "./syncPagasaBulletins.js";
 export { syncDepedCalendar } from "./syncDepedCalendar.js";

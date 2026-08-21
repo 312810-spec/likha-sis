@@ -79,6 +79,7 @@ export default function SchoolCalendar({ user, userRoles }) {
 
   const [schoolEvents, setSchoolEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
+  const [weatherAdvisories, setWeatherAdvisories] = useState([]);
   const [loadError, setLoadError] = useState("");
 
   const [composing, setComposing] = useState(false);
@@ -116,14 +117,27 @@ export default function SchoolCalendar({ user, userRoles }) {
     return () => unsubscribe();
   }, []);
 
+  // PAGASA tropical cyclone bulletins, synced by the pagasa-sync Cloud Run
+  // service (functions/pagasa-sync) -- decoupled from how that job parses
+  // bulletins; this just reads the collection it writes.
+  useEffect(() => {
+    const q = query(collection(db, "weatherAdvisories"), orderBy("issuedAt", "desc"), limit(20));
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => setWeatherAdvisories(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      () => setWeatherAdvisories([])
+    );
+    return () => unsubscribe();
+  }, []);
+
   const month = useMemo(
-    () => buildCalendarMonth(viewYear, viewMonth, { schoolEvents, announcements, today }),
-    [viewYear, viewMonth, schoolEvents, announcements, today]
+    () => buildCalendarMonth(viewYear, viewMonth, { schoolEvents, announcements, weatherAdvisories, today }),
+    [viewYear, viewMonth, schoolEvents, announcements, weatherAdvisories, today]
   );
 
   const upcoming = useMemo(
-    () => getUpcomingEntries({ schoolEvents, announcements, limit: 10 }, today, 45),
-    [schoolEvents, announcements, today]
+    () => getUpcomingEntries({ schoolEvents, announcements, weatherAdvisories, limit: 10 }, today, 45),
+    [schoolEvents, announcements, weatherAdvisories, today]
   );
 
   function shiftMonth(delta) {
@@ -388,7 +402,7 @@ export default function SchoolCalendar({ user, userRoles }) {
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 text-[11px] text-gray-500 dark:text-gray-400">
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-red-200 dark:bg-red-900" /> Suspension
+              <span className="w-2.5 h-2.5 rounded-sm bg-red-200 dark:bg-red-900" /> Suspension / Weather Advisory
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-sm bg-rose-200 dark:bg-rose-900" /> Holiday

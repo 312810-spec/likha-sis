@@ -150,6 +150,27 @@ export function birthdayEntries(users = [], viewYear) {
   return entries;
 }
 
+/** Expands a PAGASA weather advisory's validity window into one entry per day. */
+function advisoryEntries(advisories = []) {
+  const entries = [];
+  for (const advisory of advisories) {
+    if (!advisory?.issuedAt) continue;
+    const title = `${advisory.cycloneName || "Weather Advisory"} — Signal No. ${advisory.signalNumber ?? "?"}`;
+    for (const dateKey of expandDateRange(advisory.issuedAt, advisory.validUntil)) {
+      entries.push({
+        kind: "advisory",
+        dateKey,
+        title,
+        subtitle: advisory.headline || "",
+        tone: "red",
+        id: advisory.id,
+      });
+    }
+  }
+  return entries;
+}
+export { advisoryEntries };
+
 /**
  * Builds a 6x7 day grid for the given month, with each day's entries merged.
  *
@@ -162,7 +183,7 @@ export function birthdayEntries(users = [], viewYear) {
  * @param {number} month zero-based, matching Date#getMonth
  */
 export function buildCalendarMonth(year, month, sources = {}) {
-  const { schoolEvents = [], announcements = [], users = [], today = new Date() } = sources;
+  const { schoolEvents = [], announcements = [], users = [], weatherAdvisories = [], today = new Date() } = sources;
 
   const firstOfMonth = new Date(year, month, 1);
   const gridStart = addDays(firstOfMonth, -firstOfMonth.getDay());
@@ -173,6 +194,7 @@ export function buildCalendarMonth(year, month, sources = {}) {
     ...eventEntries(schoolEvents),
     ...suspensionEntries(announcements),
     ...birthdayEntries(users, year),
+    ...advisoryEntries(weatherAdvisories),
   ];
 
   const byDate = entries.reduce((acc, entry) => {
@@ -180,7 +202,7 @@ export function buildCalendarMonth(year, month, sources = {}) {
     return acc;
   }, {});
 
-  const order = { suspension: 0, holiday: 1, event: 2, birthday: 3 };
+  const order = { advisory: 0, suspension: 0, holiday: 1, event: 2, birthday: 3 };
   const todayKey = toDateKey(today);
 
   const weeks = [];
@@ -215,7 +237,7 @@ export function buildCalendarMonth(year, month, sources = {}) {
  * section and the calendar page's side list.
  */
 export function getUpcomingEntries(sources = {}, from = new Date(), days = 30) {
-  const { schoolEvents = [], announcements = [], users = [], limit = 8 } = sources;
+  const { schoolEvents = [], announcements = [], users = [], weatherAdvisories = [], limit = 8 } = sources;
 
   const start = toDateKey(from);
   const endDate = new Date(`${start}T00:00:00`);
@@ -230,6 +252,7 @@ export function getUpcomingEntries(sources = {}, from = new Date(), days = 30) {
     ...suspensionEntries(announcements),
     ...birthdayEntries(users, fromYear),
     ...birthdayEntries(users, fromYear + 1),
+    ...advisoryEntries(weatherAdvisories),
   ]
     .filter((e) => e.dateKey >= start && e.dateKey <= end)
     .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
