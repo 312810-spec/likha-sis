@@ -7,6 +7,9 @@ import {
   getTermBoundary,
   EVENT_CATEGORIES,
   WEEKDAY_LABELS,
+  birthdayEntries,
+  advisoryEntries,
+  depedCalendarEntries,
 } from "../schoolCalendar.js";
 
 function findDay(month, dateKey) {
@@ -201,6 +204,85 @@ describe("schoolCalendar", () => {
         expect(c.id).toBeTruthy();
         expect(c.label).toBeTruthy();
         expect(c.tint).toBeTruthy();
+      });
+    });
+
+    it("includes a DepEd/gov announcement category", () => {
+      expect(EVENT_CATEGORIES.find((c) => c.id === "depedAnnouncement")).toEqual({
+        id: "depedAnnouncement",
+        label: "DepEd/Gov Announcement",
+        tint: "blue",
+      });
+    });
+  });
+
+  describe("birthdayEntries", () => {
+    it("projects a birthdate onto the viewed year", () => {
+      const users = [{ id: "u1", fullName: "Ana Reyes", birthdate: "1990-03-14" }];
+      const entries = birthdayEntries(users, 2026);
+      expect(entries).toEqual([
+        {
+          kind: "birthday",
+          dateKey: "2026-03-14",
+          title: "Ana Reyes's Birthday",
+          subtitle: "Personnel Birthday",
+          tone: "violet",
+          id: "u1",
+        },
+      ]);
+    });
+
+    it("handles a Feb 29 birthdate in a non-leap viewed year by falling back to Feb 28", () => {
+      const users = [{ id: "u2", fullName: "Leap Cruz", birthdate: "1992-02-29" }];
+      const entries = birthdayEntries(users, 2026);
+      expect(entries[0].dateKey).toBe("2026-02-28");
+    });
+
+    it("skips users with no birthdate", () => {
+      const users = [{ id: "u3", fullName: "No Date" }];
+      expect(birthdayEntries(users, 2026)).toEqual([]);
+    });
+  });
+
+  describe("advisoryEntries", () => {
+    it("expands a bulletin's validity window into one entry per day", () => {
+      const advisories = [{
+        id: "adv1",
+        cycloneName: "Typhoon Test",
+        signalNumber: 2,
+        issuedAt: "2026-08-20",
+        validUntil: "2026-08-21",
+        headline: "Signal No. 2 raised over Region V",
+      }];
+      const entries = advisoryEntries(advisories);
+      expect(entries).toEqual([
+        { kind: "advisory", dateKey: "2026-08-20", title: "Typhoon Test — Signal No. 2", subtitle: "Signal No. 2 raised over Region V", tone: "red", id: "adv1" },
+        { kind: "advisory", dateKey: "2026-08-21", title: "Typhoon Test — Signal No. 2", subtitle: "Signal No. 2 raised over Region V", tone: "red", id: "adv1" },
+      ]);
+    });
+
+    it("returns nothing when there are no active advisories", () => {
+      expect(advisoryEntries([])).toEqual([]);
+    });
+  });
+
+  describe("depedCalendarEntries", () => {
+    it("expands a DepEd calendar event's date range", () => {
+      const events = [{
+        id: "dc1",
+        title: "Term 1 Final Examinations",
+        startDate: "2026-09-15",
+        endDate: "2026-09-19",
+      }];
+      const entries = depedCalendarEntries(events);
+      expect(entries).toHaveLength(5);
+      expect(entries[0]).toEqual({
+        kind: "depedCalendar",
+        dateKey: "2026-09-15",
+        title: "Term 1 Final Examinations",
+        subtitle: "DepEd Official Calendar",
+        tone: "blue",
+        id: "dc1",
       });
     });
   });
