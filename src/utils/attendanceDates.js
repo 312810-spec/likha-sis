@@ -39,3 +39,14 @@ export function schoolYearFromMonth(monthValue) {
   const month = Number(monthValue.slice(5, 7));
   return month >= 6 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
 }
+
+// Tallies present/absent for one date from an attendance doc's `records` map
+// (learnerId -> { "YYYY-MM-DD": "A" | "T" }, blank/missing = present -- see
+// SF2.jsx). Shared by the Dashboard's adviser/principal/SMEA attendance
+// widgets so "today's attendance" is computed the same way everywhere.
+export function summarizeAttendanceForDate(records, dateString) {
+  const ids = Object.keys(records || {});
+  const total = ids.length;
+  const absent = ids.filter((id) => records[id]?.[dateString] === "A").length;
+  return { total, absent, present: Math.max(total - absent, 0) };
+}

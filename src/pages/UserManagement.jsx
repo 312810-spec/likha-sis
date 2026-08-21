@@ -30,6 +30,7 @@ import Button from "../components/Button.jsx";
 import SubjectSelectPicker from "../components/SubjectSelectPicker.jsx";
 import { getSubjectsForGradeLevel } from "../utils/subjectDirectory";
 import { buildAssignmentKeys } from "../utils/assignmentKeys";
+import { resolvePositionOptions, resolvePositionSelectValue, OTHER_POSITION_VALUE } from "../utils/personnelPositions.js";
 import {
   isAccountActive,
   isEditableUserRow,
@@ -52,6 +53,10 @@ export default function UserManagement({ user }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [birthdate, setBirthdate] = useState("");
+  const [employeeNumber, setEmployeeNumber] = useState("");
+  const [position, setPosition] = useState(OTHER_POSITION_VALUE);
+  const [customPosition, setCustomPosition] = useState("");
+  const [mobileNumber, setMobileNumber] = useState("");
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [assignments, setAssignments] = useState([]);
 
@@ -99,6 +104,10 @@ export default function UserManagement({ user }) {
   const [editingUserId, setEditingUserId] = useState(null);
   const [editFullName, setEditFullName] = useState("");
   const [editBirthdate, setEditBirthdate] = useState("");
+  const [editEmployeeNumber, setEditEmployeeNumber] = useState("");
+  const [editPosition, setEditPosition] = useState(OTHER_POSITION_VALUE);
+  const [editCustomPosition, setEditCustomPosition] = useState("");
+  const [editMobileNumber, setEditMobileNumber] = useState("");
   const [editRoles, setEditRoles] = useState([]);
   const [editAssignments, setEditAssignments] = useState([]);
   const [editAssignRole, setEditAssignRole] = useState("subjectTeacher");
@@ -288,6 +297,11 @@ export default function UserManagement({ user }) {
     setEditingUserId(targetUser.id);
     setEditFullName(targetUser.fullName || "");
     setEditBirthdate(targetUser.birthdate || "");
+    setEditEmployeeNumber(targetUser.employeeNumber || "");
+    const editSelectValue = resolvePositionSelectValue(targetUser.position);
+    setEditPosition(editSelectValue);
+    setEditCustomPosition(editSelectValue === OTHER_POSITION_VALUE ? targetUser.position || "" : "");
+    setEditMobileNumber(targetUser.mobileNumber || "");
     setEditRoles(targetRoles);
     setEditAssignments(Array.isArray(targetUser.assignments) ? [...targetUser.assignments] : []);
     setEditAssignSubject("");
@@ -407,6 +421,9 @@ export default function UserManagement({ user }) {
       await updateDoc(doc(db, "users", editingUserId), {
         fullName: trimmedFullName,
         birthdate: editBirthdate || "",
+        employeeNumber: editEmployeeNumber.trim(),
+        position: editPosition === OTHER_POSITION_VALUE ? editCustomPosition.trim() : editPosition,
+        mobileNumber: editMobileNumber.trim(),
         roles: editRoles,
         assignments: reconciled.assignments,
         // Kept in sync with `assignments` here -- firestore.rules authorizes
@@ -512,6 +529,9 @@ export default function UserManagement({ user }) {
         fullName: trimmedFullName,
         email: trimmedEmail,
         birthdate: birthdate || "",
+        employeeNumber: employeeNumber.trim(),
+        position: position === OTHER_POSITION_VALUE ? customPosition.trim() : position,
+        mobileNumber: mobileNumber.trim(),
         roles: selectedRoles,
         assignments: reconciled.assignments,
         assignmentKeys: buildAssignmentKeys(reconciled.assignments),
@@ -650,6 +670,68 @@ export default function UserManagement({ user }) {
               onChange={(e) => setBirthdate(e.target.value)}
             />
           </div>
+
+          {/* Employee ID / Position / Mobile Number (optional) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="employeeNumberInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                Employee / DepEd ID <span className="font-normal text-gray-400 dark:text-gray-500">(optional)</span>
+              </label>
+              <input
+                id="employeeNumberInput"
+                type="text"
+                placeholder="e.g. 6113070"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
+                value={employeeNumber}
+                onChange={(e) => setEmployeeNumber(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="positionInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                Position / Designation <span className="font-normal text-gray-400 dark:text-gray-500">(optional)</span>
+              </label>
+              <select
+                id="positionInput"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+              >
+                {resolvePositionOptions(position === OTHER_POSITION_VALUE ? "" : position).map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="mobileNumberInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                Mobile Number <span className="font-normal text-gray-400 dark:text-gray-500">(optional)</span>
+              </label>
+              <input
+                id="mobileNumberInput"
+                type="text"
+                placeholder="e.g. 09171234567"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+              />
+            </div>
+          </div>
+          {position === OTHER_POSITION_VALUE && (
+            <div>
+              <label htmlFor="customPositionInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                Enter Position
+              </label>
+              <input
+                id="customPositionInput"
+                type="text"
+                placeholder="e.g. Senior High School Coordinator"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
+                value={customPosition}
+                onChange={(e) => setCustomPosition(e.target.value)}
+              />
+            </div>
+          )}
 
           {/* Role Checkboxes */}
           <div>
@@ -1036,6 +1118,65 @@ export default function UserManagement({ user }) {
                                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
                                 />
                               </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                  <label htmlFor={`editEmployeeNumber-${u.id}`} className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                    Employee / DepEd ID
+                                  </label>
+                                  <input
+                                    id={`editEmployeeNumber-${u.id}`}
+                                    type="text"
+                                    value={editEmployeeNumber}
+                                    onChange={(e) => setEditEmployeeNumber(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                  />
+                                </div>
+                                <div>
+                                  <label htmlFor={`editPosition-${u.id}`} className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                    Position / Designation
+                                  </label>
+                                  <select
+                                    id={`editPosition-${u.id}`}
+                                    value={editPosition}
+                                    onChange={(e) => setEditPosition(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                  >
+                                    {resolvePositionOptions(editPosition === OTHER_POSITION_VALUE ? "" : editPosition).map((opt) => (
+                                      <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label htmlFor={`editMobileNumber-${u.id}`} className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                    Mobile Number
+                                  </label>
+                                  <input
+                                    id={`editMobileNumber-${u.id}`}
+                                    type="text"
+                                    value={editMobileNumber}
+                                    onChange={(e) => setEditMobileNumber(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                  />
+                                </div>
+                              </div>
+                              {editPosition === OTHER_POSITION_VALUE && (
+                                <div>
+                                  <label htmlFor={`editCustomPosition-${u.id}`} className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                    Enter Position
+                                  </label>
+                                  <input
+                                    id={`editCustomPosition-${u.id}`}
+                                    type="text"
+                                    placeholder="e.g. Senior High School Coordinator"
+                                    value={editCustomPosition}
+                                    onChange={(e) => setEditCustomPosition(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                  />
+                                </div>
+                              )}
 
                               <div>
                                 <span className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">

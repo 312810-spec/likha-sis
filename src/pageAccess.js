@@ -11,7 +11,13 @@ export const PAGE_ACCESS = {
   sf2: ["adviser"],
   sf4: ["adviser"],
   classRecord: ["subjectTeacher", "adviser"],
-  consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"],
+  // A bare subjectTeacher (no adviser role) does not get unrestricted
+  // all-subject Consolidated Grades for arbitrary sections -- that page
+  // aggregates an entire advisory class's grades across every subject, not
+  // just the classes a subjectTeacher personally teaches (see
+  // ConsolidatedGrades.jsx). A subjectTeacher who is ALSO an adviser still
+  // qualifies via "adviser" below.
+  consolidatedGrades: ["adviser", "principal", "masterTeacher", "smeaCoordinator"],
   academicHub: ["adviser", "principal", "masterTeacher", "smeaCoordinator", "guidance"],
   reportCard: ["adviser"],
   viewLearners: "all",

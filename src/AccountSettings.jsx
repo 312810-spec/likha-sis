@@ -1,16 +1,19 @@
 // src/AccountSettings.jsx
-// Self-service account management: edit your own display name, view your
-// email/roles, and change your own password. Open to every signed-in role
-// (unlike SchoolSettings.jsx, which is ictCoordinator/principal only) --
-// this is personal, not school-wide configuration.
+// Self-service account management: every signed-in staff member can
+// maintain their own personal/professional profile (name, contact info,
+// position) and change their own password. Roles and teaching/advisory
+// assignments stay read-only here -- User Management remains the sole
+// authority for those (see src/pages/UserManagement.jsx).
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { updateProfile, reauthenticateWithCredential, updatePassword, EmailAuthProvider } from "firebase/auth";
 import { db, auth } from "./firebase";
 import { ROLE_OPTIONS, ROLE_LABELS } from "./utils/roles.js";
 import { validateSelfRoleEdit } from "./utils/userAccountManagement.js";
-import { Save, KeyRound, CheckCircle2, AlertCircle } from "lucide-react";
+import { resolvePositionOptions, resolvePositionSelectValue, OTHER_POSITION_VALUE } from "./utils/personnelPositions.js";
+import { buildTeacherScope } from "./utils/teacherScope.js";
+import { Save, KeyRound, CheckCircle2, AlertCircle, User, Briefcase, ClipboardList } from "lucide-react";
 import PageHeader from "./components/PageHeader.jsx";
 import Button from "./components/Button.jsx";
 
@@ -31,13 +34,23 @@ function friendlyPasswordError(err) {
   }
 }
 
+function SectionHeading({ icon: Icon, children }) {
+  return (
+    <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 pt-4 first:pt-0 pb-1 border-t border-gray-100 dark:border-gray-800 first:border-t-0">
+      <Icon size={14} /> {children}
+    </h3>
+  );
+}
+
 export default function AccountSettings({ user }) {
   const [profile, setProfile] = useState(null);
   const [fullName, setFullName] = useState("");
   const [editableRoles, setEditableRoles] = useState([]);
   const [employeeNumber, setEmployeeNumber] = useState("");
-  const [position, setPosition] = useState("");
+  const [position, setPosition] = useState(OTHER_POSITION_VALUE);
+  const [customPosition, setCustomPosition] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
+  const [birthdate, setBirthdate] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileMessage, setProfileMessage] = useState("");
@@ -64,8 +77,11 @@ export default function AccountSettings({ user }) {
           setFullName(data.fullName || "");
           setEditableRoles(Array.isArray(data.roles) ? [...data.roles] : []);
           setEmployeeNumber(data.employeeNumber || "");
-          setPosition(data.position || "");
+          const selectValue = resolvePositionSelectValue(data.position);
+          setPosition(selectValue);
+          setCustomPosition(selectValue === OTHER_POSITION_VALUE ? data.position || "" : "");
           setMobileNumber(data.mobileNumber || "");
+          setBirthdate(data.birthdate || "");
         }
       } catch (err) {
         console.error("Failed to load account profile:", err);
@@ -78,6 +94,11 @@ export default function AccountSettings({ user }) {
   }, [user?.uid]);
 
   const isIctCoordinator = Array.isArray(profile?.roles) && profile.roles.includes("ictCoordinator");
+  const positionOptions = resolvePositionOptions(profile?.position);
+  // Read-only summary of assignments -- pure derivation from the already-
+  // loaded profile, no extra Firestore read. Never editable here; Account
+  // Settings must never be able to assign a user to a class.
+  const scope = buildTeacherScope({ assignments: profile?.assignments });
 
   function handleRoleToggle(roleId) {
     if (roleId === "ictCoordinator") return; // locked: can't remove your own admin access
@@ -96,7 +117,14 @@ export default function AccountSettings({ user }) {
       return;
     }
 
-    const updates = { fullName: fullName.trim() };
+    const updates = {
+      fullName: fullName.trim(),
+      employeeNumber: employeeNumber.trim(),
+      position: position === OTHER_POSITION_VALUE ? customPosition.trim() : position,
+      mobileNumber: mobileNumber.trim(),
+      birthdate: birthdate || "",
+    };
+
     if (isIctCoordinator) {
       const { valid, error } = validateSelfRoleEdit(editableRoles);
       if (!valid) {
@@ -104,9 +132,6 @@ export default function AccountSettings({ user }) {
         return;
       }
       updates.roles = editableRoles;
-      updates.employeeNumber = employeeNumber.trim();
-      updates.position = position.trim();
-      updates.mobileNumber = mobileNumber.trim();
     }
 
     setIsSavingProfile(true);
@@ -115,6 +140,7 @@ export default function AccountSettings({ user }) {
       // Also keep the Auth profile's displayName in sync -- DashboardShell's
       // "Welcome, ..." header reads from the Auth object, not Firestore.
       await updateProfile(auth.currentUser, { displayName: fullName.trim() });
+      setProfile((prev) => ({ ...prev, ...updates }));
       setProfileMessage("Profile updated.");
     } catch (err) {
       console.error("Failed to update profile:", err);
@@ -174,7 +200,7 @@ export default function AccountSettings({ user }) {
 
   return (
     <div className="max-w-3xl mx-auto w-full space-y-6 pb-12">
-      <PageHeader description="Manage your own name and password." />
+      <PageHeader description="Manage your own profile and password." />
 
       {/* Profile */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-card">
@@ -194,29 +220,77 @@ export default function AccountSettings({ user }) {
         )}
 
         <form onSubmit={handleSaveProfile} className="space-y-4">
+          <SectionHeading icon={User}>Personal Information</SectionHeading>
+
           <label className={labelClass}>
             Full Name
             <input className={inputClass} value={fullName} onChange={(e) => setFullName(e.target.value)} />
           </label>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <label className={labelClass}>
               Email
               <input className={`${inputClass} opacity-70 cursor-not-allowed`} value={user?.email || ""} disabled />
             </label>
-            {!isIctCoordinator && (
-              <label className={labelClass}>
-                Role(s)
-                <input className={`${inputClass} opacity-70 cursor-not-allowed`} value={roleLabels} disabled />
-              </label>
-            )}
+            <label className={labelClass}>
+              Birthdate
+              <input type="date" className={inputClass} value={birthdate} onChange={(e) => setBirthdate(e.target.value)} />
+            </label>
+            <label className={labelClass}>
+              Mobile Number
+              <input
+                className={inputClass}
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+                placeholder="e.g. 09171234567"
+              />
+            </label>
           </div>
 
-          {isIctCoordinator && (
+          <SectionHeading icon={Briefcase}>Professional Information</SectionHeading>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className={labelClass}>
+              Employee / DepEd ID Number
+              <input
+                className={inputClass}
+                value={employeeNumber}
+                onChange={(e) => setEmployeeNumber(e.target.value)}
+                placeholder="e.g. 6113070"
+              />
+            </label>
+            <label className={labelClass}>
+              Position / Designation
+              <select className={inputClass} value={position} onChange={(e) => setPosition(e.target.value)}>
+                {positionOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {position === OTHER_POSITION_VALUE && (
+            <label className={labelClass}>
+              Enter Position
+              <input
+                className={inputClass}
+                value={customPosition}
+                onChange={(e) => setCustomPosition(e.target.value)}
+                placeholder="e.g. Senior High School Coordinator"
+              />
+            </label>
+          )}
+
+          {!isIctCoordinator ? (
+            <label className={labelClass}>
+              Role(s)
+              <input className={`${inputClass} opacity-70 cursor-not-allowed`} value={roleLabels} disabled />
+            </label>
+          ) : (
             <div>
-              <span className={labelClass}>
-                Role(s)
-              </span>
+              <span className={labelClass}>Role(s)</span>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-1.5">
                 {ROLE_OPTIONS.map((role) => {
                   const isChecked = editableRoles.includes(role.id);
@@ -248,39 +322,35 @@ export default function AccountSettings({ user }) {
             </div>
           )}
 
-          {isIctCoordinator && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <label className={labelClass}>
-                Employee / DepEd ID Number
-                <input
-                  className={inputClass}
-                  value={employeeNumber}
-                  onChange={(e) => setEmployeeNumber(e.target.value)}
-                  placeholder="e.g. 6113070"
-                />
-              </label>
-              <label className={labelClass}>
-                Position / Designation
-                <input
-                  className={inputClass}
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value)}
-                  placeholder="e.g. Teacher I"
-                />
-              </label>
-              <label className={labelClass}>
-                Mobile Number
-                <input
-                  className={inputClass}
-                  value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
-                  placeholder="e.g. 09171234567"
-                />
-              </label>
-            </div>
+          {(scope.isAdviser || scope.isSubjectTeacher) && (
+            <>
+              <SectionHeading icon={ClipboardList}>Assigned Responsibilities</SectionHeading>
+              <div className="space-y-3 text-sm">
+                {scope.isAdviser && (
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Adviser</div>
+                    <div className="text-gray-700 dark:text-gray-200 mt-0.5">
+                      {scope.adviser.gradeLevel} — {scope.adviser.section}
+                    </div>
+                  </div>
+                )}
+                {scope.isSubjectTeacher && (
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Subject Teacher</div>
+                    <ul className="text-gray-700 dark:text-gray-200 mt-0.5 space-y-0.5">
+                      {scope.classRecordCombos.map((c) => (
+                        <li key={`${c.gradeLevel}|${c.subject}|${c.section}`}>
+                          {c.gradeLevel} › {c.subject} › {c.section}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-2">
             <Button type="submit" disabled={isSavingProfile}>
               <Save size={15} />
               {isSavingProfile ? "Saving..." : "Save Profile"}

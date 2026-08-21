@@ -184,8 +184,18 @@ service cloud.firestore {
     }
 
     // ---- transfers ----
+    // Adviser-style class scoping, matching learners/classRecords: an
+    // adviser may only read/record transfers for their own advisory section
+    // (ADVISER|gradeLevel|section in myAssignmentKeys()). ictCoordinator/
+    // principal/smeaCoordinator keep a read-only, school-wide monitoring
+    // view -- they never gain write access merely because they can view
+    // reports (TransfersLog.jsx's UI already hides the record-transfer
+    // action for these roles; this is the server-side enforcement of that).
     match /transfers/{transferId} {
-      allow read, write: if hasAnyRole(["adviser", "ictCoordinator", "principal", "smeaCoordinator"]);
+      allow read: if hasAnyRole(["ictCoordinator", "principal", "smeaCoordinator"])
+        || (hasAnyRole(["adviser"]) && ("ADVISER|" + resource.data.gradeLevel + "|" + resource.data.section) in myAssignmentKeys());
+      allow create: if hasAnyRole(["adviser"])
+        && ("ADVISER|" + request.resource.data.gradeLevel + "|" + request.resource.data.section) in myAssignmentKeys();
     }
 
     // ---- importBatches (SF1/SF10 bulk import + Import Center) ----
@@ -234,23 +244,24 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.roles.hasOnly(["ictCoordinator"]);
       // Self-service Account Settings (AccountSettings.jsx): any signed-in
-      // user may update their OWN fullName, and only that field -- roles/
-      // assignments must stay ictCoordinator/principal-only above, so a user
-      // editing their own doc can't grant themselves a different role.
+      // user may update their OWN personal/professional profile fields --
+      // fullName, employeeNumber, position, mobileNumber, birthdate -- but
+      // never `roles` or `assignments`, so a user editing their own doc
+      // can't grant themselves a different role or class assignment.
       //
       // Exception: an ICT Coordinator may also self-edit their own `roles`
-      // (e.g. adding a second role to themselves) and employee info fields
-      // (employeeNumber, position, mobileNumber), but only while both the
+      // (e.g. adding a second role to themselves), but only while both the
       // stored value AND the new value still contain "ictCoordinator" --
       // this is the server-side half of the self-lockout guard (the UI
       // additionally disables unchecking that role on your own account).
       allow update: if isSignedIn()
         && request.auth.uid == userId
         && (
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(["fullName"])
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(["fullName", "employeeNumber", "position", "mobileNumber", "birthdate"])
           || (
             request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(["fullName", "roles", "employeeNumber", "position", "mobileNumber"])
+              .hasOnly(["fullName", "roles", "employeeNumber", "position", "mobileNumber", "birthdate"])
             && resource.data.roles.hasAny(["ictCoordinator"])
             && request.resource.data.roles.hasAny(["ictCoordinator"])
           )

@@ -222,7 +222,7 @@ function App() {
         break;
       case "consolidatedGrades":
         pageTitle = "Consolidated Grades";
-        pageContent = <ConsolidatedGrades user={user} goBack={() => setCurrentPage("dashboard")} />;
+        pageContent = <ConsolidatedGrades user={user} userRoles={userRoles} goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "academicHub":
         pageTitle = "Academic Hub";
@@ -270,7 +270,7 @@ function App() {
         break;
       case "transfersLog":
         pageTitle = "Transfers Log";
-        pageContent = <TransfersLog user={user} goBack={() => setCurrentPage("dashboard")} />;
+        pageContent = <TransfersLog user={user} userRoles={userRoles} goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "certificates":
         pageTitle = "Certificates";
@@ -348,6 +348,7 @@ function App() {
             goToIDGenerator={() => setCurrentPage("idGenerator")}
             goToLardo={() => setCurrentPage("lardoTracking")}
             goToSchoolSettings={() => setCurrentPage("schoolSettings")}
+            onNavigate={handleNavigate}
           />
         );
     }

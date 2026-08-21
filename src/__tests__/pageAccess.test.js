@@ -57,9 +57,13 @@ describe("pageAccess", () => {
       expect(canAccessPage("brandingSettings", ["ictCoordinator"])).toBe(false);
       expect(canAccessPage("brandingSettings", ["principal"])).toBe(false);
 
-      // consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"]
-      expect(canAccessPage("consolidatedGrades", ["subjectTeacher"])).toBe(true);
+      // consolidatedGrades: ["adviser", "principal", "masterTeacher", "smeaCoordinator"]
+      // A bare subjectTeacher (no adviser role) does not get this page --
+      // it aggregates a whole advisory class across every subject, not just
+      // the classes a subjectTeacher personally teaches.
+      expect(canAccessPage("consolidatedGrades", ["subjectTeacher"])).toBe(false);
       expect(canAccessPage("consolidatedGrades", ["adviser"])).toBe(true);
+      expect(canAccessPage("consolidatedGrades", ["adviser", "subjectTeacher"])).toBe(true);
       expect(canAccessPage("consolidatedGrades", ["principal"])).toBe(true);
       expect(canAccessPage("consolidatedGrades", ["masterTeacher"])).toBe(true);
       expect(canAccessPage("consolidatedGrades", ["smeaCoordinator"])).toBe(true);

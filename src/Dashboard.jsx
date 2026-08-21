@@ -1,371 +1,170 @@
-import { useEffect, useState } from 'react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import {
-  Users,
-  CheckCircle2,
-  FileText,
-  CalendarDays,
-  Plus,
-  ClipboardList,
-  FilePlus2,
-  ShieldAlert,
-  Inbox,
-  LifeBuoy,
-  Activity,
-  UserPlus,
-} from 'lucide-react';
-import { db } from './firebase';
 import { canAccessPage } from './pageAccess.js';
-import WeatherCard from './components/WeatherCard.jsx';
 import useAcademicCalendar from './hooks/useAcademicCalendar';
+import useTeacherScope from './hooks/useTeacherScope';
+import useSchoolConfig from './hooks/useSchoolConfig';
+import { getDashboardCapabilities, getQuickActions } from './utils/dashboardRoleConfig.js';
 import Button from './components/Button.jsx';
+import { SectionCard, EmptyState } from './components/dashboard/primitives.jsx';
+import DashboardHeader from './components/dashboard/DashboardHeader.jsx';
+import CommonPanel from './components/dashboard/CommonPanel.jsx';
+import {
+  AdvisoryClassCard,
+  AdviserAttendanceCard,
+  AdviserLardoCard,
+  AdviserNutritionCard,
+  SchoolFormsQuickActions,
+} from './components/dashboard/AdviserWidgets.jsx';
+import { TeachingAssignmentsCard, MyClassesList, ClassRecordOverview } from './components/dashboard/SubjectTeacherWidgets.jsx';
+import { SchoolOverviewCard } from './components/dashboard/PrincipalWidgets.jsx';
+import { UserAccountsCard, AssignmentHealthCard, ImportsStatusCard, SystemConfigCard } from './components/dashboard/IctWidgets.jsx';
+import { MonitoringOverviewCard } from './components/dashboard/SmeaWidgets.jsx';
+import { GuidanceSupportCard } from './components/dashboard/GuidanceWidgets.jsx';
+import { MasterTeacherOverviewCard } from './components/dashboard/MasterTeacherWidgets.jsx';
 
-function formatCount(n) {
-  return Number(n || 0).toLocaleString('en-US');
-}
-
-// Firestore timestamps may arrive as `Date`, an object with `toMillis()`, a
-// `{ seconds, nanoseconds }` object, or an ISO string. Normalize to epoch ms.
-function timestampToMillis(value) {
-  if (value instanceof Date) return value.getTime();
-  if (value && typeof value.toMillis === 'function') return value.toMillis();
-  if (value && typeof value === 'object' && typeof value.seconds === 'number') return value.seconds * 1000;
-  if (typeof value === 'string') {
-    const ms = Date.parse(value);
-    return Number.isNaN(ms) ? 0 : ms;
+// Pages already reachable through a role-specific widget's own link/button --
+// excluded from the generic Quick Actions row so nothing is offered twice
+// (spec §12: "do not display the same metric/action twice").
+function excludedQuickActionPages(capabilities) {
+  const excluded = new Set();
+  if (capabilities.isAdviser) {
+    ['sf1', 'sf2', 'sf4', 'reportCard', 'sf10Generate'].forEach((p) => excluded.add(p));
+    if (capabilities.lardoOverview) excluded.add('lardoTracking');
   }
-  return 0;
+  if (capabilities.isSubjectTeacher) excluded.add('classRecord');
+  return excluded;
 }
 
-function formatActivityDate(value) {
-  const ms = timestampToMillis(value);
-  if (!ms) return '';
-  return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function StatTile({ icon: Icon, tint, label, children }) {
-  return (
-    <div className="flex-1 min-w-[180px] bg-white border border-gray-200 rounded-xl p-4 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 flex items-center gap-3 dark:bg-gray-900 dark:border-gray-700">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${tint}`}>
-        <Icon size={20} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-400">{label}</div>
-        <div className="font-tabular text-base font-semibold mt-0.5 text-gray-900 dark:text-gray-100 break-words">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function StatSkeleton() {
-  return <div className="h-5 w-14 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />;
-}
-
-function TileEmptyState({ icon: Icon = Inbox, text }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
-      <Icon size={13} className="flex-shrink-0" />
-      <span className="break-words">{text}</span>
-    </span>
-  );
-}
-
-function EmptyState({ icon: Icon = Inbox, text }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 py-8 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
-      <Icon size={22} className="text-gray-300 dark:text-gray-600" />
-      <p className="text-sm text-gray-500 dark:text-gray-400">{text}</p>
-    </div>
-  );
-}
-
-function SectionCard({ title, children, className = '' }) {
-  return (
-    <div className={`bg-white border border-gray-200 rounded-xl p-4 shadow-card dark:bg-gray-900 dark:border-gray-700 ${className}`}>
-      {title && <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h4>}
-      {children}
-    </div>
-  );
-}
-
-function LardoRiskSummary({ goToLardo }) {
-  const [loading, setLoading] = useState(true);
-  const [records, setRecords] = useState([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadFlags() {
-      setLoading(true);
-      try {
-        const q = query(collection(db, 'lardoRecords'), where('status', '==', 'monitoring'));
-        const snap = await getDocs(q);
-        if (!cancelled) setRecords(snap.docs.map((d) => d.data()));
-      } catch {
-        if (!cancelled) setRecords([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    loadFlags();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const riskFactorCounts = records.reduce((acc, r) => {
-    (r.riskFactors || []).forEach((f) => {
-      acc[f] = (acc[f] || 0) + 1;
-    });
-    return acc;
-  }, {});
-  const topRiskFactors = Object.entries(riskFactorCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
-
-  return (
-    <SectionCard className="animate-fade-in">
-      <div className="flex items-center gap-2.5">
-        <div className="w-9 h-9 rounded-xl bg-red-500/10 text-red-600 dark:bg-red-500/15 dark:text-red-400 flex items-center justify-center shrink-0">
-          <ShieldAlert size={17} />
-        </div>
-        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">LARDO At-Risk Learners</h4>
-      </div>
-
-      {loading ? (
-        <div className="mt-3 space-y-2 animate-pulse">
-          <div className="h-7 w-12 rounded bg-gray-100 dark:bg-gray-800" />
-          <div className="h-3 w-40 rounded bg-gray-100 dark:bg-gray-800" />
-        </div>
-      ) : (
-        <>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className={`font-tabular text-3xl font-bold ${records.length > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-gray-100'}`}>
-              {records.length}
-            </span>
-            <span className="text-xs text-gray-500 dark:text-gray-300">
-              learner{records.length === 1 ? '' : 's'} flagged for monitoring
-            </span>
-          </div>
-
-          {topRiskFactors.length > 0 && (
-            <ul className="mt-3 flex flex-wrap gap-1.5">
-              {topRiskFactors.map(([factor, count]) => (
-                <li
-                  key={factor}
-                  className="flex items-center gap-1.5 text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200 rounded-full px-2.5 py-1 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
-                >
-                  {factor}
-                  <span className="text-red-500 dark:text-red-400">{count}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
-
-      <Button onClick={goToLardo} className="mt-4 w-full justify-center">
-        Open LARDO Tracking
-      </Button>
-    </SectionCard>
-  );
-}
-
-function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, goToSchoolSettings, userRoles }) {
-  const canSeeLardo = canAccessPage('lardoTracking', userRoles);
-  // Only offer the "set your coordinates" shortcut to roles that can actually
-  // open School Settings — otherwise it's a link into an access-denied page.
+function Dashboard({
+  user,
+  userRoles,
+  goToSF1,
+  goToSF2,
+  goToViewLearners,
+  goToCertificates,
+  goToIDGenerator,
+  goToLardo,
+  goToSchoolSettings,
+  onNavigate,
+}) {
+  const capabilities = getDashboardCapabilities(userRoles);
   const canEditSchoolSettings = canAccessPage('schoolSettings', userRoles);
-  // SF1/SF2 quick actions: School Forms are adviser-only, so these are
-  // hidden for every other role rather than linking into Access Restricted.
-  const canGoToSF1 = canAccessPage('sf1', userRoles);
-  const canGoToSF2 = canAccessPage('sf2', userRoles);
 
   // Live school year options come from School Settings > Academic Calendar
   // (layered over the built-in fallback) via the shared hook.
-  const { schoolYears, loading: calendarLoading } = useAcademicCalendar();
+  const { calendar, schoolYears, loading: calendarLoading } = useAcademicCalendar();
   const currentSchoolYear = schoolYears?.[0] || null;
 
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [statsError, setStatsError] = useState(false);
-  const [learnerStats, setLearnerStats] = useState({
-    total: 0,
-    active: 0,
-    transferredOut: 0,
-    gradeLevels: 0,
-    recent: [],
-  });
-  // null => not loaded yet (or failed); number => SF2 attendance sheets on file.
-  const [sf2Count, setSf2Count] = useState(null);
+  // The canonical adviser/subject-teacher scope, derived from
+  // users/{uid}.assignments[] -- this is the SAME hook every School
+  // Forms/Class Record page already uses. Its own reads are the signed-in
+  // user's own profile doc and their own adviserId-scoped schedule lookup,
+  // not another learner's data, so calling it here (even for roles that
+  // never render an adviser/subject-teacher widget) does not violate the
+  // "no learner/private queries for unauthorized roles" requirement --
+  // every widget that DOES read learners/attendance/lardoRecords/
+  // nutritionRecords is a separate component mounted only when the
+  // matching capability is true, and React never runs an unmounted
+  // component's effect.
+  const teacherScope = useTeacherScope(user, currentSchoolYear);
+  const { config: schoolConfig } = useSchoolConfig();
 
-  useEffect(() => {
-    let cancelled = false;
+  const displayName =
+    teacherScope.profile?.fullName || user?.displayName || (user?.email ? user.email.split('@')[0] : 'there');
 
-    async function loadStats() {
-      setStatsLoading(true);
-      setStatsError(false);
-      try {
-        const [learnersResult, attendanceResult] = await Promise.allSettled([
-          getDocs(collection(db, 'learners')),
-          getDocs(collection(db, 'attendance')),
-        ]);
-        if (cancelled) return;
+  function navigate(page, payload) {
+    if (page === 'sf1' && goToSF1) return goToSF1();
+    if (page === 'sf2' && goToSF2) return goToSF2();
+    if (page === 'viewLearners' && goToViewLearners) return goToViewLearners();
+    if (page === 'certificates' && goToCertificates) return goToCertificates();
+    if (page === 'idGenerator' && goToIDGenerator) return goToIDGenerator();
+    if (page === 'lardoTracking' && goToLardo) return goToLardo();
+    if (page === 'schoolSettings' && goToSchoolSettings) return goToSchoolSettings();
+    return onNavigate?.(page, payload);
+  }
 
-        if (learnersResult.status === 'rejected') throw learnersResult.reason;
-
-        const learners = learnersResult.value.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-
-        // Legacy learner docs saved before TransfersLog may lack an
-        // enrollmentStatus; the app treats a missing status as "active".
-        const active = learners.filter((l) => (l.enrollmentStatus || 'active') === 'active').length;
-        const transferredOut = learners.filter((l) => l.enrollmentStatus === 'transferred-out').length;
-        const gradeLevels = new Set(learners.map((l) => l.gradeLevel).filter(Boolean)).size;
-        const recent = learners
-          .map((l) => ({ learner: l, ts: timestampToMillis(l.createdAt) }))
-          .filter((x) => x.ts > 0)
-          .sort((a, b) => b.ts - a.ts)
-          .slice(0, 5)
-          .map((x) => x.learner);
-
-        if (!cancelled) {
-          setLearnerStats({ total: learners.length, active, transferredOut, gradeLevels, recent });
-          setSf2Count(attendanceResult.status === 'fulfilled' ? attendanceResult.value.size : null);
-        }
-      } catch (err) {
-        console.error('Failed to load dashboard stats:', err);
-        if (!cancelled) setStatsError(true);
-      } finally {
-        if (!cancelled) setStatsLoading(false);
-      }
-    }
-
-    loadStats();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const excluded = excludedQuickActionPages(capabilities);
+  const quickActions = getQuickActions(userRoles).filter((a) => !excluded.has(a.page));
+  const hasAnyWidget = Object.values(capabilities).some(Boolean);
 
   return (
     <div className="font-sans text-gray-900 dark:text-gray-100">
-      <div className="flex flex-wrap gap-3 mt-4">
-        <StatTile icon={Users} tint="bg-primary/10 text-primary dark:bg-primary/20" label="Total Learners">
-          {statsLoading ? <StatSkeleton /> : statsError ? <TileEmptyState text="Stats unavailable" /> : learnerStats.total === 0 ? <TileEmptyState text="No learners yet." /> : formatCount(learnerStats.total)}
-        </StatTile>
-        <StatTile icon={CheckCircle2} tint="bg-leaf/10 text-leaf dark:bg-leaf/20" label="Enrollment">
-          {statsLoading ? <StatSkeleton /> : statsError ? <TileEmptyState text="Stats unavailable" /> : learnerStats.active === 0 ? <TileEmptyState text="No enrollment yet." /> : `${formatCount(learnerStats.active)} active`}
-        </StatTile>
-        <StatTile icon={FileText} tint="bg-accent/10 text-accent-dark dark:bg-accent/20" label="School Forms">
-          {statsLoading ? <StatSkeleton /> : statsError || sf2Count === null ? <TileEmptyState text="No forms yet." /> : learnerStats.total === 0 && sf2Count === 0 ? <TileEmptyState text="No forms yet." /> : `SF1 ${formatCount(learnerStats.total)} · SF2 ${formatCount(sf2Count)}`}
-        </StatTile>
-        <StatTile icon={CalendarDays} tint="bg-accent-light/20 text-primary-dark dark:bg-accent-light/20" label="Current School Year">
-          {calendarLoading ? <StatSkeleton /> : currentSchoolYear ? currentSchoolYear : <TileEmptyState text="No school year configured." />}
-        </StatTile>
-      </div>
+      <DashboardHeader
+        displayName={displayName}
+        userRoles={userRoles}
+        adviser={teacherScope.adviser}
+        schoolYear={currentSchoolYear}
+        calendar={calendar}
+        calendarLoading={calendarLoading}
+      />
 
       <section className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 mt-6">
         <div className="space-y-4">
-          <SectionCard title="School Management Overview">
-            <p className="text-sm text-gray-400 mt-2 dark:text-gray-400">
-              Summary of learners and enrollment. Use the quick actions to manage forms and learners.
-            </p>
+          {capabilities.schoolOverview && <SchoolOverviewCard schoolYear={currentSchoolYear} />}
 
-            <div className="flex flex-wrap gap-2 mt-3">
-              <div className="flex-1 min-w-[140px] p-3 rounded-xl border border-gray-100 dark:border-gray-700">
-                <div className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-400">Learner Summary</div>
-                <div className="mt-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200">
-                  {statsLoading ? <StatSkeleton /> : statsError ? <TileEmptyState text="Stats unavailable" /> : `${formatCount(learnerStats.total)} learner${learnerStats.total === 1 ? '' : 's'} · ${learnerStats.gradeLevels} grade level${learnerStats.gradeLevels === 1 ? '' : 's'}`}
-                </div>
+          {capabilities.systemOverview && (
+            <>
+              <UserAccountsCard />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <AssignmentHealthCard />
+                <ImportsStatusCard />
               </div>
-              <div className="flex-1 min-w-[140px] p-3 rounded-xl border border-gray-100 dark:border-gray-700">
-                <div className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-400">Enrollment Summary</div>
-                <div className="mt-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200">
-                  {statsLoading ? <StatSkeleton /> : statsError ? <TileEmptyState text="Stats unavailable" /> : `${formatCount(learnerStats.active)} active · ${formatCount(learnerStats.transferredOut)} transferred out`}
-                </div>
-              </div>
+              <SystemConfigCard schoolConfigReady={!!schoolConfig?.schoolName} schoolYearCount={schoolYears.length} />
+            </>
+          )}
+
+          {capabilities.smeaOverview && <MonitoringOverviewCard schoolYear={currentSchoolYear} />}
+
+          {capabilities.guidanceOverview && <GuidanceSupportCard schoolYear={currentSchoolYear} />}
+
+          {capabilities.masterTeacherOverview && (
+            <div className="flex flex-wrap gap-3">
+              <MasterTeacherOverviewCard schoolYear={currentSchoolYear} />
             </div>
+          )}
 
-            <div className="mt-4">
-              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Quick access</div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {canGoToSF1 && (
-                  <Button onClick={goToSF1} size="small">
-                    <Plus size={16} /> Add Learner — SF1
-                  </Button>
-                )}
-                <Button onClick={goToViewLearners} variant="secondary" size="small">
-                  <ClipboardList size={16} /> View Learners
-                </Button>
-                {canGoToSF2 && (
-                  <Button onClick={goToSF2} variant="secondary" size="small">
-                    <FilePlus2 size={16} /> School Form 2
-                  </Button>
-                )}
-              </div>
-            </div>
-          </SectionCard>
-
-          <SectionCard>
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-accent/10 text-accent-dark dark:bg-accent/20 flex items-center justify-center shrink-0">
-                <Activity size={17} />
-              </div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Recent Activity</h4>
-            </div>
-
-            <div className="mt-3">
-              {statsLoading ? (
-                <div className="space-y-2 animate-pulse">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="h-8 rounded-lg bg-gray-100 dark:bg-gray-800" />
-                  ))}
-                </div>
-              ) : statsError ? (
-                <EmptyState text="Recent activity is unavailable right now." />
-              ) : learnerStats.recent.length === 0 ? (
-                <EmptyState text="No recent activity yet. Add or import learners to see entries here." />
-              ) : (
-                <ul className="space-y-2.5">
-                  {learnerStats.recent.map((learner) => (
-                    <li key={learner.id} className="flex items-start gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-leaf/10 text-leaf dark:bg-leaf/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <UserPlus size={14} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-200 break-words">
-                          Added {learner.lastName}, {learner.firstName}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 break-words">
-                          {[learner.gradeLevel, learner.section].filter(Boolean).join(' · ')}
-                          {learner.createdAt ? ` · ${formatActivityDate(learner.createdAt)}` : ''}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+          {capabilities.isAdviser && (
+            <>
+              <AdvisoryClassCard adviser={teacherScope.adviser} />
+              <AdviserAttendanceCard adviser={teacherScope.adviser} />
+              {capabilities.lardoOverview && <AdviserLardoCard adviser={teacherScope.adviser} onNavigate={navigate} />}
+              {capabilities.nutritionOverview && (
+                <AdviserNutritionCard adviser={teacherScope.adviser} schoolYear={currentSchoolYear} />
               )}
-            </div>
-          </SectionCard>
+              <SchoolFormsQuickActions userRoles={userRoles} onNavigate={navigate} goToSF1={goToSF1} goToSF2={goToSF2} />
+            </>
+          )}
+
+          {capabilities.isSubjectTeacher && (
+            <>
+              <TeachingAssignmentsCard subjectMap={teacherScope.subjectMap} classRecordCombos={teacherScope.classRecordCombos} />
+              <MyClassesList classRecordHierarchy={teacherScope.classRecordHierarchy} />
+              <ClassRecordOverview
+                classRecordCombos={teacherScope.classRecordCombos}
+                schoolYear={currentSchoolYear}
+                onNavigate={navigate}
+              />
+            </>
+          )}
+
+          {!hasAnyWidget && quickActions.length === 0 && (
+            <EmptyState text="No dashboard content is available for your account yet. Contact your ICT Coordinator if this seems wrong." />
+          )}
+
+          {quickActions.length > 0 && (
+            <SectionCard>
+              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h4>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {quickActions.map((a) => (
+                  <Button key={a.page} variant="secondary" size="small" onClick={() => navigate(a.page)}>
+                    {a.label}
+                  </Button>
+                ))}
+              </div>
+            </SectionCard>
+          )}
         </div>
 
-        <aside className="space-y-4">
-          <WeatherCard onOpenSettings={canEditSchoolSettings ? goToSchoolSettings : undefined} />
-
-          {canSeeLardo && <LardoRiskSummary goToLardo={goToLardo} />}
-
-          <SectionCard>
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 flex items-center justify-center shrink-0">
-                <LifeBuoy size={17} />
-              </div>
-              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Support</h4>
-            </div>
-            <p className="text-sm text-gray-500 mt-2.5 dark:text-gray-400">
-              Need help? Use the sidebar to access account or logout controls.
-            </p>
-          </SectionCard>
-        </aside>
+        <CommonPanel onOpenSettings={canEditSchoolSettings ? goToSchoolSettings : undefined} />
       </section>
     </div>
   );

@@ -24,6 +24,7 @@ export default function useTeacherScope(user, schoolYear) {
     ...scope,
     advisorySection,
     roles: profile?.roles || [],
+    profile,
     loading: advisoryLoading || profileLoading,
   };
 }
