@@ -80,6 +80,7 @@ export default function SchoolCalendar({ user, userRoles }) {
   const [schoolEvents, setSchoolEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [weatherAdvisories, setWeatherAdvisories] = useState([]);
+  const [depedCalendarEvents, setDepedCalendarEvents] = useState([]);
   const [loadError, setLoadError] = useState("");
 
   const [composing, setComposing] = useState(false);
@@ -130,14 +131,39 @@ export default function SchoolCalendar({ user, userRoles }) {
     return () => unsubscribe();
   }, []);
 
+  // DepEd's published official School Calendar, synced daily by the
+  // syncDepedCalendar scheduled Cloud Function (functions/syncDepedCalendar.js)
+  // -- supplementary/informational only, never overrides Term 1/2/3 boundaries.
+  useEffect(() => {
+    const q = query(collection(db, "depedCalendarEvents"), orderBy("startDate", "desc"), limit(200));
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => setDepedCalendarEvents(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      () => setDepedCalendarEvents([])
+    );
+    return () => unsubscribe();
+  }, []);
+
   const month = useMemo(
-    () => buildCalendarMonth(viewYear, viewMonth, { schoolEvents, announcements, weatherAdvisories, today }),
-    [viewYear, viewMonth, schoolEvents, announcements, weatherAdvisories, today]
+    () =>
+      buildCalendarMonth(viewYear, viewMonth, {
+        schoolEvents,
+        announcements,
+        weatherAdvisories,
+        depedCalendarEvents,
+        today,
+      }),
+    [viewYear, viewMonth, schoolEvents, announcements, weatherAdvisories, depedCalendarEvents, today]
   );
 
   const upcoming = useMemo(
-    () => getUpcomingEntries({ schoolEvents, announcements, weatherAdvisories, limit: 10 }, today, 45),
-    [schoolEvents, announcements, weatherAdvisories, today]
+    () =>
+      getUpcomingEntries(
+        { schoolEvents, announcements, weatherAdvisories, depedCalendarEvents, limit: 10 },
+        today,
+        45
+      ),
+    [schoolEvents, announcements, weatherAdvisories, depedCalendarEvents, today]
   );
 
   function shiftMonth(delta) {

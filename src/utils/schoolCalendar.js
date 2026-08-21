@@ -171,6 +171,26 @@ function advisoryEntries(advisories = []) {
 }
 export { advisoryEntries };
 
+/** Expands a synced DepEd official calendar event's date range into one entry per day. */
+function depedCalendarEntries(events = []) {
+  const entries = [];
+  for (const event of events) {
+    if (!event?.startDate) continue;
+    for (const dateKey of expandDateRange(event.startDate, event.endDate)) {
+      entries.push({
+        kind: "depedCalendar",
+        dateKey,
+        title: event.title,
+        subtitle: "DepEd Official Calendar",
+        tone: "blue",
+        id: event.id,
+      });
+    }
+  }
+  return entries;
+}
+export { depedCalendarEntries };
+
 /**
  * Builds a 6x7 day grid for the given month, with each day's entries merged.
  *
@@ -183,7 +203,14 @@ export { advisoryEntries };
  * @param {number} month zero-based, matching Date#getMonth
  */
 export function buildCalendarMonth(year, month, sources = {}) {
-  const { schoolEvents = [], announcements = [], users = [], weatherAdvisories = [], today = new Date() } = sources;
+  const {
+    schoolEvents = [],
+    announcements = [],
+    users = [],
+    weatherAdvisories = [],
+    depedCalendarEvents = [],
+    today = new Date(),
+  } = sources;
 
   const firstOfMonth = new Date(year, month, 1);
   const gridStart = addDays(firstOfMonth, -firstOfMonth.getDay());
@@ -195,6 +222,7 @@ export function buildCalendarMonth(year, month, sources = {}) {
     ...suspensionEntries(announcements),
     ...birthdayEntries(users, year),
     ...advisoryEntries(weatherAdvisories),
+    ...depedCalendarEntries(depedCalendarEvents),
   ];
 
   const byDate = entries.reduce((acc, entry) => {
@@ -202,7 +230,7 @@ export function buildCalendarMonth(year, month, sources = {}) {
     return acc;
   }, {});
 
-  const order = { advisory: 0, suspension: 0, holiday: 1, event: 2, birthday: 3 };
+  const order = { advisory: 0, suspension: 0, holiday: 1, event: 2, birthday: 3, depedCalendar: 4 };
   const todayKey = toDateKey(today);
 
   const weeks = [];
@@ -237,7 +265,14 @@ export function buildCalendarMonth(year, month, sources = {}) {
  * section and the calendar page's side list.
  */
 export function getUpcomingEntries(sources = {}, from = new Date(), days = 30) {
-  const { schoolEvents = [], announcements = [], users = [], weatherAdvisories = [], limit = 8 } = sources;
+  const {
+    schoolEvents = [],
+    announcements = [],
+    users = [],
+    weatherAdvisories = [],
+    depedCalendarEvents = [],
+    limit = 8,
+  } = sources;
 
   const start = toDateKey(from);
   const endDate = new Date(`${start}T00:00:00`);
@@ -253,6 +288,7 @@ export function getUpcomingEntries(sources = {}, from = new Date(), days = 30) {
     ...birthdayEntries(users, fromYear),
     ...birthdayEntries(users, fromYear + 1),
     ...advisoryEntries(weatherAdvisories),
+    ...depedCalendarEntries(depedCalendarEvents),
   ]
     .filter((e) => e.dateKey >= start && e.dateKey <= end)
     .sort((a, b) => a.dateKey.localeCompare(b.dateKey));
