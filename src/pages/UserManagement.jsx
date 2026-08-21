@@ -45,6 +45,7 @@ export default function UserManagement({ user }) {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [birthdate, setBirthdate] = useState("");
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [assignments, setAssignments] = useState([]);
 
@@ -70,6 +71,7 @@ export default function UserManagement({ user }) {
   // Edit User Panel State
   const [editingUserId, setEditingUserId] = useState(null);
   const [editFullName, setEditFullName] = useState("");
+  const [editBirthdate, setEditBirthdate] = useState("");
   const [editRoles, setEditRoles] = useState([]);
   const [editAssignments, setEditAssignments] = useState([]);
   const [editAssignRole, setEditAssignRole] = useState("subjectTeacher");
@@ -225,6 +227,7 @@ export default function UserManagement({ user }) {
     setErrorMessage("");
     setEditingUserId(targetUser.id);
     setEditFullName(targetUser.fullName || "");
+    setEditBirthdate(targetUser.birthdate || "");
     setEditRoles(Array.isArray(targetUser.roles) ? [...targetUser.roles] : []);
     setEditAssignments(Array.isArray(targetUser.assignments) ? [...targetUser.assignments] : []);
     setEditAssignSubject("");
@@ -297,6 +300,7 @@ export default function UserManagement({ user }) {
     try {
       await updateDoc(doc(db, "users", editingUserId), {
         fullName: trimmedFullName,
+        birthdate: editBirthdate || "",
         roles: editRoles,
         assignments: editAssignments,
       });
@@ -384,6 +388,7 @@ export default function UserManagement({ user }) {
       await setDoc(doc(db, "users", uid), {
         fullName: trimmedFullName,
         email: trimmedEmail,
+        birthdate: birthdate || "",
         roles: selectedRoles,
         assignments: assignments,
         createdAt: serverTimestamp(),
@@ -395,6 +400,7 @@ export default function UserManagement({ user }) {
       setFullName("");
       setEmail("");
       setPassword("");
+      setBirthdate("");
       setSelectedRoles([]);
       setAssignments([]);
       setAssignSubject("");
@@ -505,6 +511,20 @@ export default function UserManagement({ user }) {
                 minLength={6}
               />
             </div>
+          </div>
+
+          {/* Birthdate (optional) */}
+          <div>
+            <label htmlFor="birthdateInput" className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+              Birthdate <span className="font-normal text-gray-400 dark:text-gray-500">(optional)</span>
+            </label>
+            <input
+              id="birthdateInput"
+              type="date"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary focus:bg-white dark:focus:bg-gray-800 transition-colors"
+              value={birthdate || ""}
+              onChange={(e) => setBirthdate(e.target.value)}
+            />
           </div>
 
           {/* Role Checkboxes */}
@@ -848,6 +868,19 @@ export default function UserManagement({ user }) {
                                     className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed"
                                   />
                                 </div>
+                              </div>
+
+                              <div>
+                                <label htmlFor={`editBirthdate-${u.id}`} className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
+                                  Birthdate <span className="font-normal text-gray-400 dark:text-gray-500">(optional)</span>
+                                </label>
+                                <input
+                                  id={`editBirthdate-${u.id}`}
+                                  type="date"
+                                  value={editBirthdate || ""}
+                                  onChange={(e) => setEditBirthdate(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                                />
                               </div>
 
                               <div>
