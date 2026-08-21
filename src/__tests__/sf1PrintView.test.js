@@ -229,13 +229,45 @@ describe("SF1 print view — print safety (CLAUDE.md §2)", () => {
     expect(css).toMatch(/page-break-inside:\s*avoid/);
   });
 
-  it("never references a dark-mode or brand-theme colour", () => {
+  it("keeps the print block free of dark-mode or brand-theme colours", () => {
+    // The register now supports screen Dark Mode (html.dark … rules earlier
+    // in this same stylesheet — see the next describe block), so the
+    // guarantee this test enforces is scoped to what actually reaches the
+    // printer: the @media print block itself, which must stay hard-coded
+    // black-on-white with no CSS custom properties or brand tokens.
     const container = renderSheet();
     const css = container.querySelector("style").textContent;
-    // No Tailwind dark: variants, CSS custom properties, or brand tokens can
-    // reach the printed sheet.
-    expect(css).not.toMatch(/\.dark\b|dark:|var\(--|currentColor/);
+    const printBlock = css.slice(css.indexOf("@media print"));
+    expect(printBlock).not.toMatch(/var\(--|currentColor/);
     expect(container.querySelector(".sf1-sheet").className).not.toMatch(/dark:/);
+  });
+});
+
+describe("SF1 print view — screen Dark Mode (CLAUDE.md §4E/§20-21)", () => {
+  it("styles the register for screen Dark Mode via html.dark, outside the print block", () => {
+    const container = renderSheet();
+    const css = container.querySelector("style").textContent;
+    const printStart = css.indexOf("@media print");
+    const screenBlock = css.slice(0, printStart);
+    const printBlock = css.slice(printStart);
+
+    // Dark Mode colours exist for on-screen presentation…
+    expect(screenBlock).toMatch(/html\.dark \.sf1-sheet/);
+    expect(screenBlock).toMatch(/html\.dark \.sf1-table (th|td)/);
+    // …but never inside the @media print block that actually reaches paper.
+    expect(printBlock).not.toMatch(/html\.dark/);
+  });
+
+  it("forces white/black back on regardless of Dark Mode, via !important", () => {
+    // The print block's `!important` rules always win over the non-!important
+    // html.dark screen rules, even though `.dark` stays on <html> while
+    // printing — this is the mechanism, not just the intent, that keeps
+    // print safe.
+    const container = renderSheet();
+    const css = container.querySelector("style").textContent;
+    const printBlock = css.slice(css.indexOf("@media print"));
+    expect(printBlock).toMatch(/\.sf1-print-view \*\s*\{[^}]*background:\s*#fff\s*!important/);
+    expect(printBlock).toMatch(/\.sf1-print-view \*\s*\{[^}]*color:\s*#000\s*!important/);
   });
 });
 

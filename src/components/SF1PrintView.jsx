@@ -7,9 +7,16 @@
 // the real merged-column widths taken from a LIS export, so every column lines
 // up with the official sheet instead of being eyeballed.
 //
-// PRINT SAFETY (CLAUDE.md §2): this sheet is always pure black on pure white.
-// It never reads a dark-mode or brand-theme colour, so screen theming can never
-// leak into a printed learner record.
+// This same markup now serves BOTH the on-screen Live Register and the printed
+// sheet (CLAUDE.md §4E: one official layout, never two that can drift apart).
+// On screen it follows the app's Dark Mode via `html.dark .sf1-print-view …`
+// overrides below -- geometry, columns and merged cells never change, only
+// colour. See useDarkMode.js for how `html.dark` gets toggled.
+//
+// PRINT SAFETY (CLAUDE.md §2): regardless of screen theme, @media print forces
+// this sheet back to pure black on pure white with `!important`, which always
+// wins over the (non-!important) screen dark-mode rules -- see the print-safety-
+// audit skill and src/__tests__/sf1PrintView.test.js for the enforced contract.
 
 import { Fragment } from "react";
 import {
@@ -529,6 +536,43 @@ const PRINT_CSS = `
 }
 .sf1-generated { font-size: 6pt !important; text-align: right; }
 .sf1-th-note { font-weight: normal !important; font-style: italic; }
+
+/* ---- screen Dark Mode (the print rules further below always win) ----
+   Geometry, columns, merged cells and row heights are untouched here; only
+   colours change, so the on-screen register still lines up exactly with the
+   printed one. */
+html.dark .sf1-print-view {
+  background: #111827;
+}
+html.dark .sf1-sheet,
+html.dark .sf1-head td,
+html.dark .sf1-table th,
+html.dark .sf1-table td,
+html.dark .sf1-foot td,
+html.dark .sf1-foot th {
+  background: #111827;
+  color: #e5e7eb;
+}
+html.dark .sf1-table th,
+html.dark .sf1-foot th {
+  background: #1f2937;
+}
+html.dark .sf1-table th,
+html.dark .sf1-table td,
+html.dark .sf1-foot th,
+html.dark .sf1-foot td,
+html.dark .sf1-legend-cell,
+html.dark .sf1-reg-label,
+html.dark .sf1-reg-value {
+  border-color: #4b5563;
+}
+html.dark .sf1-meta-value,
+html.dark .sf1-sign-name {
+  border-bottom-color: #6b7280;
+}
+html.dark .sf1-tally td {
+  background: #1f2937;
+}
 
 /* ---- print ---- */
 @media print {
