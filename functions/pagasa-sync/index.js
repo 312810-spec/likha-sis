@@ -37,6 +37,11 @@ const PAGASA_BULLETIN_LIST_URL = "https://www.pagasa.dost.gov.ph/tropical-cyclon
 // https://pubfiles.pagasa.dost.gov.ph/tamss/weather/bulletin/TCB%231_neneng.pdf
 const TCB_PDF_LINK_RE = /https:\/\/pubfiles\.pagasa\.dost\.gov\.ph\/tamss\/weather\/bulletin\/TCB%23(\d+)_[^"'\s)]+\.pdf/gi;
 
+function stableId(cycloneName, signalNumber) {
+  // Deterministic key so re-runs upsert instead of duplicating/flashing.
+  return `${cycloneName}-${signalNumber}`.toLowerCase().replace(/[^a-z0-9-]+/g, "-").slice(0, 200);
+}
+
 function toDateKey(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
   return date.toISOString().slice(0, 10);
@@ -131,11 +136,22 @@ async function syncBulletins() {
   }
 
   const existing = await collection.get();
+  const currentIds = new Set(
+    advisories.map((advisory) => stableId(advisory.cycloneName, advisory.signalNumber))
+  );
+
   const batch = db.batch();
-  for (const doc of existing.docs) batch.delete(doc.ref);
+  // Only delete docs that are no longer present in the current bulletin set
+  // (e.g. a signal level lifted, or the cyclone dissipated) -- a blanket
+  // delete-everything-then-recreate would flash every client's onSnapshot
+  // listener and waste reads/writes on every 30-minute run even when nothing
+  // changed.
+  for (const doc of existing.docs) {
+    if (!currentIds.has(doc.id)) batch.delete(doc.ref);
+  }
 
   for (const advisory of advisories) {
-    const ref = collection.doc();
+    const ref = collection.doc(stableId(advisory.cycloneName, advisory.signalNumber));
     batch.set(ref, {
       signalNumber: advisory.signalNumber ?? null,
       cycloneName: advisory.cycloneName ?? "",
