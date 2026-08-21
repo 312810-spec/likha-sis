@@ -51,8 +51,10 @@ service cloud.firestore {
     // "stakeholder" alone -- a blocklist would also pass a signed-in account
     // with NO users/{uid} doc at all (myRoles() == []), leaking every
     // learner's PII to anyone who can create a bare Firebase Auth account.
-    // Create: adviser, ictCoordinator, principal (matches SF1 access).
-    // Update/delete: adviser only (matches ViewLearners edit permission).
+    // Create: adviser (own advisory section only), ictCoordinator, principal
+    // (matches SF1 access). Update/delete: adviser, scoped to their own
+    // advisory section via myAssignmentKeys() (matches ViewLearners edit
+    // permission, now section-scoped instead of any-adviser-any-section).
     match /learners/{learnerId} {
       allow read: if hasAnyRole(["principal", "masterTeacher", "adviser", "subjectTeacher", "ictCoordinator", "smeaCoordinator", "guidance"]);
       // Parent read: only allowed when the caller has a parentLinks document
@@ -61,17 +63,27 @@ service cloud.firestore {
       allow read: if isSignedIn()
         && exists(/databases/$(database)/documents/parentLinks/$(request.auth.uid))
         && get(/databases/$(database)/documents/parentLinks/$(request.auth.uid)).data.learnerIds.hasAny([learnerId]);
-      allow create: if hasAnyRole(["adviser", "ictCoordinator", "principal"]);
-      allow update, delete: if hasAnyRole(["adviser"]);
+      allow create: if hasAnyRole(["ictCoordinator", "principal"])
+        || (hasAnyRole(["adviser"])
+            && ("ADVISER|" + request.resource.data.gradeLevel + "|" + request.resource.data.section) in myAssignmentKeys());
+      allow update: if hasAnyRole(["adviser"])
+        && ("ADVISER|" + resource.data.gradeLevel + "|" + resource.data.section) in myAssignmentKeys()
+        && ("ADVISER|" + request.resource.data.gradeLevel + "|" + request.resource.data.section) in myAssignmentKeys();
+      allow delete: if hasAnyRole(["adviser"])
+        && ("ADVISER|" + resource.data.gradeLevel + "|" + resource.data.section) in myAssignmentKeys();
     }
 
     // ---- attendance (SF2) ----
-    // Write stays adviser-only. Read is also open to the other LARDO
-    // Tracking viewer roles, since the 14-day auto-resolve check re-reads
-    // current attendance rates to decide whether a flag can clear.
+    // Write stays adviser-only, scoped to their own advisory section via
+    // myAssignmentKeys() -- an adviser can no longer write another
+    // section's attendance sheet directly through the SDK. Read is also
+    // open to the other LARDO Tracking viewer roles, since the 14-day
+    // auto-resolve check re-reads current attendance rates to decide
+    // whether a flag can clear.
     match /attendance/{document} {
       allow read: if hasAnyRole(["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"]);
-      allow write: if hasAnyRole(["adviser"]);
+      allow write: if hasAnyRole(["adviser"])
+        && ("ADVISER|" + request.resource.data.gradeLevel + "|" + request.resource.data.section) in myAssignmentKeys();
     }
 
     // ---- sf4Mortality (SF4 dropout/mortality summary inputs) ----

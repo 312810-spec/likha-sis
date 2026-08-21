@@ -15,6 +15,8 @@ import {
   updateDoc,
   doc,
   getDocs,
+  query,
+  where,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -186,7 +188,8 @@ function SF1({ user }) {
   // A user with NO advisory assignment (ictCoordinator, principal, or an
   // adviser not yet assigned a section) keeps the existing unrestricted
   // pickers, since they legitimately need to reach any section.
-  const { adviser } = useTeacherScope(user, schoolYear);
+  const { adviser, roles, loading: scopeLoading } = useTeacherScope(user, schoolYear);
+  const isAdviserRole = roles.includes("adviser");
   // Seed once from the resolved advisory section, then keep the pickers
   // disabled (not just pre-filled) below so an adviser cannot switch to a
   // different grade/section via the dropdown, URL, or otherwise.
@@ -240,15 +243,18 @@ function SF1({ user }) {
 
       setLoadingClass(true);
       try {
-        const snapshot = await getDocs(collection(db, "learners"));
+        const snapshot = await getDocs(
+          query(
+            collection(db, "learners"),
+            where("gradeLevel", "==", gradeLevel),
+            where("section", "==", section),
+            where("schoolYear", "==", schoolYear)
+          )
+        );
         if (cancelled) return;
         const rows = [];
         snapshot.forEach((docSnap) => {
-          const d = docSnap.data();
-          if (String(d.gradeLevel || "") !== gradeLevel) return;
-          if (String(d.section || "") !== section) return;
-          if (String(d.schoolYear || "") !== schoolYear) return;
-          rows.push(toFormLearner(docSnap.id, d));
+          rows.push(toFormLearner(docSnap.id, docSnap.data()));
         });
         rows.sort((a, b) =>
           learnerName(a).localeCompare(learnerName(b), undefined, { sensitivity: "base" })
@@ -414,6 +420,16 @@ function SF1({ user }) {
     setTimeout(() => window.print(), 0);
   }
 
+  if (isAdviserRole && !scopeLoading && !adviser) {
+    return (
+      <div className="max-w-lg mx-auto mt-12 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-6">
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+          No advisory class is assigned to your account. Please contact the ICT Coordinator.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-none w-full">
       {/* Print CSS — every piece of LIKHA-SIS screen chrome is hidden so only the
@@ -489,58 +505,69 @@ function SF1({ user }) {
       {/* Filter / Parameters Bar */}
       <div className="no-print bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-              Grade Level
-            </label>
-            <select
-              value={gradeLevel}
-              onChange={(e) => setGradeLevel(e.target.value)}
-              disabled={!!adviser}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
-            >
-              {gradeOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-              Section
-            </label>
-            <select
-              value={section}
-              onChange={(e) => {
-                const selected = e.target.value;
-                if (selected === "+") {
-                  setShowNewSection(true);
-                  setNewSection("");
-                } else {
-                  setSection(selected);
-                  setShowNewSection(false);
-                }
-              }}
-              disabled={!!adviser}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
-            >
-              <option value="">Select a section</option>
-              {availableSections.map((sec) => (
-                <option key={sec} value={sec}>{sec}</option>
-              ))}
-              {!adviser && <option value="+">+ Add new section...</option>}
-            </select>
-            {showNewSection && !adviser && (
-              <input
-                value={newSection}
-                onChange={(e) => {
-                  setNewSection(e.target.value);
-                  setSection(e.target.value);
-                }}
-                placeholder="Enter section name..."
-                className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none mt-2 transition-colors"
-              />
-            )}
-          </div>
+          {adviser ? (
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Advisory Class
+              </label>
+              <div className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2">
+                {adviser.gradeLevel} — {adviser.section}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Grade Level
+                </label>
+                <select
+                  value={gradeLevel}
+                  onChange={(e) => setGradeLevel(e.target.value)}
+                  className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                >
+                  {gradeOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Section
+                </label>
+                <select
+                  value={section}
+                  onChange={(e) => {
+                    const selected = e.target.value;
+                    if (selected === "+") {
+                      setShowNewSection(true);
+                      setNewSection("");
+                    } else {
+                      setSection(selected);
+                      setShowNewSection(false);
+                    }
+                  }}
+                  className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                >
+                  <option value="">Select a section</option>
+                  {availableSections.map((sec) => (
+                    <option key={sec} value={sec}>{sec}</option>
+                  ))}
+                  <option value="+">+ Add new section...</option>
+                </select>
+                {showNewSection && (
+                  <input
+                    value={newSection}
+                    onChange={(e) => {
+                      setNewSection(e.target.value);
+                      setSection(e.target.value);
+                    }}
+                    placeholder="Enter section name..."
+                    className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none mt-2 transition-colors"
+                  />
+                )}
+              </div>
+            </>
+          )}
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
               School Year

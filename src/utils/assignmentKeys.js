@@ -11,13 +11,20 @@
 // assignments, "ADVISER|<gradeLevel>|<section>" for adviser assignments.
 // Matches the identity classRecords documents are keyed by (see
 // ClassRecord.jsx getDocId): grade+section+subject, not per-teacher.
+//
+// The ADVISER key's gradeLevel is canonicalized ("7" -> "Grade 7") because
+// UserManagement.jsx stores the bare digit in assignments[], while
+// learners/attendance/classRecords all key on the canonical "Grade N" form
+// this key is compared against in firestore.rules.
+
+import { canonicalGradeLevel } from "../importers/shared/normalization.js";
 
 export function subjectAssignmentKey(subject, gradeLevel, section) {
   return `${subject}|${gradeLevel}|${section}`;
 }
 
 export function adviserAssignmentKey(gradeLevel, section) {
-  return `ADVISER|${gradeLevel}|${section}`;
+  return `ADVISER|${canonicalGradeLevel(gradeLevel)}|${section}`;
 }
 
 export function buildAssignmentKeys(assignments) {

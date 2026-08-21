@@ -360,6 +360,7 @@ function App() {
       user={user}
       pageTitle={pageTitle}
       userRoles={userRoles}
+      activeClassRecord={classRecordTarget}
     >
       <SyncStatusBanner />
       {pageContent}

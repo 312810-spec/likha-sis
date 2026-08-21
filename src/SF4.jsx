@@ -11,7 +11,7 @@
 // collections; mortality numbers are manual inputs persisted to the
 // "sf4Mortality" collection, matching the pattern SF2 uses for its summaries.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   collection,
   getDocs,
@@ -104,12 +104,13 @@ function SF4({ user, goBack }) {
   const gradeLevelRaw = gradeOptions.includes(gradeLevelChoice)
     ? gradeLevelChoice
     : gradeOptions[0] || "";
-  // SF4 is a grade-level (not section-level) DepEd form -- one sheet
-  // aggregates EVERY section of the grade, by design (see file header).
-  // Locking the grade dropdown to the adviser's own advisory grade keeps
-  // them from generating a report for an unrelated grade, without breaking
-  // the form's official multi-section layout by filtering out sections.
-  const { adviser } = useTeacherScope(user, schoolYear);
+  // SF4 is normally a grade-level (not section-level) DepEd form -- one
+  // sheet aggregates every section of the grade. SF4 access is adviser-only
+  // (see pageAccess.js), so it is narrowed here to just the adviser's own
+  // advisory section instead: an adviser must never see or total up a
+  // sibling section's roster/attendance through this form.
+  const { adviser, roles, loading: scopeLoading } = useTeacherScope(user, schoolYear);
+  const isAdviserRole = roles.includes("adviser");
   const gradeLevel = adviser ? adviser.gradeLevel : gradeLevelRaw;
   // monthValue: the raw "YYYY-MM" string from the month input, same pattern as SF2.
   const [monthValue, setMonthValue] = useState(() => {
@@ -117,7 +118,14 @@ function SF4({ user, goBack }) {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
 
-  const { sections } = useAvailableSections(gradeLevel, schoolYear);
+  const { sections: allSections } = useAvailableSections(gradeLevel, schoolYear);
+  // An adviser's SF4 rows/totals reflect only their own advisory section --
+  // never sibling sections in the same grade. computeSF4Rows already accepts
+  // any-length sections array, so this needs no change downstream.
+  const sections = useMemo(
+    () => (adviser ? [adviser.section] : allSections),
+    [adviser, allSections]
+  );
 
   // rows: the computed SF4 rows (one per section plus a totals row).
   const [rows, setRows] = useState([]);
@@ -366,6 +374,16 @@ function SF4({ user, goBack }) {
   const mortalityTotal =
     (Number(mortalityInputs.previousMonths) || 0) + (Number(mortalityInputs.forTheMonth) || 0);
 
+  if (isAdviserRole && !scopeLoading && !adviser) {
+    return (
+      <div className="max-w-lg mx-auto mt-12 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-6">
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+          No advisory class is assigned to your account. Please contact the ICT Coordinator.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Print CSS — screen chrome hides, the printable table stays plain. */}
@@ -445,21 +463,31 @@ function SF4({ user, goBack }) {
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
-              Grade Level
-            </label>
-            <select
-              value={gradeLevel}
-              onChange={(e) => setGradeLevel(e.target.value)}
-              disabled={!!adviser}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
-            >
-              {gradeOptions.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </div>
+          {adviser ? (
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Advisory Class
+              </label>
+              <div className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2">
+                {adviser.gradeLevel} — {adviser.section}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Grade Level
+              </label>
+              <select
+                value={gradeLevel}
+                onChange={(e) => setGradeLevel(e.target.value)}
+                className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              >
+                {gradeOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
               Month

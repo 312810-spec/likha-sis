@@ -9,13 +9,16 @@ import {
   getDoc,
   setDoc,
   doc,
+  query,
+  where,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import Tooltip from "./components/Tooltip.jsx";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useTeacherScope from "./hooks/useTeacherScope";
-import { SUBJECT_WEIGHTS, getSubjectWeights } from "./utils/subjectWeights";
+import { findClassRecordAssignment } from "./utils/teacherScope";
+import { getSubjectWeights } from "./utils/subjectWeights";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { transmuteGrade, getGradeDescription } from "./utils/transmutationTable";
 import {
@@ -31,71 +34,41 @@ import Button from "./components/Button.jsx";
 
 export default function ClassRecord({ user, initialSelection }) {
   const { config } = useSchoolConfig();
-  const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 
-  // Setup Panel state
-  const [gradeLevelChoice, setGradeLevel] = useState(gradeOptions[0] || "Grade 4");
-  // useSchoolConfig() resolves asynchronously, so gradeLevelChoice above is
-  // seeded from the fallback grade list before the real (possibly narrower)
-  // gradeLevelsOffered loads. Deriving the effective value at render time
-  // (rather than syncing it back via an effect) keeps it always valid --
-  // otherwise the section list would silently query a grade with none until
-  // the user manually touched the dropdown.
-  const gradeLevel = gradeOptions.includes(gradeLevelChoice)
-    ? gradeLevelChoice
-    : gradeOptions[0] || "Grade 4";
-  const [section, setSection] = useState("");
-  const [subjectChoice, setSubject] = useState(Object.keys(SUBJECT_WEIGHTS)[0] || "FILIPINO");
-  const [term, setTerm] = useState("Term 1");
+  // Grade Level, Subject, and Section are fixed by the Sidebar leaf that
+  // opened this page -- Class Record no longer offers a picker for any of
+  // the three. School Year stays a live control: the same assigned class
+  // can have a record from a different school year.
   const [schoolYear, setSchoolYear] = useState("2026-2027");
 
-  // Canonical adviser + subject-teacher scope. Class Record does NOT fall
-  // back to an unrestricted grade/section picker: an adviser is hard-locked
-  // to their advisory section, and a subject teacher only ever sees the
-  // subject/grade/section combinations from their own users/{uid}.assignments.
-  const teacherScope = useTeacherScope(user, schoolYear);
-  const { advisorySection, adviser, subjectMap, loading: scopeLoading } = teacherScope;
+  // Canonical subject-teacher scope. classRecordCombos is the same flat,
+  // canonical {gradeLevel, subject, section, terms} list the Sidebar's
+  // Class Record tree is built from (see teacherScope.js
+  // resolveClassRecordCombos) -- a role: "adviser" assignment alone never
+  // contributes a combo here, only an explicit role: "subjectTeacher" entry.
+  const { classRecordCombos, loading: scopeLoading } = useTeacherScope(user, schoolYear);
+  const hasAnyAssignment = classRecordCombos.length > 0;
 
-  // Every grade level+section this teacher may open Class Record for, plus
-  // (for subject-teacher combos) which subject(s) it's restricted to. `null`
-  // subject means "adviser's own class, any subject" -- advisers commonly
-  // teach every subject to their own section.
-  // `terms` (null | number[]) carries SHS term coverage through -- absent
-  // for adviser combos and non-SHS subject-teacher assignments, which cover
-  // every term.
-  const allowedCombos = [
-    ...(adviser ? [{ gradeLevel: adviser.gradeLevel, section: adviser.section, subject: null, terms: null }] : []),
-    ...Array.from(subjectMap.entries()).flatMap(([subj, classes]) =>
-      classes.map((c) => ({ gradeLevel: c.gradeLevel, section: c.section, subject: subj, terms: c.terms }))
-    ),
-  ];
-  const hasAnyAssignment = allowedCombos.length > 0;
+  // Security check: initialSelection comes from the Sidebar leaf click (or,
+  // in principle, manipulated client state) and is never trusted on its
+  // own. Only a payload matching one of this teacher's own
+  // classRecordCombos unlocks the record -- anything else fails closed.
+  const matchedAssignment = initialSelection
+    ? findClassRecordAssignment(classRecordCombos, initialSelection)
+    : null;
 
-  const scopedGradeLevels = [...new Set(allowedCombos.map((c) => c.gradeLevel))];
-  const scopedSectionsForGrade = (gl) =>
-    [...new Set(allowedCombos.filter((c) => c.gradeLevel === gl).map((c) => c.section))];
-  // `termNum` (1/2/3), when given, restricts to combos actually covering
-  // that term -- an SHS assignment scoped to Terms 1-2 stops appearing once
-  // Term 3 is selected, unless another assignment covers Term 3.
-  const scopedSubjectsForClass = (gl, sec, termNum) =>
-    allowedCombos.filter(
-      (c) =>
-        c.gradeLevel === gl &&
-        c.section === sec &&
-        (termNum === undefined || !c.terms || c.terms.includes(termNum))
-    );
+  const gradeLevel = matchedAssignment?.gradeLevel || "";
+  const subject = matchedAssignment?.subject || "";
+  const section = matchedAssignment?.section || "";
 
-  // Seed grade/section from scope the first time it resolves, then let the
-  // teacher move between their OWN allowed combos (never outside them).
-  useEffect(() => {
-    if (scopeLoading || !hasAnyAssignment || section) return;
-    const first = allowedCombos[0];
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setGradeLevel(first.gradeLevel);
-    setSection(first.section);
-    if (first.subject) setSubject(first.subject);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopeLoading, hasAnyAssignment, section]);
+  // Term options, restricted to what the matched assignment's `terms`
+  // actually covers (SHS-only; null/absent covers every term).
+  const TERM_OPTIONS = ["Term 1", "Term 2", "Term 3"];
+  const allowedTermOptions = matchedAssignment?.terms
+    ? TERM_OPTIONS.filter((_, idx) => matchedAssignment.terms.includes(idx + 1))
+    : TERM_OPTIONS;
+  const [termChoice, setTerm] = useState("Term 1");
+  const term = allowedTermOptions.includes(termChoice) ? termChoice : allowedTermOptions[0] || "Term 1";
 
   // Grid / Data state
   const [isLoaded, setIsLoaded] = useState(false);
@@ -104,29 +77,6 @@ export default function ClassRecord({ user, initialSelection }) {
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Sidebar "Class Record > <subject>" click: only applied when it matches
-  // one of this teacher's OWN allowed combos (never lets initialSelection
-  // itself grant access to something outside the resolved scope). Re-runs
-  // on every new initialSelection so switching subjects from the sidebar
-  // while already viewing a class record works, and drops back to the
-  // setup panel (pre-filled) rather than showing the previous class's grid.
-  useEffect(() => {
-    if (scopeLoading || !initialSelection) return;
-    const match = allowedCombos.find(
-      (c) =>
-        c.gradeLevel === initialSelection.gradeLevel &&
-        c.section === initialSelection.section &&
-        (!initialSelection.subject || c.subject === null || c.subject === initialSelection.subject)
-    );
-    if (!match) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setGradeLevel(match.gradeLevel);
-    setSection(match.section);
-    if (initialSelection.subject) setSubject(initialSelection.subject);
-    setIsLoaded(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialSelection, scopeLoading]);
-
   const [learners, setLearners] = useState([]);
   const [wwItems, setWwItems] = useState([{ id: "ww1", hps: 0 }]);
   const [ptItems, setPtItems] = useState([{ id: "pt1", hps: 0 }]);
@@ -134,50 +84,14 @@ export default function ClassRecord({ user, initialSelection }) {
   const [scores, setScores] = useState({});
   const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
 
-  // DO 017 SHS: Grade 11/12 draw their subject list from the school's
-  // configured SHS subjects (core + elective-cluster subjects) instead of
-  // the fixed Grade 4-10 SUBJECT_WEIGHTS map, since those subject names
-  // aren't known ahead of time.
-  const isSHS = gradeLevel === "Grade 11" || gradeLevel === "Grade 12";
+  // DO 017 SHS: Grade 11/12 draw their subject weight profile from the
+  // school's configured SHS subjects (core + elective-cluster subjects)
+  // instead of the fixed Grade 4-10 SUBJECT_WEIGHTS map.
   const shsSubjectList = [
     ...(config?.shs?.subjects || []),
     ...((config?.shs?.electiveClusters || []).flatMap((cluster) => cluster.subjects || [])),
   ];
   const getSHSAwareWeights = makeSubjectWeightsResolver(shsSubjectList, getSubjectWeights);
-
-  // Subject options from SUBJECT_WEIGHTS (Grade 4-10) or the school's
-  // configured SHS subjects (Grade 11-12).
-  const SUBJECT_OPTIONS = isSHS
-    ? shsSubjectList.map((s) => s.name).filter(Boolean)
-    : Object.keys(SUBJECT_WEIGHTS);
-  // Same desync risk as gradeLevel above: subjectChoice may have been seeded
-  // before config (and therefore isSHS/shsSubjectList) resolved, or the user
-  // may have picked a grade level whose SUBJECT_OPTIONS no longer contains
-  // the previously chosen subject. Derive the effective value at render time.
-  // Term options
-  const TERM_OPTIONS = ["Term 1", "Term 2", "Term 3"];
-  // SHS subjects are term-based (§4-9 of the term-versioning update): an
-  // assignment scoped to only some terms must drop out of Class Record once
-  // an unrelated term is selected. Non-SHS combos carry `terms: null` and
-  // are unaffected.
-  const termNum = TERM_OPTIONS.indexOf(term) + 1 || undefined;
-
-  // Narrow SUBJECT_OPTIONS to what this teacher is actually scoped for at
-  // the currently-selected grade/section/term: adviser combos (subject:
-  // null) keep the full list (advisers commonly teach every subject to
-  // their own class); subject-teacher combos restrict to only their
-  // assigned subjects that cover the active term.
-  const combosForCurrentClass = scopedSubjectsForClass(gradeLevel, section, isSHS ? termNum : undefined);
-  const isAdviserForCurrentClass = combosForCurrentClass.some((c) => c.subject === null);
-  const SCOPED_SUBJECT_OPTIONS =
-    !hasAnyAssignment || isAdviserForCurrentClass
-      ? SUBJECT_OPTIONS
-      : SUBJECT_OPTIONS.filter((s) =>
-          combosForCurrentClass.some((c) => c.subject === s)
-        );
-  const subject = SCOPED_SUBJECT_OPTIONS.includes(subjectChoice)
-    ? subjectChoice
-    : SCOPED_SUBJECT_OPTIONS[0] || "";
 
   // Helper to construct deterministic Firestore Document ID
   // One class record per grade+section+subject+term+schoolYear -- the doc
@@ -193,86 +107,101 @@ export default function ClassRecord({ user, initialSelection }) {
     return raw.toLowerCase().replace(/\s+/g, "-");
   }
 
-  // Load class record and matching learners
-  async function handleLoadClassRecord(e) {
-    if (e) e.preventDefault();
-    if (!section.trim()) {
-      setErrorMessage("Please enter a section name.");
-      return;
-    }
-    // Defense in depth: the pickers above already restrict grade/section/
-    // subject to this teacher's own assignments, but re-check here too in
-    // case client state was manipulated -- never load outside the scope.
-    if (hasAnyAssignment && scopedSubjectsForClass(gradeLevel, section).length === 0) {
-      setErrorMessage("You are not assigned to this class.");
-      return;
-    }
+  // Loads the assigned class record + its roster. Re-runs whenever the
+  // Sidebar leaf changes (a different initialSelection) or the live Term /
+  // School Year controls change, replacing the page in place -- no full
+  // reload, and no manual "Load" step.
+  useEffect(() => {
+    let cancelled = false;
 
-    setIsLoading(true);
-    setErrorMessage("");
-    setStatusMessage("");
-
-    try {
-      // 1. Query learners collection for matching gradeLevel and section
-      const learnersSnap = await getDocs(collection(db, "learners"));
-      const allLearners = learnersSnap.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...docSnap.data(),
-      }));
-
-      const filteredLearners = allLearners.filter(
-        (l) =>
-          (l.gradeLevel || "").trim().toLowerCase() === gradeLevel.trim().toLowerCase() &&
-          (l.section || "").trim().toLowerCase() === section.trim().toLowerCase()
-      );
-
-      // Sort alphabetically by lastName, then firstName
-      filteredLearners.sort((a, b) => {
-        const last = (a.lastName || "").toLowerCase().localeCompare((b.lastName || "").toLowerCase());
-        if (last !== 0) return last;
-        return (a.firstName || "").toLowerCase().localeCompare((b.firstName || "").toLowerCase());
-      });
-
-      setLearners(filteredLearners);
-
-      // 2. Fetch classRecord document using deterministic ID
-      const docId = getDocId();
-      const recordRef = doc(db, "classRecords", docId);
-      const recordSnap = await getDoc(recordRef);
-
-      if (recordSnap.exists()) {
-        const data = recordSnap.data();
-        setWwItems(
-          Array.isArray(data.wwItems) && data.wwItems.length > 0
-            ? data.wwItems
-            : [{ id: "ww1", hps: 0 }]
-        );
-        setPtItems(
-          Array.isArray(data.ptItems) && data.ptItems.length > 0
-            ? data.ptItems
-            : [{ id: "pt1", hps: 0 }]
-        );
-        setExHPS(data.exHPS || { st1: 0, st2: 0, te: 0 });
-        setScores(data.scores || {});
-      } else {
-        // Initialize with default template
-        setWwItems([{ id: "ww1", hps: 0 }]);
-        setPtItems([{ id: "pt1", hps: 0 }]);
-        setExHPS({ st1: 0, st2: 0, te: 0 });
-        setScores({});
+    async function loadClassRecord() {
+      // Defense in depth: re-verified on every load in case client state
+      // was manipulated -- never load outside this teacher's own combos.
+      if (!matchedAssignment || !schoolYear.trim()) {
+        setIsLoaded(false);
+        return;
       }
 
-      setIsLoaded(true);
-    } catch (err) {
-      console.error("Error loading class record:", err);
-      setErrorMessage("Failed to load class record. Please check your connection and try again.");
-    } finally {
-      setIsLoading(false);
+      setIsLoading(true);
+      setErrorMessage("");
+      setStatusMessage("");
+
+      try {
+        // 1. Learners for this exact grade+section -- never the whole school.
+        const learnersSnap = await getDocs(
+          query(
+            collection(db, "learners"),
+            where("gradeLevel", "==", gradeLevel),
+            where("section", "==", section)
+          )
+        );
+        const scopedLearners = learnersSnap.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }));
+        scopedLearners.sort((a, b) => {
+          const last = (a.lastName || "").toLowerCase().localeCompare((b.lastName || "").toLowerCase());
+          if (last !== 0) return last;
+          return (a.firstName || "").toLowerCase().localeCompare((b.firstName || "").toLowerCase());
+        });
+        if (cancelled) return;
+        setLearners(scopedLearners);
+
+        // 2. Fetch classRecord document using deterministic ID
+        const docId = getDocId();
+        const recordRef = doc(db, "classRecords", docId);
+        const recordSnap = await getDoc(recordRef);
+        if (cancelled) return;
+
+        if (recordSnap.exists()) {
+          const data = recordSnap.data();
+          setWwItems(
+            Array.isArray(data.wwItems) && data.wwItems.length > 0
+              ? data.wwItems
+              : [{ id: "ww1", hps: 0 }]
+          );
+          setPtItems(
+            Array.isArray(data.ptItems) && data.ptItems.length > 0
+              ? data.ptItems
+              : [{ id: "pt1", hps: 0 }]
+          );
+          setExHPS(data.exHPS || { st1: 0, st2: 0, te: 0 });
+          setScores(data.scores || {});
+        } else {
+          // Initialize with default template
+          setWwItems([{ id: "ww1", hps: 0 }]);
+          setPtItems([{ id: "pt1", hps: 0 }]);
+          setExHPS({ st1: 0, st2: 0, te: 0 });
+          setScores({});
+        }
+
+        setIsLoaded(true);
+      } catch (err) {
+        console.error("Error loading class record:", err);
+        if (!cancelled) {
+          setErrorMessage("Failed to load class record. Please check your connection and try again.");
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
     }
-  }
+
+    loadClassRecord();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSelection, matchedAssignment, gradeLevel, subject, section, term, schoolYear]);
 
   // Save current record to Firestore
   async function handleSave() {
+    // Defense in depth: re-verified here too, in case client state was
+    // manipulated -- never save outside this teacher's own classRecordCombos.
+    if (!matchedAssignment) {
+      setErrorMessage("You are not assigned to this class record.");
+      return;
+    }
+
     setIsSaving(true);
     setErrorMessage("");
     setStatusMessage("");
@@ -514,16 +443,10 @@ export default function ClassRecord({ user, initialSelection }) {
         description="Enter scores and calculate DepEd grades live based on subject weights."
         actions={
           isLoaded && (
-            <>
-              <Button variant="secondary" size="small" onClick={() => setIsLoaded(false)}>
-                <RefreshCw size={16} />
-                Change Setup
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                <Save size={18} />
-                {isSaving ? "Saving..." : "Save Class Record"}
-              </Button>
-            </>
+            <Button onClick={handleSave} disabled={isSaving}>
+              <Save size={18} />
+              {isSaving ? "Saving..." : "Save Class Record"}
+            </Button>
           )
         }
       />
@@ -598,171 +521,89 @@ export default function ClassRecord({ user, initialSelection }) {
         </div>
       ))}
 
-      {/* SETUP PANEL */}
-      {!isLoaded && scopeLoading ? (
+      {/* Fixed identity, fail-closed states -- Class Record no longer offers
+          a Grade/Section/Subject picker of any kind. A record can only be
+          opened from an assigned Sidebar leaf (Grade Level > Subject >
+          Section), which is re-verified against this teacher's own
+          classRecordCombos below (see teacherScope.js findClassRecordAssignment). */}
+      {scopeLoading ? (
         <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 text-sm text-gray-500 dark:text-gray-400">
           Loading your class assignments…
         </div>
-      ) : !isLoaded && !hasAnyAssignment ? (
+      ) : !hasAnyAssignment ? (
         <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 space-y-2">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-            No class assignment yet
+            No class records assigned.
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            You haven't been assigned as an adviser or subject teacher for any class. Ask your ICT
-            Coordinator to set this up in User Management or Class Program.
+            You haven't been assigned as a subject teacher for any class. Ask your ICT Coordinator to
+            set this up in User Management. An advisory assignment alone does not grant Class Record
+            access.
+          </p>
+        </div>
+      ) : !initialSelection ? (
+        <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 space-y-2">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+            Select a Class Record
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Open the Class Record menu in the sidebar and pick a Grade Level, then a Subject, then a
+            Section.
+          </p>
+        </div>
+      ) : !matchedAssignment ? (
+        <div className="max-w-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-xl shadow-card p-6">
+          <p className="text-sm font-medium text-rose-800 dark:text-rose-300">
+            You are not assigned to this class record.
           </p>
         </div>
       ) : !isLoaded ? (
-        <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 space-y-6">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-3">
-            Select Class &amp; Subject Parameters
-          </h2>
-
-          {advisorySection && (
-            <p className="text-xs text-primary dark:text-primary-light bg-primary/10 dark:bg-primary/20 rounded-lg px-3 py-2 -mt-2">
-              Your advisory: {advisorySection.gradeLevel} — {advisorySection.name}
-            </p>
-          )}
-
-          <form onSubmit={handleLoadClassRecord} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
-                  Grade Level
-                </label>
-                {scopedGradeLevels.length <= 1 ? (
-                  <p className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm">
-                    {gradeLevel}
-                  </p>
-                ) : (
-                  <select
-                    value={gradeLevel}
-                    onChange={(e) => {
-                      const nextGrade = e.target.value;
-                      setGradeLevel(nextGrade);
-                      const nextSections = scopedSectionsForGrade(nextGrade);
-                      setSection(nextSections[0] || "");
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
-                  >
-                    {scopedGradeLevels.map((g) => (
-                      <option key={g} value={g}>
-                        {g}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
-                  Section
-                </label>
-                {scopedSectionsForGrade(gradeLevel).length <= 1 ? (
-                  <p className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm">
-                    {section}
-                  </p>
-                ) : (
-                  <select
-                    value={section}
-                    onChange={(e) => setSection(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
-                    required
-                  >
-                    {scopedSectionsForGrade(gradeLevel).map((sec) => (
-                      <option key={sec} value={sec}>{sec}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
-                  Subject
-                </label>
-                <select
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
-                >
-                  {SCOPED_SUBJECT_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
-                  Term
-                </label>
-                <select
-                  value={term}
-                  onChange={(e) => setTerm(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
-                >
-                  {TERM_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
-                  School Year
-                </label>
-                <input
-                  type="text"
-                  value={schoolYear}
-                  onChange={(e) => setSchoolYear(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
-                  required
-                />
-              </div>
-            </div>
-
-            {isLoading && (
-              <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-800/60 rounded-lg border border-gray-200 dark:border-gray-700 animate-pulse">
-                <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
-                <div className="h-3 bg-gray-300 dark:bg-gray-700 rounded w-2/3"></div>
-              </div>
-            )}
-
-            <div className="pt-2">
-              <Button type="submit" disabled={isLoading} className="w-full justify-center">
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Loading Class Record...</span>
-                  </>
-                ) : (
-                  "Load Class Record"
-                )}
-              </Button>
-            </div>
-          </form>
+        <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 space-y-2 animate-pulse">
+          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
         </div>
       ) : (
         /* SCORE GRID VIEW */
         <div className="space-y-4">
-          {/* Info Summary Strip */}
+          {/* Info Summary Strip: Grade/Subject/Section are the fixed,
+              read-only identity of this Class Record (set by the Sidebar
+              leaf that opened it); Term and School Year stay live controls. */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 text-sm shadow-card">
             <div className="flex flex-wrap items-center gap-6">
               <div>
-                <span className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold">Class</span>
-                <span className="font-bold text-gray-800 dark:text-gray-100">{gradeLevel} — {section}</span>
+                <span className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold">Class Record</span>
+                <span className="font-bold text-gray-800 dark:text-gray-100">
+                  {gradeLevel} <span className="text-gray-400 dark:text-gray-500 font-normal">›</span> {subject}{" "}
+                  <span className="text-gray-400 dark:text-gray-500 font-normal">›</span> {section}
+                </span>
               </div>
               <div>
-                <span className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold">Subject</span>
-                <span className="font-bold text-gray-800 dark:text-gray-100">{subject}</span>
+                <label htmlFor="crTerm" className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold mb-1">
+                  Term
+                </label>
+                <select
+                  id="crTerm"
+                  value={term}
+                  onChange={(e) => setTerm(e.target.value)}
+                  className="px-2 py-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                >
+                  {allowedTermOptions.map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
               </div>
               <div>
-                <span className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold">Term &amp; SY</span>
-                <span className="font-bold text-gray-800 dark:text-gray-100">{term} ({schoolYear})</span>
+                <label htmlFor="crSchoolYear" className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold mb-1">
+                  School Year
+                </label>
+                <input
+                  id="crSchoolYear"
+                  type="text"
+                  value={schoolYear}
+                  onChange={(e) => setSchoolYear(e.target.value)}
+                  className="w-28 px-2 py-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                />
               </div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold">Weights</span>
@@ -771,7 +612,12 @@ export default function ClassRecord({ user, initialSelection }) {
                 </span>
               </div>
             </div>
-            <div className="text-gray-500 dark:text-gray-400 text-xs">
+            <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400 text-xs">
+              {isLoading && (
+                <span className="inline-flex items-center gap-1.5 text-primary dark:text-primary-light">
+                  <RefreshCw size={12} className="animate-spin" /> Reloading…
+                </span>
+              )}
               Learners: <span className="font-bold text-gray-800 dark:text-gray-100">{learners.length}</span>
             </div>
           </div>

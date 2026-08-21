@@ -47,14 +47,6 @@ async function getRawPalette(imageElement, colorCount = 6) {
       const res = await ColorThiefModule.getPalette(imageElement, { colorCount });
       if (Array.isArray(res)) return res;
     }
-    const DefaultExport = ColorThiefModule.default;
-    if (typeof DefaultExport === 'function') {
-      const thief = new DefaultExport();
-      if (typeof thief?.getPalette === 'function') {
-        const res = thief.getPalette(imageElement, colorCount);
-        if (Array.isArray(res)) return res;
-      }
-    }
   } catch (err) {
     console.warn('ColorThief palette extraction failed, falling back to defaults:', err);
   }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { canAccessPage } from '../pageAccess.js';
 import Tooltip from './Tooltip.jsx';
 import useAcademicCalendar from '../hooks/useAcademicCalendar';
@@ -24,6 +24,7 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   X,
 } from 'lucide-react';
 
@@ -61,17 +62,63 @@ const icons = {
   'SF10 Import': UploadCloud,
 };
 
-export default function Sidebar({ currentPage, onNavigate, user, userRoles, openMobile = false, onCloseMobile }) {
+export default function Sidebar({
+  currentPage,
+  onNavigate,
+  user,
+  userRoles,
+  openMobile = false,
+  onCloseMobile,
+  activeClassRecord = null,
+}) {
   const [collapsed, setCollapsed] = useState(false);
   const { schoolYears } = useAcademicCalendar();
-  // Every subject this user is actually assigned to teach (from
-  // users/{uid}.assignments) -- Class Record's sidebar subcategories are
-  // built from this alone, never the school's full subject catalog.
-  const { subjectMap } = useTeacherScope(user, schoolYears[0] || "2026-2027");
-  const subjectNames = Array.from(subjectMap.keys()).sort();
+  // Grade Level -> Subject -> Section[] hierarchy built from this user's own
+  // users/{uid}.assignments (role: "subjectTeacher" only -- see
+  // teacherScope.js) -- Class Record's nav tree is driven by this alone,
+  // never the school's full subject catalog and never an adviser's section.
+  const { classRecordHierarchy } = useTeacherScope(user, schoolYears[0] || "2026-2027");
+
+  const [classRecordOpen, setClassRecordOpen] = useState(false);
+  const [expandedGrades, setExpandedGrades] = useState(new Set());
+  const [expandedSubjects, setExpandedSubjects] = useState(new Set());
+
+  // Keep the tree open and its active leaf's ancestors expanded whenever the
+  // Sidebar's own leaf click set a new activeClassRecord -- both sides
+  // (hierarchy keys and the leaf payload) are already canonical, since
+  // Sidebar builds the payload from the same hierarchy it renders.
+  useEffect(() => {
+    if (!activeClassRecord) return;
+    const { gradeLevel, subject } = activeClassRecord;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setClassRecordOpen(true);
+    setExpandedGrades((prev) => (prev.has(gradeLevel) ? prev : new Set(prev).add(gradeLevel)));
+    if (subject) {
+      const key = `${gradeLevel}|${subject}`;
+      setExpandedSubjects((prev) => (prev.has(key) ? prev : new Set(prev).add(key)));
+    }
+  }, [activeClassRecord]);
 
   function toggleCollapsed() {
     setCollapsed((s) => !s);
+  }
+
+  function toggleGrade(gradeLevel) {
+    setExpandedGrades((prev) => {
+      const next = new Set(prev);
+      if (next.has(gradeLevel)) next.delete(gradeLevel);
+      else next.add(gradeLevel);
+      return next;
+    });
+  }
+
+  function toggleSubject(key) {
+    setExpandedSubjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
   function toggleMobile() {
@@ -103,24 +150,9 @@ export default function Sidebar({ currentPage, onNavigate, user, userRoles, open
     {
       label: 'Academics',
       children: [
-        {
-          label: 'Class Record',
-          page: 'classRecord',
-          // One subcategory per subject this user is actually assigned to
-          // teach (from users/{uid}.assignments) -- never every subject in
-          // the school. An adviser-only user (no subject assignments) keeps
-          // the plain link, unchanged.
-          subcategories: subjectNames.map((subject) => {
-            const firstClass = subjectMap.get(subject)?.[0];
-            return {
-              label: subject,
-              page: 'classRecord',
-              payload: firstClass
-                ? { subject, gradeLevel: firstClass.gradeLevel, section: firstClass.section }
-                : { subject },
-            };
-          }),
-        },
+        // Rendered specially below (isClassRecord) as an expandable
+        // Grade Level -> Subject -> Section tree instead of a plain link.
+        { label: 'Class Record', page: 'classRecord', isClassRecord: true },
         { label: 'Consolidated Grades', page: 'consolidatedGrades' },
         { label: 'Academic Hub', page: 'academicHub' },
         { label: 'Report Card (SF9)', page: 'reportCard' },
@@ -218,6 +250,131 @@ export default function Sidebar({ currentPage, onNavigate, user, userRoles, open
     );
   }
 
+  // Class Record's own nav entry: an expandable Grade Level -> Subject ->
+  // Section tree built from classRecordHierarchy (see teacherScope.js).
+  // Clicking the "Class Record" row only toggles the tree -- it never
+  // navigates -- so it never opens a generic setup page.
+  function ClassRecordNav() {
+    const active = currentPage === 'classRecord';
+    const gradeLevels = Object.keys(classRecordHierarchy);
+
+    return (
+      <>
+        <button
+          type="button"
+          title={collapsed ? 'Class Record' : undefined}
+          aria-expanded={classRecordOpen}
+          className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 active:scale-[0.97] ${
+            active
+              ? 'bg-white/15 text-white font-semibold shadow-sm dark:bg-white/10'
+              : 'text-white/75 hover:bg-white/10 hover:text-white dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white'
+          } ${collapsed ? 'justify-center' : ''}`}
+          onClick={() => setClassRecordOpen((o) => !o)}
+        >
+          <span
+            className={`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-accent transition-all duration-150 ${
+              active ? 'opacity-100' : 'opacity-0 group-hover:opacity-40'
+            }`}
+          />
+          <span className={`flex-shrink-0 transition-transform duration-150 ease-out ${active ? 'scale-110' : ''}`}>
+            <ClipboardList size={18} strokeWidth={2} />
+          </span>
+          <span
+            className={`flex-1 text-left truncate overflow-hidden whitespace-nowrap transition-all duration-200 ease-out ${
+              collapsed ? 'max-w-0 opacity-0' : 'max-w-[120px] opacity-100 delay-75'
+            }`}
+          >
+            Class Record
+          </span>
+          {!collapsed && (
+            <span className="flex-shrink-0 text-white/60">
+              {classRecordOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+          )}
+        </button>
+
+        {classRecordOpen && !collapsed && (
+          gradeLevels.length === 0 ? (
+            <p className="pl-8 pr-3 py-2 text-xs text-white/50 dark:text-gray-500 italic">
+              No class records assigned.
+            </p>
+          ) : (
+            <ul className="space-y-0.5">
+              {gradeLevels.map((gradeLevel) => {
+                const subjects = classRecordHierarchy[gradeLevel];
+                const gradeOpen = expandedGrades.has(gradeLevel);
+                return (
+                  <li key={gradeLevel}>
+                    <button
+                      type="button"
+                      aria-expanded={gradeOpen}
+                      className="w-full flex items-center gap-2 pl-8 pr-3 py-1.5 rounded-lg text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white transition-colors"
+                      onClick={() => toggleGrade(gradeLevel)}
+                    >
+                      {gradeOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                      <span className="truncate">{gradeLevel}</span>
+                    </button>
+                    {gradeOpen && (
+                      <ul className="space-y-0.5">
+                        {Object.keys(subjects).map((subject) => {
+                          const subjectKey = `${gradeLevel}|${subject}`;
+                          const subjectOpen = expandedSubjects.has(subjectKey);
+                          const sections = subjects[subject];
+                          return (
+                            <li key={subject}>
+                              <button
+                                type="button"
+                                aria-expanded={subjectOpen}
+                                className="w-full flex items-center gap-2 pl-12 pr-3 py-1.5 rounded-lg text-xs font-medium text-white/70 hover:bg-white/10 hover:text-white dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white transition-colors"
+                                onClick={() => toggleSubject(subjectKey)}
+                              >
+                                {subjectOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                <span className="truncate">{subject}</span>
+                              </button>
+                              {subjectOpen && (
+                                <ul className="space-y-0.5">
+                                  {sections.map(({ section, terms }) => {
+                                    const isActiveLeaf =
+                                      active &&
+                                      activeClassRecord &&
+                                      activeClassRecord.gradeLevel === gradeLevel &&
+                                      activeClassRecord.subject === subject &&
+                                      activeClassRecord.section === section;
+                                    return (
+                                      <li key={section}>
+                                        <button
+                                          type="button"
+                                          className={`w-full flex items-center gap-2 pl-16 pr-3 py-1.5 rounded-lg text-xs transition-colors ${
+                                            isActiveLeaf
+                                              ? 'bg-white/15 text-white font-semibold dark:bg-white/10'
+                                              : 'text-white/70 hover:bg-white/10 hover:text-white dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white'
+                                          }`}
+                                          onClick={() =>
+                                            handleNavClick('classRecord', { gradeLevel, subject, section, terms })
+                                          }
+                                        >
+                                          <span className="truncate">{section}</span>
+                                        </button>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )
+        )}
+      </>
+    );
+  }
+
   return (
     <aside
       className={`${collapsed ? 'w-20' : 'w-64'} ${openMobile ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 fixed md:sticky top-0 left-0 h-screen flex-shrink-0 bg-primary text-white flex flex-col transition-all duration-200 z-40 dark:bg-primary-dark dark:text-gray-100 shadow-xl md:shadow-none`}
@@ -301,28 +458,9 @@ export default function Sidebar({ currentPage, onNavigate, user, userRoles, open
                 )}
                 <ul className="space-y-1">
                   {item.children.map((c) =>
-                    c.subcategories && c.subcategories.length > 0 ? (
+                    c.isClassRecord ? (
                       <li key={c.label}>
-                        {!collapsed && (
-                          <p
-                            className={`px-3 pt-1 pb-0.5 text-xs font-semibold ${
-                              currentPage === c.page ? 'text-white dark:text-white' : 'text-white/60 dark:text-gray-400'
-                            }`}
-                          >
-                            {c.label}
-                          </p>
-                        )}
-                        <ul className="space-y-1">
-                          {c.subcategories.map((sub) => (
-                            <li key={sub.label}>
-                              {/* Which of these subjects is currently loaded lives
-                                  inside ClassRecord's own state, not Sidebar's --
-                                  these are one-shot navigation actions rather than
-                                  a persistently "active" item. */}
-                              <NavButton label={sub.label} page={sub.page} payload={sub.payload} active={false} indent />
-                            </li>
-                          ))}
-                        </ul>
+                        <ClassRecordNav />
                       </li>
                     ) : (
                       <li key={c.label}>

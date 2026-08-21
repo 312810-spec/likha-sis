@@ -175,6 +175,10 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, goToSchoolSe
   // Only offer the "set your coordinates" shortcut to roles that can actually
   // open School Settings — otherwise it's a link into an access-denied page.
   const canEditSchoolSettings = canAccessPage('schoolSettings', userRoles);
+  // SF1/SF2 quick actions: School Forms are adviser-only, so these are
+  // hidden for every other role rather than linking into Access Restricted.
+  const canGoToSF1 = canAccessPage('sf1', userRoles);
+  const canGoToSF2 = canAccessPage('sf2', userRoles);
 
   // Live school year options come from School Settings > Academic Calendar
   // (layered over the built-in fallback) via the shared hook.
@@ -285,15 +289,19 @@ function Dashboard({ goToSF1, goToSF2, goToViewLearners, goToLardo, goToSchoolSe
             <div className="mt-4">
               <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Quick access</div>
               <div className="flex flex-wrap gap-2 mt-2">
-                <Button onClick={goToSF1} size="small">
-                  <Plus size={16} /> Add Learner — SF1
-                </Button>
+                {canGoToSF1 && (
+                  <Button onClick={goToSF1} size="small">
+                    <Plus size={16} /> Add Learner — SF1
+                  </Button>
+                )}
                 <Button onClick={goToViewLearners} variant="secondary" size="small">
                   <ClipboardList size={16} /> View Learners
                 </Button>
-                <Button onClick={goToSF2} variant="secondary" size="small">
-                  <FilePlus2 size={16} /> School Form 2
-                </Button>
+                {canGoToSF2 && (
+                  <Button onClick={goToSF2} variant="secondary" size="small">
+                    <FilePlus2 size={16} /> School Form 2
+                  </Button>
+                )}
               </div>
             </div>
           </SectionCard>

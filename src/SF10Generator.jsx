@@ -10,7 +10,7 @@
 // layout, this one is NOT verified byte-exact.
 
 import { useEffect, useMemo, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
 import useSchoolConfig from "./hooks/useSchoolConfig";
@@ -185,10 +185,12 @@ export default function SF10Generator({ user }) {
   const [sectionFilter, setSectionFilter] = useState("");
 
   // An adviser generating SF10s is restricted to their own advisory
-  // section's learners -- never the whole school. Other roles with
-  // sf10Generate access (principal, ictCoordinator) keep the full list.
+  // section's learners -- never the whole school, and never falls back to
+  // the full list if unassigned. Other roles with sf10Generate access
+  // (principal, ictCoordinator) keep the full list.
   const { schoolYears } = useAcademicCalendar();
-  const { adviser } = useTeacherScope(user, schoolYears[0] || "2026-2027");
+  const { adviser, roles, loading: scopeLoading } = useTeacherScope(user, schoolYears[0] || "2026-2027");
+  const isAdviserRole = roles.includes("adviser");
 
   const getSHSAwareWeights = useMemo(
     () =>
@@ -211,37 +213,61 @@ export default function SF10Generator({ user }) {
   const [selectedLearnerId, setSelectedLearnerId] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchData() {
+      // An unassigned adviser gets an empty roster, never the full school's
+      // -- and never issues the broad learners query at all.
+      if (isAdviserRole) {
+        if (scopeLoading) return;
+        if (!adviser) {
+          if (!cancelled) {
+            setLearners([]);
+            setClassRecords([]);
+            setAcademicRecords([]);
+            setLoading(false);
+          }
+          return;
+        }
+      }
       try {
+        const learnersQuery = isAdviserRole
+          ? query(
+              collection(db, "learners"),
+              where("gradeLevel", "==", adviser.gradeLevel),
+              where("section", "==", adviser.section)
+            )
+          : collection(db, "learners");
         const [learnersSnap, classRecordsSnap, academicRecordsSnap] = await Promise.all([
-          getDocs(collection(db, "learners")),
+          getDocs(learnersQuery),
           getDocs(collection(db, "classRecords")),
           getDocs(collection(db, "academicRecords")),
         ]);
+        if (cancelled) return;
         setLearners(learnersSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
         setClassRecords(classRecordsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
         setAcademicRecords(academicRecordsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } catch (err) {
         console.error("Failed to load SF10 data:", err);
-        setErrorMessage("Failed to load data. Please check your connection and try again.");
+        if (!cancelled) setErrorMessage("Failed to load data. Please check your connection and try again.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     fetchData();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdviserRole, adviser, scopeLoading]);
 
   const sortedLearners = useMemo(() => {
-    const scoped = adviser
-      ? learners.filter((l) => l.gradeLevel === adviser.gradeLevel && l.section === adviser.section)
-      : learners;
-    return [...scoped].sort((a, b) => {
+    return [...learners].sort((a, b) => {
       const last = (a.lastName || "").toLowerCase().localeCompare((b.lastName || "").toLowerCase());
       if (last !== 0) return last;
       return (a.firstName || "").toLowerCase().localeCompare((b.firstName || "").toLowerCase());
     });
-  }, [learners, adviser]);
+  }, [learners]);
 
   const advisoryFilterValue = adviser ? `${adviser.gradeLevel} - ${adviser.section}` : null;
   const sectionOptions = useMemo(() => {
@@ -280,6 +306,16 @@ export default function SF10Generator({ user }) {
       getSHSAwareWeights
     );
   }, [selectedLearner, classRecords, academicRecords, getSHSAwareWeights]);
+
+  if (isAdviserRole && !scopeLoading && !adviser) {
+    return (
+      <div className="max-w-lg mx-auto mt-12 text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-6">
+        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+          No advisory class is assigned to your account. Please contact the ICT Coordinator.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="font-sans text-gray-900 dark:text-gray-100 space-y-6 max-w-3xl mx-auto w-full pb-12">
@@ -351,7 +387,18 @@ export default function SF10Generator({ user }) {
           </>
         )}
 
-        {mode === "section" && (
+        {mode === "section" && adviser && (
+          <>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              Advisory Class
+            </label>
+            <div className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800">
+              {adviser.gradeLevel} — {adviser.section}
+            </div>
+          </>
+        )}
+
+        {mode === "section" && !adviser && (
           <>
             <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
               Grade & Section
@@ -359,7 +406,7 @@ export default function SF10Generator({ user }) {
             <select
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
-              disabled={loading || !!adviser}
+              disabled={loading}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800"
             >
               <option value="">-- Select grade & section --</option>

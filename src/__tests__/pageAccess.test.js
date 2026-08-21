@@ -19,19 +19,18 @@ describe("pageAccess", () => {
     });
 
     it("allows restricted pages for listed roles and blocks unlisted roles", () => {
-      // sf1: ["adviser", "ictCoordinator", "principal"]
+      // sf1: ["adviser"] -- School Forms are adviser-only.
       expect(canAccessPage("sf1", ["adviser"])).toBe(true);
-      expect(canAccessPage("sf1", ["ictCoordinator"])).toBe(true);
-      expect(canAccessPage("sf1", ["principal"])).toBe(true);
+      expect(canAccessPage("sf1", ["ictCoordinator"])).toBe(false);
+      expect(canAccessPage("sf1", ["principal"])).toBe(false);
       expect(canAccessPage("sf1", ["subjectTeacher"])).toBe(false);
       expect(canAccessPage("sf1", ["stakeholder"])).toBe(false);
 
-      // sf2: ["adviser", "principal", "masterTeacher", "smeaCoordinator", "guidance", "ictCoordinator"]
-      // Non-adviser roles can open SF2 to view the Year Overview tab, but the
-      // page itself (SF2.jsx) still gates attendance-marking to adviser.
+      // sf2: ["adviser"] -- the Year Overview tab for other roles was retired
+      // along with their page access; SF2 is adviser-only end to end.
       expect(canAccessPage("sf2", ["adviser"])).toBe(true);
-      expect(canAccessPage("sf2", ["principal"])).toBe(true);
-      expect(canAccessPage("sf2", ["guidance"])).toBe(true);
+      expect(canAccessPage("sf2", ["principal"])).toBe(false);
+      expect(canAccessPage("sf2", ["guidance"])).toBe(false);
       expect(canAccessPage("sf2", ["subjectTeacher"])).toBe(false);
 
       // userManagement: ["ictCoordinator", "principal"]
@@ -39,10 +38,10 @@ describe("pageAccess", () => {
       expect(canAccessPage("userManagement", ["principal"])).toBe(true);
       expect(canAccessPage("userManagement", ["adviser"])).toBe(false);
 
-      // sf10Generate: ["adviser", "principal", "ictCoordinator"]
+      // sf10Generate: ["adviser"]
       expect(canAccessPage("sf10Generate", ["adviser"])).toBe(true);
-      expect(canAccessPage("sf10Generate", ["principal"])).toBe(true);
-      expect(canAccessPage("sf10Generate", ["ictCoordinator"])).toBe(true);
+      expect(canAccessPage("sf10Generate", ["principal"])).toBe(false);
+      expect(canAccessPage("sf10Generate", ["ictCoordinator"])).toBe(false);
       expect(canAccessPage("sf10Generate", ["subjectTeacher"])).toBe(false);
       expect(canAccessPage("sf10Generate", ["stakeholder"])).toBe(false);
 
@@ -67,9 +66,9 @@ describe("pageAccess", () => {
       expect(canAccessPage("consolidatedGrades", ["ictCoordinator"])).toBe(false);
       expect(canAccessPage("consolidatedGrades", ["stakeholder"])).toBe(false);
 
-      // reportCard: ["adviser", "principal"]
+      // reportCard (SF9): ["adviser"]
       expect(canAccessPage("reportCard", ["adviser"])).toBe(true);
-      expect(canAccessPage("reportCard", ["principal"])).toBe(true);
+      expect(canAccessPage("reportCard", ["principal"])).toBe(false);
       expect(canAccessPage("reportCard", ["subjectTeacher"])).toBe(false);
       expect(canAccessPage("reportCard", ["ictCoordinator"])).toBe(false);
       expect(canAccessPage("reportCard", ["stakeholder"])).toBe(false);
@@ -110,6 +109,67 @@ describe("pageAccess", () => {
 
     it("returns false for non-existent page key", () => {
       expect(canAccessPage("nonExistentPage", ["adviser"])).toBe(false);
+    });
+  });
+
+  describe("School Forms SF1-SF10 are adviser-only", () => {
+    // The only School Form pages that actually exist: SF1, SF2, SF4,
+    // Report Card (SF9), and SF10 Generator. canAccessPage() is the single
+    // gate both Sidebar.jsx (nav visibility) and App.jsx (route rendering,
+    // before any SF component mounts or reads Firestore) call, so exercising
+    // it here covers navigation, direct route access, and data loading.
+    const SF_PAGES = ["sf1", "sf2", "sf4", "reportCard", "sf10Generate"];
+
+    it("an adviser can access every School Form page", () => {
+      SF_PAGES.forEach((page) => {
+        expect(canAccessPage(page, ["adviser"]), page).toBe(true);
+      });
+    });
+
+    it("a multi-role account with adviser among its roles still has access", () => {
+      SF_PAGES.forEach((page) => {
+        expect(canAccessPage(page, ["subjectTeacher", "adviser"]), page).toBe(true);
+        expect(canAccessPage(page, ["principal", "adviser"]), page).toBe(true);
+        expect(canAccessPage(page, ["ictCoordinator", "adviser"]), page).toBe(true);
+      });
+    });
+
+    it("subjectTeacher without the adviser role cannot access any School Form", () => {
+      SF_PAGES.forEach((page) => {
+        expect(canAccessPage(page, ["subjectTeacher"]), page).toBe(false);
+      });
+    });
+
+    it("ictCoordinator without the adviser role cannot access any School Form", () => {
+      SF_PAGES.forEach((page) => {
+        expect(canAccessPage(page, ["ictCoordinator"]), page).toBe(false);
+      });
+    });
+
+    it("principal without the adviser role cannot access any School Form", () => {
+      SF_PAGES.forEach((page) => {
+        expect(canAccessPage(page, ["principal"]), page).toBe(false);
+      });
+    });
+
+    it("blocks direct route access for every other non-adviser role", () => {
+      // App.jsx computes `hasAccess = canAccessPage(currentPage, userRoles)`
+      // before its page switch runs, so a false result here is exactly what
+      // stops a manually-set currentPage (typed URL/state) from ever
+      // rendering the SF component -- the same function IS the route guard.
+      ["masterTeacher", "smeaCoordinator", "guidance", "stakeholder", "clinicTeacher"].forEach((role) => {
+        SF_PAGES.forEach((page) => {
+          expect(canAccessPage(page, [role]), `${role} on ${page}`).toBe(false);
+        });
+      });
+    });
+
+    it("fails closed for every School Form when roles are unresolved or missing", () => {
+      SF_PAGES.forEach((page) => {
+        expect(canAccessPage(page, undefined), page).toBe(false);
+        expect(canAccessPage(page, null), page).toBe(false);
+        expect(canAccessPage(page, [])).toBe(false);
+      });
     });
   });
 
@@ -172,7 +232,7 @@ describe("pageAccess", () => {
   describe("exported constants", () => {
     it("exports expected PAGE_ACCESS object and array constants", () => {
       expect(PAGE_ACCESS.dashboard).toBe("all");
-      expect(PAGE_ACCESS.sf1).toEqual(["adviser", "ictCoordinator", "principal"]);
+      expect(PAGE_ACCESS.sf1).toEqual(["adviser"]);
       expect(PAGE_ACCESS.announcements).toBe("all");
       expect(PAGE_ACCESS.schoolCalendar).toBe("all");
       expect(ANNOUNCEMENT_AUTHOR_ROLES).toEqual(["principal", "ictCoordinator"]);

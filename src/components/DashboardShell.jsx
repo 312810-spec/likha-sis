@@ -17,7 +17,7 @@ function initialsFor(user) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-export default function DashboardShell({ children, currentPage, onNavigate, user, pageTitle = 'Dashboard', userRoles }) {
+export default function DashboardShell({ children, currentPage, onNavigate, user, pageTitle = 'Dashboard', userRoles, activeClassRecord }) {
   useBrandTheme();
   const [mode, resolvedIsDark, setMode] = useDarkMode();
   const [now, setNow] = useState(new Date());
@@ -79,6 +79,7 @@ export default function DashboardShell({ children, currentPage, onNavigate, user
         userRoles={userRoles}
         openMobile={mobileNavOpen}
         onCloseMobile={() => setMobileNavOpen(false)}
+        activeClassRecord={activeClassRecord}
       />
 
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">

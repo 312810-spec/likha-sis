@@ -34,6 +34,9 @@ import {
   isAccountActive,
   isEditableUserRow,
   validateUserEditForm,
+  reconcileAdviserAssignments,
+  findAdviserAssignmentConflict,
+  canDeactivateAccount,
 } from "../utils/userAccountManagement.js";
 
 export default function UserManagement({ user }) {
@@ -223,6 +226,21 @@ export default function UserManagement({ user }) {
       setErrorMessage("Please enter grade level and section for the assignment.");
       return;
     }
+    if (assignRole === "adviser") {
+      if (assignments.some((a) => a?.role === "adviser")) {
+        setErrorMessage("This account already has an advisory assignment. Remove it before adding another.");
+        return;
+      }
+      const conflict = findAdviserAssignmentConflict(userList, assignGrade, assignSection, null);
+      if (conflict) {
+        setErrorMessage(
+          `Grade ${assignGrade.trim()} - ${assignSection.trim()} is already assigned to ${
+            conflict.fullName || conflict.email || "another user"
+          } as their advisory class.`
+        );
+        return;
+      }
+    }
     if (assignRole === "subjectTeacher") {
       const validSubjects = getSubjectsForGradeLevel(`Grade ${assignGrade.trim()}`, {
         schoolYear: currentSchoolYear,
@@ -313,6 +331,21 @@ export default function UserManagement({ user }) {
       setErrorMessage("Please enter grade level and section for the assignment.");
       return;
     }
+    if (editAssignRole === "adviser") {
+      if (editAssignments.some((a) => a?.role === "adviser")) {
+        setErrorMessage("This account already has an advisory assignment. Remove it before adding another.");
+        return;
+      }
+      const conflict = findAdviserAssignmentConflict(userList, editAssignGrade, editAssignSection, editingUserId);
+      if (conflict) {
+        setErrorMessage(
+          `Grade ${editAssignGrade.trim()} - ${editAssignSection.trim()} is already assigned to ${
+            conflict.fullName || conflict.email || "another user"
+          } as their advisory class.`
+        );
+        return;
+      }
+    }
     if (editAssignRole === "subjectTeacher") {
       const validSubjects = getSubjectsForGradeLevel(`Grade ${editAssignGrade.trim()}`, {
         schoolYear: currentSchoolYear,
@@ -359,18 +392,28 @@ export default function UserManagement({ user }) {
       return;
     }
 
+    // Strips a stale adviser assignment if the role was unchecked, and
+    // blocks save if the "adviser" role is checked without exactly one
+    // advisory assignment (see teacherScope.js -- 0 or 2+ resolves to no
+    // adviser scope at all, so it must be caught here first).
+    const reconciled = reconcileAdviserAssignments(editAssignments, editRoles);
+    if (reconciled.error) {
+      setErrorMessage(reconciled.error);
+      return;
+    }
+
     setIsSavingEdit(true);
     try {
       await updateDoc(doc(db, "users", editingUserId), {
         fullName: trimmedFullName,
         birthdate: editBirthdate || "",
         roles: editRoles,
-        assignments: editAssignments,
+        assignments: reconciled.assignments,
         // Kept in sync with `assignments` here -- firestore.rules authorizes
         // a classRecords write against this flat key list (see
         // utils/assignmentKeys.js), since rules can't pattern-match a list
         // of assignment maps directly.
-        assignmentKeys: buildAssignmentKeys(editAssignments),
+        assignmentKeys: buildAssignmentKeys(reconciled.assignments),
       });
       setSuccessMessage("User account updated.");
       setEditingUserId(null);
@@ -403,6 +446,12 @@ export default function UserManagement({ user }) {
     const nextActive = !isAccountActive(targetUser);
     setSuccessMessage("");
     setErrorMessage("");
+    // Re-checked here (not just hidden in the UI) so the deactivate action
+    // can't be triggered on an ICT Coordinator account by any other path.
+    if (!nextActive && !canDeactivateAccount(targetUser.roles)) {
+      setErrorMessage("ICT Coordinator accounts cannot be deactivated.");
+      return;
+    }
     setRowActionUserId(targetUser.id);
     try {
       await updateDoc(doc(db, "users", targetUser.id), { active: nextActive });
@@ -446,6 +495,12 @@ export default function UserManagement({ user }) {
       return;
     }
 
+    const reconciled = reconcileAdviserAssignments(assignments, selectedRoles);
+    if (reconciled.error) {
+      setErrorMessage(reconciled.error);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -458,8 +513,8 @@ export default function UserManagement({ user }) {
         email: trimmedEmail,
         birthdate: birthdate || "",
         roles: selectedRoles,
-        assignments: assignments,
-        assignmentKeys: buildAssignmentKeys(assignments),
+        assignments: reconciled.assignments,
+        assignmentKeys: buildAssignmentKeys(reconciled.assignments),
         createdAt: serverTimestamp(),
         createdByEmail: user?.email || "",
       });
@@ -915,19 +970,21 @@ export default function UserManagement({ user }) {
                               >
                                 <KeyRound size={15} />
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleActive(u)}
-                                disabled={isRowBusy}
-                                className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${
-                                  active
-                                    ? "text-gray-500 hover:text-rose-600 hover:bg-rose-50 dark:text-gray-400 dark:hover:text-rose-400"
-                                    : "text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 dark:text-gray-400 dark:hover:text-emerald-400"
-                                }`}
-                                title={active ? "Deactivate account" : "Reactivate account"}
-                              >
-                                {active ? <Ban size={15} /> : <Power size={15} />}
-                              </button>
+                              {canDeactivateAccount(u.roles) && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleActive(u)}
+                                  disabled={isRowBusy}
+                                  className={`p-1.5 rounded-md transition-colors disabled:opacity-50 ${
+                                    active
+                                      ? "text-gray-500 hover:text-rose-600 hover:bg-rose-50 dark:text-gray-400 dark:hover:text-rose-400"
+                                      : "text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 dark:text-gray-400 dark:hover:text-emerald-400"
+                                  }`}
+                                  title={active ? "Deactivate account" : "Reactivate account"}
+                                >
+                                  {active ? <Ban size={15} /> : <Power size={15} />}
+                                </button>
+                              )}
                             </>
                           ) : (
                             <span className="text-xs text-gray-400 dark:text-gray-500 italic">This is you</span>
@@ -1194,7 +1251,6 @@ export default function UserManagement({ user }) {
             if (!trimLearnerId) { setParentError("Learner Document ID is required. Obtain it from View Learners."); return; }
             setParentSubmitting(true);
             try {
-              const { createTeacherAccount } = await import("../firebaseAdmin");
               const uid = await createTeacherAccount(trimEmail, parentPassword);
               // Write to users/{uid} with role 'parent'
               await setDoc(doc(db, "users", uid), {

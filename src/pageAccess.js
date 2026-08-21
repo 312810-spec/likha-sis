@@ -1,16 +1,19 @@
 // src/pageAccess.js
 
+// School Forms SF1-SF10 (sf1, sf2, sf4, reportCard/SF9, sf10Generate/SF10)
+// are adviser-only, full stop -- no other role, however senior, gets a seat
+// even for read-only access. A multi-role account still qualifies as long as
+// "adviser" is one of its roles, since canAccessPage() below already checks
+// membership rather than an exact match.
 export const PAGE_ACCESS = {
   dashboard: "all",
-  sf1: ["adviser", "ictCoordinator", "principal"],
-  // Adviser marks attendance; the other roles only see the read-only Year
-  // Overview tab (SF2.jsx gates the monthly grid itself to adviser).
-  sf2: ["adviser", "principal", "masterTeacher", "smeaCoordinator", "guidance", "ictCoordinator"],
+  sf1: ["adviser"],
+  sf2: ["adviser"],
   sf4: ["adviser"],
   classRecord: ["subjectTeacher", "adviser"],
   consolidatedGrades: ["subjectTeacher", "adviser", "principal", "masterTeacher", "smeaCoordinator"],
   academicHub: ["adviser", "principal", "masterTeacher", "smeaCoordinator", "guidance"],
-  reportCard: ["adviser", "principal"],
+  reportCard: ["adviser"],
   viewLearners: "all",
   lardoTracking: ["adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"],
   nutritionStatus: ["adviser", "smeaCoordinator"],
@@ -23,7 +26,7 @@ export const PAGE_ACCESS = {
   importCenter: ["ictCoordinator", "principal"],
   sf1Import: ["ictCoordinator", "principal"],
   sf10Import: ["ictCoordinator", "principal"],
-  sf10Generate: ["adviser", "principal", "ictCoordinator"],
+  sf10Generate: ["adviser"],
   classProgram: ["ictCoordinator", "principal", "adviser", "masterTeacher"],
   userManagement: ["ictCoordinator", "principal"],
   schoolSettings: ["ictCoordinator"],

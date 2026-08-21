@@ -3,11 +3,12 @@
 // Single printable page per learner, showing term grades, final grades,
 // general average, and attendance summary.
 
-import { useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { useState, useEffect } from "react";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
+import useTeacherScope from "./hooks/useTeacherScope";
 import { getSubjectWeights } from "./utils/subjectWeights";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { computeLearnerTermGrade } from "./utils/gradeComputations";
@@ -58,7 +59,7 @@ function shortMonthName(monthValue) {
 
 // ---- Component --------------------------------------------------------------
 
-export default function ReportCard({ goBack }) {
+export default function ReportCard({ user, goBack }) {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
   const GRADE_OPTIONS = gradeOptions;
@@ -86,6 +87,11 @@ export default function ReportCard({ goBack }) {
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
   const { sections: availableSections, loading } = useAvailableSections(gradeLevel, schoolYear);
+  // An adviser is locked to their own advisory section -- never the open
+  // Grade/Section picker below, which stays available to principal (the
+  // other reportCard-authorized role, per pageAccess.js).
+  const { adviser, roles, loading: scopeLoading } = useTeacherScope(user, schoolYear);
+  const isAdviserRole = roles.includes("adviser");
 
   // Data state
   const [isLoaded, setIsLoaded] = useState(false);
@@ -111,19 +117,21 @@ export default function ReportCard({ goBack }) {
     setErrorMessage("");
 
     try {
-      // 1. Fetch learners
-      const learnersSnap = await getDocs(collection(db, "learners"));
-      const allLearners = learnersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const filtered = allLearners
+      // 1. Fetch learners -- scoped to this grade+section, not the whole school.
+      const learnersSnap = await getDocs(
+        query(
+          collection(db, "learners"),
+          where("gradeLevel", "==", gradeLevel),
+          where("section", "==", section)
+        )
+      );
+      const scopedLearners = learnersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const filtered = scopedLearners
         .filter((l) => {
-          const matchGrade =
-            (l.gradeLevel || "").trim().toLowerCase() === gradeLevel.trim().toLowerCase();
-          const matchSection =
-            (l.section || "").trim().toLowerCase() === section.trim().toLowerCase();
           const matchSY =
             !l.schoolYear ||
             (l.schoolYear || "").trim().toLowerCase() === schoolYear.trim().toLowerCase();
-          return matchGrade && matchSection && matchSY;
+          return matchSY;
         })
         .sort((a, b) => {
           const last = (a.lastName || "")
@@ -138,14 +146,18 @@ export default function ReportCard({ goBack }) {
       const defaultId = filtered.length > 0 ? filtered[0].id : "";
       setSelectedLearnerId(defaultId);
 
-      // 2. Fetch classRecords and group by subject -> term
-      const recordsSnap = await getDocs(collection(db, "classRecords"));
-      const allRecords = recordsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const filteredRecords = allRecords.filter(
-        (r) =>
-          (r.gradeLevel || "").trim().toLowerCase() === gradeLevel.trim().toLowerCase() &&
-          (r.section || "").trim().toLowerCase() === section.trim().toLowerCase() &&
-          (r.schoolYear || "").trim().toLowerCase() === schoolYear.trim().toLowerCase()
+      // 2. Fetch classRecords and group by subject -> term -- scoped to this
+      //    grade+section, not the whole school.
+      const recordsSnap = await getDocs(
+        query(
+          collection(db, "classRecords"),
+          where("gradeLevel", "==", gradeLevel),
+          where("section", "==", section)
+        )
+      );
+      const scopedRecords = recordsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const filteredRecords = scopedRecords.filter(
+        (r) => (r.schoolYear || "").trim().toLowerCase() === schoolYear.trim().toLowerCase()
       );
       const bySubject = {};
       filteredRecords.forEach((rec) => {
@@ -157,14 +169,16 @@ export default function ReportCard({ goBack }) {
       });
       setRecordsBySubject(bySubject);
 
-      // 3. Fetch attendance docs matching gradeLevel + section
-      const attendSnap = await getDocs(collection(db, "attendance"));
-      const allAttend = attendSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      const filteredAttend = allAttend.filter(
-        (doc) =>
-          (doc.gradeLevel || "").trim().toLowerCase() === gradeLevel.trim().toLowerCase() &&
-          (doc.section || "").trim().toLowerCase() === section.trim().toLowerCase()
+      // 3. Fetch attendance docs matching gradeLevel + section -- scoped to
+      //    this grade+section, not the whole school.
+      const attendSnap = await getDocs(
+        query(
+          collection(db, "attendance"),
+          where("gradeLevel", "==", gradeLevel),
+          where("section", "==", section)
+        )
       );
+      const filteredAttend = attendSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       // Collect distinct months
       const monthSet = new Set();
       filteredAttend.forEach((doc) => {
@@ -197,6 +211,28 @@ export default function ReportCard({ goBack }) {
       setIsLoading(false);
     }
   }
+
+  // An adviser skips the Grade/Section picker entirely: lock the picker
+  // state to their advisory section, then auto-trigger the same load logic
+  // once that state has settled (same two-step lock pattern as SF1/SF4).
+  useEffect(() => {
+    if (!adviser) return;
+    if (gradeLevelChoice !== adviser.gradeLevel || section !== adviser.section) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setGradeLevel(adviser.gradeLevel);
+      setSection(adviser.section);
+    }
+  }, [adviser, gradeLevelChoice, section]);
+
+  useEffect(() => {
+    if (!adviser || isLoaded || isLoading) return;
+    if (gradeLevel !== adviser.gradeLevel || section !== adviser.section) return;
+    // Deferred so handleLoadClass's setIsLoading(true) doesn't run
+    // synchronously within this effect's render pass.
+    const timer = setTimeout(() => handleLoadClass(), 0);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adviser, gradeLevel, section, isLoaded, isLoading]);
 
   // ---- Derived data for the selected learner --------------------------------
 
@@ -346,7 +382,18 @@ export default function ReportCard({ goBack }) {
           </div>
         )}
 
-        {!isLoaded ? (
+        {!isLoaded && isAdviserRole && !scopeLoading && !adviser ? (
+          <div className="max-w-lg bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+              No advisory class is assigned to your account. Please contact the ICT Coordinator.
+            </p>
+          </div>
+        ) : !isLoaded && adviser ? (
+          <div className="max-w-xl bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+            <RefreshCw className="animate-spin" size={16} />
+            Loading your advisory class ({adviser.gradeLevel} — {adviser.section})…
+          </div>
+        ) : !isLoaded ? (
           <form
             onSubmit={handleLoadClass}
             className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 max-w-xl space-y-4"
@@ -424,14 +471,27 @@ export default function ReportCard({ goBack }) {
           </form>
         ) : (
           <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-gray-900 p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => setIsLoaded(false)}
-              className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 active:scale-[0.98] flex items-center gap-2"
-              type="button"
-            >
-              <RefreshCw size={16} />
-              Change Class
-            </button>
+            {adviser ? (
+              <button
+                onClick={() => handleLoadClass()}
+                disabled={isLoading}
+                className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 active:scale-[0.98] flex items-center gap-2 disabled:opacity-50"
+                type="button"
+                title="Reload this advisory class"
+              >
+                <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+                Reload Class
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsLoaded(false)}
+                className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 active:scale-[0.98] flex items-center gap-2"
+                type="button"
+              >
+                <RefreshCw size={16} />
+                Change Class
+              </button>
+            )}
             <div>
               <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1">
                 Select Learner

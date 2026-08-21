@@ -22,6 +22,11 @@ describe("assignmentKeys", () => {
     expect(keys).toEqual([adviserAssignmentKey("Grade 8", "HOPE")]);
   });
 
+  it("canonicalizes a bare-digit gradeLevel in the ADVISER key, matching learners/attendance", () => {
+    const keys = buildAssignmentKeys([{ role: "adviser", gradeLevel: "7", section: "LOVE" }]);
+    expect(keys).toEqual(["ADVISER|Grade 7|LOVE"]);
+  });
+
   it("dedupes identical keys and ignores incomplete entries", () => {
     const keys = buildAssignmentKeys([
       { role: "subjectTeacher", subject: "Math 7", gradeLevel: "Grade 7", section: "LOVE" },

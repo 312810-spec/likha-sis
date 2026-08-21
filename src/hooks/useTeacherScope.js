@@ -16,9 +16,14 @@ export default function useTeacherScope(user, schoolYear) {
   const { profile, loading: profileLoading } = useUserProfile(user);
 
   const scope = useMemo(
-    () => buildTeacherScope({ advisorySection, assignments: profile?.assignments }),
-    [advisorySection, profile?.assignments]
+    () => buildTeacherScope({ assignments: profile?.assignments }),
+    [profile?.assignments]
   );
 
-  return { ...scope, advisorySection, loading: advisoryLoading || profileLoading };
+  return {
+    ...scope,
+    advisorySection,
+    roles: profile?.roles || [],
+    loading: advisoryLoading || profileLoading,
+  };
 }

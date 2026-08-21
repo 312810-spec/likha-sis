@@ -9,6 +9,8 @@ import { useState, useEffect } from "react";
 import {
   collection,
   getDocs,
+  query,
+  where,
   setDoc,
   doc,
   getDoc,
@@ -145,33 +147,68 @@ function SF2({ user, userRoles }) {
   // ConsolidatedGrades): { docId, learner, learnerId, schoolYear, trigger }.
   const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
 
-  // On mount, fetch ALL documents from the "learners" collection (same as ViewLearners).
-  useEffect(() => {
-    async function fetchLearners() {
-      try {
-        const learnersRef = collection(db, "learners");
-        const snapshot = await getDocs(learnersRef);
-        const fetchedLearners = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          ...docSnap.data(),
-        }));
-        setLearners(fetchedLearners);
-      } catch (err) {
-        console.error("Failed to fetch learners:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchLearners();
-  }, []);
-
-  // Unique "Grade Level - Section" combinations for the class dropdown (deduped).
   // An adviser (the only role that marks attendance -- see isAdviser above)
   // is restricted to their own advisory section only, never every section
   // in the school; the other roles keep the full school-wide list since
   // they legitimately review any section's Year Overview.
-  const { adviser } = useTeacherScope(user, schoolYearFromMonth(monthValue));
+  const { adviser, loading: scopeLoading } = useTeacherScope(user, schoolYearFromMonth(monthValue));
   const advisoryFilterValue = adviser ? `${adviser.gradeLevel} - ${adviser.section}` : null;
+
+  // Fetch the roster. An adviser is scoped to only their own advisory
+  // section (never the full "learners" collection, and never falls back to
+  // it if unassigned); other sf2-authorized roles keep the full-collection
+  // fetch used to build the class dropdown's option list for Year Overview.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchLearners() {
+      if (isAdviser) {
+        if (scopeLoading) return;
+        if (!adviser) {
+          if (!cancelled) {
+            setLearners([]);
+            setLoading(false);
+          }
+          return;
+        }
+        try {
+          const snapshot = await getDocs(
+            query(
+              collection(db, "learners"),
+              where("gradeLevel", "==", adviser.gradeLevel),
+              where("section", "==", adviser.section)
+            )
+          );
+          if (!cancelled) {
+            setLearners(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+          }
+        } catch (err) {
+          console.error("Failed to fetch learners:", err);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const snapshot = await getDocs(collection(db, "learners"));
+        if (!cancelled) {
+          setLearners(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+        }
+      } catch (err) {
+        console.error("Failed to fetch learners:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    fetchLearners();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdviser, adviser, scopeLoading]);
+
+  // Unique "Grade Level - Section" combinations for the class dropdown (deduped).
   const gradeSectionOptions = isAdviser && adviser
     ? [advisoryFilterValue]
     : Array.from(
@@ -986,18 +1023,23 @@ function SF2({ user, userRoles }) {
       {/* Header + class/month pickers */}
       <div className="no-print">
         <PageHeader description="Daily Attendance">
-          <select
-            aria-label="Select class"
-            value={filterValue}
-            onChange={(e) => setFilterValue(e.target.value)}
-            disabled={isAdviser && !!adviser}
-            className={inputClass}
-          >
-            <option value="">-- Select Class --</option>
-            {gradeSectionOptions.map((opt) => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
+          {isAdviser ? (
+            <div className={`${inputClass} flex items-center bg-gray-50 dark:bg-gray-800`}>
+              {adviser ? `Advisory Class: ${filterValue}` : "No advisory class assigned"}
+            </div>
+          ) : (
+            <select
+              aria-label="Select class"
+              value={filterValue}
+              onChange={(e) => setFilterValue(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">-- Select Class --</option>
+              {gradeSectionOptions.map((opt) => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          )}
           <input
             aria-label="Select month"
             type="month"
@@ -1214,7 +1256,12 @@ function SF2({ user, userRoles }) {
       )}
 
       {/* Guards: nothing selected vs. no learners for this class */}
-      {!loading && !hasSelection && (
+      {!loading && !scopeLoading && isAdviser && !adviser && (
+        <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
+          No advisory class is assigned to your account. Please contact the ICT Coordinator.
+        </div>
+      )}
+      {!loading && !(isAdviser && !adviser) && !hasSelection && (
         <div className="no-print p-8 text-center bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 text-sm">
           Select a class and month to begin
         </div>
