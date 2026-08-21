@@ -124,6 +124,31 @@ function suspensionEntries(announcements = []) {
     );
 }
 
+function isLeapYear(year) {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+/** Projects each user's birthdate onto the viewed year (recurring yearly). */
+export function birthdayEntries(users = [], viewYear) {
+  const entries = [];
+  for (const user of users) {
+    if (!user?.birthdate) continue;
+    const [, month, day] = user.birthdate.split("-").map(Number);
+    if (!month || !day) continue;
+    const safeDay = month === 2 && day === 29 && !isLeapYear(viewYear) ? 28 : day;
+    const dateKey = `${viewYear}-${String(month).padStart(2, "0")}-${String(safeDay).padStart(2, "0")}`;
+    entries.push({
+      kind: "birthday",
+      dateKey,
+      title: `${user.fullName || "Unknown"}'s Birthday`,
+      subtitle: "Personnel Birthday",
+      tone: "violet",
+      id: user.id,
+    });
+  }
+  return entries;
+}
+
 /**
  * Builds a 6x7 day grid for the given month, with each day's entries merged.
  *
@@ -136,7 +161,7 @@ function suspensionEntries(announcements = []) {
  * @param {number} month zero-based, matching Date#getMonth
  */
 export function buildCalendarMonth(year, month, sources = {}) {
-  const { schoolEvents = [], announcements = [], today = new Date() } = sources;
+  const { schoolEvents = [], announcements = [], users = [], today = new Date() } = sources;
 
   const firstOfMonth = new Date(year, month, 1);
   const gridStart = addDays(firstOfMonth, -firstOfMonth.getDay());
@@ -146,6 +171,7 @@ export function buildCalendarMonth(year, month, sources = {}) {
     ...holidayEntries(gridStart, gridEnd),
     ...eventEntries(schoolEvents),
     ...suspensionEntries(announcements),
+    ...birthdayEntries(users, year),
   ];
 
   const byDate = entries.reduce((acc, entry) => {
@@ -153,7 +179,7 @@ export function buildCalendarMonth(year, month, sources = {}) {
     return acc;
   }, {});
 
-  const order = { suspension: 0, holiday: 1, event: 2 };
+  const order = { suspension: 0, holiday: 1, event: 2, birthday: 3 };
   const todayKey = toDateKey(today);
 
   const weeks = [];
@@ -188,17 +214,21 @@ export function buildCalendarMonth(year, month, sources = {}) {
  * section and the calendar page's side list.
  */
 export function getUpcomingEntries(sources = {}, from = new Date(), days = 30) {
-  const { schoolEvents = [], announcements = [], limit = 8 } = sources;
+  const { schoolEvents = [], announcements = [], users = [], limit = 8 } = sources;
 
   const start = toDateKey(from);
   const endDate = new Date(`${start}T00:00:00`);
   endDate.setDate(endDate.getDate() + days);
   const end = toDateKey(endDate);
 
+  const fromYear = new Date(`${start}T00:00:00`).getFullYear();
+
   const entries = [
     ...holidayEntries(start, end),
     ...eventEntries(schoolEvents),
     ...suspensionEntries(announcements),
+    ...birthdayEntries(users, fromYear),
+    ...birthdayEntries(users, fromYear + 1),
   ]
     .filter((e) => e.dateKey >= start && e.dateKey <= end)
     .sort((a, b) => a.dateKey.localeCompare(b.dateKey));

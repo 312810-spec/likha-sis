@@ -7,6 +7,7 @@ import {
   getTermBoundary,
   EVENT_CATEGORIES,
   WEEKDAY_LABELS,
+  birthdayEntries,
 } from "../schoolCalendar.js";
 
 function findDay(month, dateKey) {
@@ -202,6 +203,34 @@ describe("schoolCalendar", () => {
         expect(c.label).toBeTruthy();
         expect(c.tint).toBeTruthy();
       });
+    });
+  });
+
+  describe("birthdayEntries", () => {
+    it("projects a birthdate onto the viewed year", () => {
+      const users = [{ id: "u1", fullName: "Ana Reyes", birthdate: "1990-03-14" }];
+      const entries = birthdayEntries(users, 2026);
+      expect(entries).toEqual([
+        {
+          kind: "birthday",
+          dateKey: "2026-03-14",
+          title: "Ana Reyes's Birthday",
+          subtitle: "Personnel Birthday",
+          tone: "violet",
+          id: "u1",
+        },
+      ]);
+    });
+
+    it("handles a Feb 29 birthdate in a non-leap viewed year by falling back to Feb 28", () => {
+      const users = [{ id: "u2", fullName: "Leap Cruz", birthdate: "1992-02-29" }];
+      const entries = birthdayEntries(users, 2026);
+      expect(entries[0].dateKey).toBe("2026-02-28");
+    });
+
+    it("skips users with no birthdate", () => {
+      const users = [{ id: "u3", fullName: "No Date" }];
+      expect(birthdayEntries(users, 2026)).toEqual([]);
     });
   });
 });
