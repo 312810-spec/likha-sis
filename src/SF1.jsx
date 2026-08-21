@@ -20,6 +20,7 @@ import {
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
+import useTeacherScope from "./hooks/useTeacherScope";
 import SF1PrintView from "./components/SF1PrintView";
 import useAcademicCalendar from "./hooks/useAcademicCalendar";
 
@@ -180,6 +181,21 @@ function SF1({ user }) {
     : gradeOptions[0] || "";
   const [section, setSection] = useState("");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
+  // An assigned adviser is hard-locked to their own advisory section on
+  // SF1 -- never exposed to another section via the grade/section pickers.
+  // A user with NO advisory assignment (ictCoordinator, principal, or an
+  // adviser not yet assigned a section) keeps the existing unrestricted
+  // pickers, since they legitimately need to reach any section.
+  const { adviser } = useTeacherScope(user, schoolYear);
+  // Seed once from the resolved advisory section, then keep the pickers
+  // disabled (not just pre-filled) below so an adviser cannot switch to a
+  // different grade/section via the dropdown, URL, or otherwise.
+  useEffect(() => {
+    if (!adviser || (gradeLevelChoice === adviser.gradeLevel && section === adviser.section)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGradeLevel(adviser.gradeLevel);
+    setSection(adviser.section);
+  }, [adviser, gradeLevelChoice, section]);
   // DO 017 SHS: one SF1 sheet is one grade+section, so track/cluster are
   // sheet-level (like gradeLevel/section above), not per learner row.
   const isSHS = gradeLevel === "Grade 11" || gradeLevel === "Grade 12";
@@ -343,6 +359,13 @@ function SF1({ user }) {
   // are UPDATED in place; brand-new rows are INSERTED. This never duplicates an
   // imported learner when the teacher just edits + saves the roster.
   async function handleSaveAll() {
+    // Defense in depth: the pickers above are already disabled/locked for
+    // an adviser, but re-check here in case client state was manipulated --
+    // never save outside the adviser's own advisory section.
+    if (adviser && (gradeLevel !== adviser.gradeLevel || section !== adviser.section)) {
+      setStatusMessage("You may only edit your own advisory section.");
+      return;
+    }
     const validationError = validateLearners();
     if (validationError) {
       setStatusMessage(validationError);
@@ -473,7 +496,8 @@ function SF1({ user }) {
             <select
               value={gradeLevel}
               onChange={(e) => setGradeLevel(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              disabled={!!adviser}
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
             >
               {gradeOptions.map((option) => (
                 <option key={option} value={option}>{option}</option>
@@ -496,15 +520,16 @@ function SF1({ user }) {
                   setShowNewSection(false);
                 }
               }}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              disabled={!!adviser}
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
             >
               <option value="">Select a section</option>
               {availableSections.map((sec) => (
                 <option key={sec} value={sec}>{sec}</option>
               ))}
-              <option value="+">+ Add new section...</option>
+              {!adviser && <option value="+">+ Add new section...</option>}
             </select>
-            {showNewSection && (
+            {showNewSection && !adviser && (
               <input
                 value={newSection}
                 onChange={(e) => {

@@ -26,6 +26,7 @@ import { db } from "./firebase";
 import useAcademicCalendar from "./hooks/useAcademicCalendar";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useAvailableSections from "./hooks/useAvailableSections";
+import useTeacherScope from "./hooks/useTeacherScope";
 import {
   computeSF4Rows,
   computeSectionAttendance,
@@ -100,9 +101,16 @@ function SF4({ user, goBack }) {
   // (rather than syncing it back via an effect) keeps it always valid --
   // otherwise the section list would silently query a grade with none until
   // the user manually touched the dropdown.
-  const gradeLevel = gradeOptions.includes(gradeLevelChoice)
+  const gradeLevelRaw = gradeOptions.includes(gradeLevelChoice)
     ? gradeLevelChoice
     : gradeOptions[0] || "";
+  // SF4 is a grade-level (not section-level) DepEd form -- one sheet
+  // aggregates EVERY section of the grade, by design (see file header).
+  // Locking the grade dropdown to the adviser's own advisory grade keeps
+  // them from generating a report for an unrelated grade, without breaking
+  // the form's official multi-section layout by filtering out sections.
+  const { adviser } = useTeacherScope(user, schoolYear);
+  const gradeLevel = adviser ? adviser.gradeLevel : gradeLevelRaw;
   // monthValue: the raw "YYYY-MM" string from the month input, same pattern as SF2.
   const [monthValue, setMonthValue] = useState(() => {
     const now = new Date();
@@ -444,7 +452,8 @@ function SF4({ user, goBack }) {
             <select
               value={gradeLevel}
               onChange={(e) => setGradeLevel(e.target.value)}
-              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+              disabled={!!adviser}
+              className="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
             >
               {gradeOptions.map((opt) => (
                 <option key={opt} value={opt}>{opt}</option>

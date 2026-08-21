@@ -17,6 +17,7 @@ import {
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
 import useSchoolConfig from "./hooks/useSchoolConfig";
+import useTeacherScope from "./hooks/useTeacherScope";
 import { Info } from "lucide-react";
 import PageHeader from "./components/PageHeader.jsx";
 import Button from "./components/Button.jsx";
@@ -165,13 +166,29 @@ function SF2({ user, userRoles }) {
   }, []);
 
   // Unique "Grade Level - Section" combinations for the class dropdown (deduped).
-  const gradeSectionOptions = Array.from(
-    new Set(
-      learners
-        .filter((l) => l.gradeLevel && l.section)
-        .map((l) => `${l.gradeLevel} - ${l.section}`)
-    )
-  ).sort();
+  // An adviser (the only role that marks attendance -- see isAdviser above)
+  // is restricted to their own advisory section only, never every section
+  // in the school; the other roles keep the full school-wide list since
+  // they legitimately review any section's Year Overview.
+  const { adviser } = useTeacherScope(user, schoolYearFromMonth(monthValue));
+  const advisoryFilterValue = adviser ? `${adviser.gradeLevel} - ${adviser.section}` : null;
+  const gradeSectionOptions = isAdviser && adviser
+    ? [advisoryFilterValue]
+    : Array.from(
+        new Set(
+          learners
+            .filter((l) => l.gradeLevel && l.section)
+            .map((l) => `${l.gradeLevel} - ${l.section}`)
+        )
+      ).sort();
+
+  // Lock the adviser's filterValue to their own section once resolved.
+  useEffect(() => {
+    if (isAdviser && advisoryFilterValue && filterValue !== advisoryFilterValue) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFilterValue(advisoryFilterValue);
+    }
+  }, [isAdviser, advisoryFilterValue, filterValue]);
 
   // Split the selected "Grade - Section" string back into its parts.
   const [selectedGradeLevel = "", selectedSection = ""] = filterValue
@@ -346,6 +363,13 @@ function SF2({ user, userRoles }) {
   async function handleSave() {
     if (!filterValue || !monthValue) {
       setStatusMessage("Select a class and month before saving.");
+      return;
+    }
+    // Defense in depth: the class picker is already disabled/locked for an
+    // adviser, but re-check here in case client state was manipulated --
+    // never save attendance outside the adviser's own advisory section.
+    if (isAdviser && adviser && filterValue !== advisoryFilterValue) {
+      setStatusMessage("You may only mark attendance for your own advisory section.");
       return;
     }
     setIsSaving(true);
@@ -966,6 +990,7 @@ function SF2({ user, userRoles }) {
             aria-label="Select class"
             value={filterValue}
             onChange={(e) => setFilterValue(e.target.value)}
+            disabled={isAdviser && !!adviser}
             className={inputClass}
           >
             <option value="">-- Select Class --</option>

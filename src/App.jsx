@@ -2,7 +2,7 @@
 // Traffic controller: now uses DashboardShell to wrap all authenticated pages
 // with Sidebar navigation while preserving all existing functionality.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth, db } from "./firebase";
 import { isAccountActive } from "./utils/userAccountManagement.js";
@@ -50,6 +50,16 @@ function App() {
   const [usersCheckLoading, setUsersCheckLoading] = useState(true);
   const [hasAnyUser, setHasAnyUser] = useState(null);
   const [currentPage, setCurrentPage] = useState("dashboard");
+  // Set only when the sidebar's Class Record > <subject> subcategory is
+  // clicked -- tells ClassRecord which of the teacher's own assigned
+  // subject/grade/section combos to open immediately, instead of the
+  // teacher re-picking it from the in-page form.
+  const [classRecordTarget, setClassRecordTarget] = useState(null);
+
+  function handleNavigate(page, payload) {
+    setCurrentPage(page);
+    setClassRecordTarget(page === "classRecord" ? payload || null : null);
+  }
 
   const { profile, loading: profileLoading } = useUserProfile(user);
   const [showDeactivatedNotice, setShowDeactivatedNotice] = useState(false);
@@ -67,8 +77,18 @@ function App() {
       : "LIKHA-SIS";
   }, [schoolConfig?.schoolId, schoolConfig?.schoolName]);
 
+  // Every successful login lands on Dashboard, never a stale currentPage
+  // left over from a previous session/user -- track the signed-in uid so a
+  // genuine sign-in (uid goes from falsy/different to a new value) resets
+  // the page, while an unrelated token refresh (same uid) does not.
+  const previousUidRef = useRef(null);
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      const nextUid = currentUser?.uid || null;
+      if (nextUid && nextUid !== previousUidRef.current) {
+        setCurrentPage("dashboard");
+      }
+      previousUidRef.current = nextUid;
       setUser(currentUser);
       setIsChecking(false);
     });
@@ -192,7 +212,13 @@ function App() {
         break;
       case "classRecord":
         pageTitle = "Class Record";
-        pageContent = <ClassRecord user={user} goBack={() => setCurrentPage("dashboard")} />;
+        pageContent = (
+          <ClassRecord
+            user={user}
+            initialSelection={classRecordTarget}
+            goBack={() => setCurrentPage("dashboard")}
+          />
+        );
         break;
       case "consolidatedGrades":
         pageTitle = "Consolidated Grades";
@@ -208,7 +234,7 @@ function App() {
         break;
       case "sf10Generate":
         pageTitle = "SF10 Generator";
-        pageContent = <SF10Generator goBack={() => setCurrentPage("dashboard")} />;
+        pageContent = <SF10Generator user={user} goBack={() => setCurrentPage("dashboard")} />;
         break;
       case "classProgram":
         pageContent = (
@@ -330,7 +356,7 @@ function App() {
   return (
     <DashboardShell
       currentPage={currentPage}
-      onNavigate={setCurrentPage}
+      onNavigate={handleNavigate}
       user={user}
       pageTitle={pageTitle}
       userRoles={userRoles}

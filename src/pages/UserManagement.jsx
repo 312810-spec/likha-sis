@@ -27,6 +27,9 @@ import useSchoolConfig from "../hooks/useSchoolConfig";
 import useAvailableSections from "../hooks/useAvailableSections";
 import useAcademicCalendar from "../hooks/useAcademicCalendar";
 import Button from "../components/Button.jsx";
+import SubjectSelectPicker from "../components/SubjectSelectPicker.jsx";
+import { getSubjectsForGradeLevel } from "../utils/subjectDirectory";
+import { buildAssignmentKeys } from "../utils/assignmentKeys";
 import {
   isAccountActive,
   isEditableUserRow,
@@ -50,14 +53,35 @@ export default function UserManagement({ user }) {
   const [assignments, setAssignments] = useState([]);
 
   // Assignment Mini-Form State
-  const [assignRole, setAssignRole] = useState("subjectTeacher");
+  const [assignRoleChoice, setAssignRole] = useState("subjectTeacher");
   const [assignSubject, setAssignSubject] = useState("");
   const [assignGrade, setAssignGrade] = useState("");
   const [assignSection, setAssignSection] = useState("");
+  // SHS (Grade 11/12) assignments are term-aware: a subject teacher may
+  // teach a subject for only some terms (e.g. Term 1-2, not the whole
+  // year). Defaults to all three terms -- matches today's implicit
+  // whole-year assignment behavior for non-SHS grades, where terms is
+  // omitted from the stored assignment entirely.
+  const [assignTerms, setAssignTerms] = useState([1, 2, 3]);
+  const isAssignSHS = assignGrade === "11" || assignGrade === "12";
   const { sections: assignSectionOptions } = useAvailableSections(
     assignGrade ? `Grade ${assignGrade}` : "",
     currentSchoolYear
   );
+
+  // assignRoleChoice may point at a role ("subjectTeacher"/"adviser") the
+  // user has since unchecked in the role checkboxes above -- the <select>
+  // options are filtered by selectedRoles, so the previously chosen value
+  // can silently vanish from the list. Derive the effective value at render
+  // time (same pattern as the gradeLevel fix elsewhere) instead of resyncing
+  // it via an effect.
+  const assignRoleOptions = [
+    ...(selectedRoles.includes("subjectTeacher") ? ["subjectTeacher"] : []),
+    ...(selectedRoles.includes("adviser") ? ["adviser"] : []),
+  ];
+  const assignRole = assignRoleOptions.includes(assignRoleChoice)
+    ? assignRoleChoice
+    : assignRoleOptions[0] || "subjectTeacher";
 
   // Status & Feedback
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,6 +102,8 @@ export default function UserManagement({ user }) {
   const [editAssignSubject, setEditAssignSubject] = useState("");
   const [editAssignGrade, setEditAssignGrade] = useState("");
   const [editAssignSection, setEditAssignSection] = useState("");
+  const [editAssignTerms, setEditAssignTerms] = useState([1, 2, 3]);
+  const isEditAssignSHS = editAssignGrade === "11" || editAssignGrade === "12";
   const { sections: editAssignSectionOptions } = useAvailableSections(
     editAssignGrade ? `Grade ${editAssignGrade}` : "",
     currentSchoolYear
@@ -193,12 +219,21 @@ export default function UserManagement({ user }) {
     e.preventDefault();
     setErrorMessage("");
 
-    if (assignRole === "subjectTeacher" && !assignSubject.trim()) {
-      setErrorMessage("Please enter a subject for the subject teacher assignment.");
-      return;
-    }
     if (!assignGrade.trim() || !assignSection.trim()) {
       setErrorMessage("Please enter grade level and section for the assignment.");
+      return;
+    }
+    if (assignRole === "subjectTeacher") {
+      const validSubjects = getSubjectsForGradeLevel(`Grade ${assignGrade.trim()}`, {
+        schoolYear: currentSchoolYear,
+      }).map((s) => s.label);
+      if (!assignSubject.trim() || !validSubjects.includes(assignSubject.trim())) {
+        setErrorMessage("Please select a subject from the directory for this grade level.");
+        return;
+      }
+    }
+    if (assignRole === "subjectTeacher" && isAssignSHS && assignTerms.length === 0) {
+      setErrorMessage("Please select at least one term for this SHS assignment.");
       return;
     }
 
@@ -207,12 +242,18 @@ export default function UserManagement({ user }) {
       subject: assignRole === "subjectTeacher" ? assignSubject.trim() : "",
       gradeLevel: assignGrade.trim(),
       section: assignSection.trim(),
+      // Term coverage only applies to SHS (Grade 11/12) subject-teacher
+      // assignments -- other grades keep the existing whole-year/no-terms
+      // shape so nothing downstream (teacher load, schedule palette) needs
+      // to change for them.
+      ...(assignRole === "subjectTeacher" && isAssignSHS ? { terms: assignTerms } : {}),
     };
 
     setAssignments((prev) => [...prev, newAssignment]);
     setAssignSubject("");
     setAssignGrade("");
     setAssignSection("");
+    setAssignTerms([1, 2, 3]);
   }
 
   // Remove assignment from local list
@@ -225,14 +266,25 @@ export default function UserManagement({ user }) {
   function handleStartEdit(targetUser) {
     setSuccessMessage("");
     setErrorMessage("");
+    const targetRoles = Array.isArray(targetUser.roles) ? [...targetUser.roles] : [];
     setEditingUserId(targetUser.id);
     setEditFullName(targetUser.fullName || "");
     setEditBirthdate(targetUser.birthdate || "");
-    setEditRoles(Array.isArray(targetUser.roles) ? [...targetUser.roles] : []);
+    setEditRoles(targetRoles);
     setEditAssignments(Array.isArray(targetUser.assignments) ? [...targetUser.assignments] : []);
     setEditAssignSubject("");
     setEditAssignGrade("");
     setEditAssignSection("");
+    // The Assignment Role <select> below only offers options this user
+    // currently has checked (subjectTeacher/adviser) -- reset it here too,
+    // otherwise a user with only "adviser" would open with editAssignRole
+    // still at its "subjectTeacher" default, desynced from the single
+    // rendered option (same bug class as the gradeLevel fix elsewhere).
+    if (targetRoles.includes("subjectTeacher")) {
+      setEditAssignRole("subjectTeacher");
+    } else if (targetRoles.includes("adviser")) {
+      setEditAssignRole("adviser");
+    }
   }
 
   function handleCancelEdit() {
@@ -257,12 +309,21 @@ export default function UserManagement({ user }) {
     e.preventDefault();
     setErrorMessage("");
 
-    if (editAssignRole === "subjectTeacher" && !editAssignSubject.trim()) {
-      setErrorMessage("Please enter a subject for the subject teacher assignment.");
-      return;
-    }
     if (!editAssignGrade.trim() || !editAssignSection.trim()) {
       setErrorMessage("Please enter grade level and section for the assignment.");
+      return;
+    }
+    if (editAssignRole === "subjectTeacher") {
+      const validSubjects = getSubjectsForGradeLevel(`Grade ${editAssignGrade.trim()}`, {
+        schoolYear: currentSchoolYear,
+      }).map((s) => s.label);
+      if (!editAssignSubject.trim() || !validSubjects.includes(editAssignSubject.trim())) {
+        setErrorMessage("Please select a subject from the directory for this grade level.");
+        return;
+      }
+    }
+    if (editAssignRole === "subjectTeacher" && isEditAssignSHS && editAssignTerms.length === 0) {
+      setErrorMessage("Please select at least one term for this SHS assignment.");
       return;
     }
 
@@ -273,11 +334,13 @@ export default function UserManagement({ user }) {
         subject: editAssignRole === "subjectTeacher" ? editAssignSubject.trim() : "",
         gradeLevel: editAssignGrade.trim(),
         section: editAssignSection.trim(),
+        ...(editAssignRole === "subjectTeacher" && isEditAssignSHS ? { terms: editAssignTerms } : {}),
       },
     ]);
     setEditAssignSubject("");
     setEditAssignGrade("");
     setEditAssignSection("");
+    setEditAssignTerms([1, 2, 3]);
   }
 
   function handleRemoveEditAssignment(index) {
@@ -303,6 +366,11 @@ export default function UserManagement({ user }) {
         birthdate: editBirthdate || "",
         roles: editRoles,
         assignments: editAssignments,
+        // Kept in sync with `assignments` here -- firestore.rules authorizes
+        // a classRecords write against this flat key list (see
+        // utils/assignmentKeys.js), since rules can't pattern-match a list
+        // of assignment maps directly.
+        assignmentKeys: buildAssignmentKeys(editAssignments),
       });
       setSuccessMessage("User account updated.");
       setEditingUserId(null);
@@ -391,6 +459,7 @@ export default function UserManagement({ user }) {
         birthdate: birthdate || "",
         roles: selectedRoles,
         assignments: assignments,
+        assignmentKeys: buildAssignmentKeys(assignments),
         createdAt: serverTimestamp(),
         createdByEmail: user?.email || "",
       });
@@ -591,13 +660,12 @@ export default function UserManagement({ user }) {
                 {assignRole === "subjectTeacher" ? (
                   <div>
                     <label htmlFor="assignSubjectInput" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Subject</label>
-                    <input
+                    <SubjectSelectPicker
                       id="assignSubjectInput"
-                      type="text"
                       value={assignSubject}
-                      onChange={(e) => setAssignSubject(e.target.value)}
-                      placeholder="e.g. Filipino"
-                      className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary"
+                      onChange={setAssignSubject}
+                      gradeLevel={assignGrade ? `Grade ${assignGrade}` : ""}
+                      schoolYear={currentSchoolYear}
                     />
                   </div>
                 ) : (
@@ -649,6 +717,30 @@ export default function UserManagement({ user }) {
                 </div>
               </div>
 
+              {assignRole === "subjectTeacher" && isAssignSHS && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Term(s) taught (Senior High is term-based)
+                  </label>
+                  <div className="flex gap-3">
+                    {[1, 2, 3].map((t) => (
+                      <label key={t} className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={assignTerms.includes(t)}
+                          onChange={() =>
+                            setAssignTerms((prev) =>
+                              prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t].sort()
+                            )
+                          }
+                        />
+                        Term {t}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* List of Added Assignments */}
               {assignments.length > 0 && (
                 <div className="mt-3">
@@ -671,6 +763,11 @@ export default function UserManagement({ user }) {
                           <span className="text-gray-700 dark:text-gray-300">
                             Grade {item.gradeLevel} — Section {item.section}
                           </span>
+                          {Array.isArray(item.terms) && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              (Term{item.terms.length > 1 ? "s" : ""} {item.terms.join(", ")})
+                            </span>
+                          )}
                         </div>
                         <button
                           type="button"
@@ -933,14 +1030,13 @@ export default function UserManagement({ user }) {
                                     </div>
                                     <div>
                                       <label htmlFor={`editAssignSubject-${u.id}`} className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Subject</label>
-                                      <input
+                                      <SubjectSelectPicker
                                         id={`editAssignSubject-${u.id}`}
-                                        type="text"
                                         value={editAssignSubject}
-                                        onChange={(e) => setEditAssignSubject(e.target.value)}
+                                        onChange={setEditAssignSubject}
+                                        gradeLevel={editAssignGrade ? `Grade ${editAssignGrade}` : ""}
+                                        schoolYear={currentSchoolYear}
                                         disabled={editAssignRole !== "subjectTeacher"}
-                                        placeholder={editAssignRole === "subjectTeacher" ? "e.g. Filipino" : "N/A (Adviser)"}
-                                        className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed dark:disabled:bg-gray-800"
                                       />
                                     </div>
                                     <div>
@@ -982,6 +1078,30 @@ export default function UserManagement({ user }) {
                                       </div>
                                     </div>
                                   </div>
+
+                                  {editAssignRole === "subjectTeacher" && isEditAssignSHS && (
+                                    <div>
+                                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                        Term(s) taught (Senior High is term-based)
+                                      </label>
+                                      <div className="flex gap-3">
+                                        {[1, 2, 3].map((t) => (
+                                          <label key={t} className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300">
+                                            <input
+                                              type="checkbox"
+                                              checked={editAssignTerms.includes(t)}
+                                              onChange={() =>
+                                                setEditAssignTerms((prev) =>
+                                                  prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t].sort()
+                                                )
+                                              }
+                                            />
+                                            Term {t}
+                                          </label>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
 
                                   {editAssignments.length > 0 && (
                                     <div className="space-y-2">

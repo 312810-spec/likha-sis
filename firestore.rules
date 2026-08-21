@@ -22,6 +22,20 @@ service cloud.firestore {
       return myRoles().hasAny(roles);
     }
 
+    // Helper: reads the caller's own denormalized assignment keys (see
+    // src/utils/assignmentKeys.js) -- "<subject>|<gradeLevel>|<section>" for
+    // each subjectTeacher assignment, "ADVISER|<gradeLevel>|<section>" for
+    // each adviser assignment. Kept in sync with `assignments` by
+    // UserManagement.jsx. Used to authorize classRecords writes by class
+    // membership instead of by who originally created the document, since a
+    // classRecords doc belongs to the grade+section+subject, not to whoever
+    // happens to be teaching it this year.
+    function myAssignmentKeys() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('assignmentKeys', [])
+        : [];
+    }
+
     // Helper: true once first-run setup has actually finished. Firestore
     // rules can't check "is this collection empty", so we use a sentinel
     // field on a single known document instead. Before setup finishes,
@@ -68,11 +82,28 @@ service cloud.firestore {
     }
 
     // ---- classRecords ----
-    // Write stays subjectTeacher/adviser-only. Read is also open to the
-    // other LARDO Tracking viewer roles for the same auto-resolve reason.
+    // Read stays open to subjectTeacher/adviser plus the other LARDO
+    // Tracking / Report Card / Consolidated Grades viewer roles: an
+    // adviser's Report Card and Consolidated Grades legitimately aggregate
+    // every OTHER subject teacher's classRecords for their own advisory
+    // section, so read cannot be narrowed to class-membership-only without
+    // also breaking that cross-teacher aggregation (would need a second,
+    // section-aware predicate cross-referencing schedules/{sy}/sections,
+    // which isn't cheaply expressible here -- flagged as follow-on work).
+    // Write is authorized by CLASS membership, not document ownership: one
+    // classRecords doc exists per grade+section+subject+term+schoolYear
+    // (see ClassRecord.jsx getDocId), and any teacher currently assigned to
+    // that exact subject/grade/section (or as adviser of that grade/
+    // section, any subject) may write it -- so a teacher reassigned mid-year
+    // inherits the same record instead of orphaning it under the old
+    // teacher's uid. See myAssignmentKeys() above.
     match /classRecords/{recordId} {
       allow read: if hasAnyRole(["subjectTeacher", "adviser", "masterTeacher", "principal", "smeaCoordinator", "guidance"]);
-      allow write: if hasAnyRole(["subjectTeacher", "adviser"]);
+      allow write: if hasAnyRole(["subjectTeacher", "adviser"]) &&
+        (
+          (request.resource.data.subject + "|" + request.resource.data.gradeLevel + "|" + request.resource.data.section) in myAssignmentKeys()
+          || ("ADVISER|" + request.resource.data.gradeLevel + "|" + request.resource.data.section) in myAssignmentKeys()
+        );
     }
 
     // ---- lardoRecords ----

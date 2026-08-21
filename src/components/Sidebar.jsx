@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { canAccessPage } from '../pageAccess.js';
 import Tooltip from './Tooltip.jsx';
+import useAcademicCalendar from '../hooks/useAcademicCalendar';
+import useTeacherScope from '../hooks/useTeacherScope';
 import {
   LayoutDashboard,
   FileText,
@@ -59,8 +61,14 @@ const icons = {
   'SF10 Import': UploadCloud,
 };
 
-export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile = false, onCloseMobile }) {
+export default function Sidebar({ currentPage, onNavigate, user, userRoles, openMobile = false, onCloseMobile }) {
   const [collapsed, setCollapsed] = useState(false);
+  const { schoolYears } = useAcademicCalendar();
+  // Every subject this user is actually assigned to teach (from
+  // users/{uid}.assignments) -- Class Record's sidebar subcategories are
+  // built from this alone, never the school's full subject catalog.
+  const { subjectMap } = useTeacherScope(user, schoolYears[0] || "2026-2027");
+  const subjectNames = Array.from(subjectMap.keys()).sort();
 
   function toggleCollapsed() {
     setCollapsed((s) => !s);
@@ -95,7 +103,24 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     {
       label: 'Academics',
       children: [
-        { label: 'Class Record', page: 'classRecord' },
+        {
+          label: 'Class Record',
+          page: 'classRecord',
+          // One subcategory per subject this user is actually assigned to
+          // teach (from users/{uid}.assignments) -- never every subject in
+          // the school. An adviser-only user (no subject assignments) keeps
+          // the plain link, unchanged.
+          subcategories: subjectNames.map((subject) => {
+            const firstClass = subjectMap.get(subject)?.[0];
+            return {
+              label: subject,
+              page: 'classRecord',
+              payload: firstClass
+                ? { subject, gradeLevel: firstClass.gradeLevel, section: firstClass.section }
+                : { subject },
+            };
+          }),
+        },
         { label: 'Consolidated Grades', page: 'consolidatedGrades' },
         { label: 'Academic Hub', page: 'academicHub' },
         { label: 'Report Card (SF9)', page: 'reportCard' },
@@ -150,8 +175,8 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     })
     .filter(Boolean);
 
-  function handleNavClick(page) {
-    onNavigate(page);
+  function handleNavClick(page, payload) {
+    onNavigate(page, payload);
     if (openMobile) {
       toggleMobile();
     }
@@ -162,7 +187,7 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
     return Icon ? <Icon size={18} strokeWidth={2} /> : null;
   }
 
-  function NavButton({ label, page, active }) {
+  function NavButton({ label, page, payload, active, indent = false }) {
     return (
       <button
         type="button"
@@ -171,8 +196,8 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
           active
             ? 'bg-white/15 text-white font-semibold shadow-sm dark:bg-white/10'
             : 'text-white/75 hover:bg-white/10 hover:text-white dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white'
-        } ${collapsed ? 'justify-center' : ''}`}
-        onClick={() => handleNavClick(page)}
+        } ${collapsed ? 'justify-center' : ''} ${indent && !collapsed ? 'pl-8' : ''}`}
+        onClick={() => handleNavClick(page, payload)}
       >
         <span
           className={`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-full bg-accent transition-all duration-150 ${
@@ -275,11 +300,36 @@ export default function Sidebar({ currentPage, onNavigate, userRoles, openMobile
                   </h3>
                 )}
                 <ul className="space-y-1">
-                  {item.children.map((c) => (
-                    <li key={c.label}>
-                      <NavButton label={c.label} page={c.page} active={currentPage === c.page} />
-                    </li>
-                  ))}
+                  {item.children.map((c) =>
+                    c.subcategories && c.subcategories.length > 0 ? (
+                      <li key={c.label}>
+                        {!collapsed && (
+                          <p
+                            className={`px-3 pt-1 pb-0.5 text-xs font-semibold ${
+                              currentPage === c.page ? 'text-white dark:text-white' : 'text-white/60 dark:text-gray-400'
+                            }`}
+                          >
+                            {c.label}
+                          </p>
+                        )}
+                        <ul className="space-y-1">
+                          {c.subcategories.map((sub) => (
+                            <li key={sub.label}>
+                              {/* Which of these subjects is currently loaded lives
+                                  inside ClassRecord's own state, not Sidebar's --
+                                  these are one-shot navigation actions rather than
+                                  a persistently "active" item. */}
+                              <NavButton label={sub.label} page={sub.page} payload={sub.payload} active={false} indent />
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    ) : (
+                      <li key={c.label}>
+                        <NavButton label={c.label} page={c.page} active={currentPage === c.page} />
+                      </li>
+                    )
+                  )}
                 </ul>
               </li>
             ) : (

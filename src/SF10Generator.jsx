@@ -14,6 +14,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "./firebase";
 import schoolConfig from "./schoolConfig";
 import useSchoolConfig from "./hooks/useSchoolConfig";
+import useAcademicCalendar from "./hooks/useAcademicCalendar";
+import useTeacherScope from "./hooks/useTeacherScope";
 import { getSubjectWeights } from "./utils/subjectWeights.js";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights.js";
 import { buildLearnerAcademicHistory } from "./utils/sf10Records.js";
@@ -174,13 +176,19 @@ function SF10Document({ learner, history, shsConfig, school }) {
   );
 }
 
-export default function SF10Generator() {
+export default function SF10Generator({ user }) {
   const { config } = useSchoolConfig();
   const school = { ...schoolConfig, ...config };
 
   // Mode state: "single" for single-learner, "section" for section-batch
   const [mode, setMode] = useState("single"); // "single" | "section"
   const [sectionFilter, setSectionFilter] = useState("");
+
+  // An adviser generating SF10s is restricted to their own advisory
+  // section's learners -- never the whole school. Other roles with
+  // sf10Generate access (principal, ictCoordinator) keep the full list.
+  const { schoolYears } = useAcademicCalendar();
+  const { adviser } = useTeacherScope(user, schoolYears[0] || "2026-2027");
 
   const getSHSAwareWeights = useMemo(
     () =>
@@ -224,23 +232,34 @@ export default function SF10Generator() {
     fetchData();
   }, []);
 
-  const sortedLearners = useMemo(
-    () =>
-      [...learners].sort((a, b) => {
-        const last = (a.lastName || "").toLowerCase().localeCompare((b.lastName || "").toLowerCase());
-        if (last !== 0) return last;
-        return (a.firstName || "").toLowerCase().localeCompare((b.firstName || "").toLowerCase());
-      }),
-    [learners]
-  );
+  const sortedLearners = useMemo(() => {
+    const scoped = adviser
+      ? learners.filter((l) => l.gradeLevel === adviser.gradeLevel && l.section === adviser.section)
+      : learners;
+    return [...scoped].sort((a, b) => {
+      const last = (a.lastName || "").toLowerCase().localeCompare((b.lastName || "").toLowerCase());
+      if (last !== 0) return last;
+      return (a.firstName || "").toLowerCase().localeCompare((b.firstName || "").toLowerCase());
+    });
+  }, [learners, adviser]);
 
+  const advisoryFilterValue = adviser ? `${adviser.gradeLevel} - ${adviser.section}` : null;
   const sectionOptions = useMemo(() => {
+    if (advisoryFilterValue) return [advisoryFilterValue];
     const set = new Set();
     sortedLearners.forEach((l) => {
       if (l.gradeLevel && l.section) set.add(`${l.gradeLevel} - ${l.section}`);
     });
     return Array.from(set).sort();
-  }, [sortedLearners]);
+  }, [sortedLearners, advisoryFilterValue]);
+
+  // Lock the adviser's section filter to their own advisory section once resolved.
+  useEffect(() => {
+    if (advisoryFilterValue && sectionFilter !== advisoryFilterValue) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSectionFilter(advisoryFilterValue);
+    }
+  }, [advisoryFilterValue, sectionFilter]);
 
   const sectionLearners = useMemo(
     () =>
@@ -340,7 +359,7 @@ export default function SF10Generator() {
             <select
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
-              disabled={loading}
+              disabled={loading || !!adviser}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-800"
             >
               <option value="">-- Select grade & section --</option>

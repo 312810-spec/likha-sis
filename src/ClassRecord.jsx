@@ -14,8 +14,7 @@ import {
 import { db } from "./firebase";
 import Tooltip from "./components/Tooltip.jsx";
 import useSchoolConfig from "./hooks/useSchoolConfig";
-import useAvailableSections from "./hooks/useAvailableSections";
-import useMyAdvisorySection from "./hooks/useMyAdvisorySection";
+import useTeacherScope from "./hooks/useTeacherScope";
 import { SUBJECT_WEIGHTS, getSubjectWeights } from "./utils/subjectWeights";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { transmuteGrade, getGradeDescription } from "./utils/transmutationTable";
@@ -30,7 +29,7 @@ import { Plus, X, Save, RefreshCw, Info } from "lucide-react";
 import PageHeader from "./components/PageHeader.jsx";
 import Button from "./components/Button.jsx";
 
-export default function ClassRecord({ user }) {
+export default function ClassRecord({ user, initialSelection }) {
   const { config } = useSchoolConfig();
   const gradeOptions = config?.gradeLevelsOffered || ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"];
 
@@ -46,26 +45,57 @@ export default function ClassRecord({ user }) {
     ? gradeLevelChoice
     : gradeOptions[0] || "Grade 4";
   const [section, setSection] = useState("");
-  const [subject, setSubject] = useState(Object.keys(SUBJECT_WEIGHTS)[0] || "FILIPINO");
+  const [subjectChoice, setSubject] = useState(Object.keys(SUBJECT_WEIGHTS)[0] || "FILIPINO");
   const [term, setTerm] = useState("Term 1");
   const [schoolYear, setSchoolYear] = useState("2026-2027");
-  const { sections: availableSections, loading } = useAvailableSections(gradeLevel, schoolYear);
-  const { advisorySection } = useMyAdvisorySection(user?.uid, schoolYear);
-  const [advisoryApplied, setAdvisoryApplied] = useState(false);
 
-  // A teacher assigned as a section's adviser (School Settings > Sections &
-  // Shifts, then Class Program Generator) shouldn't have to re-pick their own
-  // grade level and section every visit -- pre-fill it once, but only before
-  // they've touched the dropdowns themselves. This mirrors an external async
-  // source (Firestore) into local editable state exactly once, guarded by
-  // advisoryApplied, so it can't cascade.
+  // Canonical adviser + subject-teacher scope. Class Record does NOT fall
+  // back to an unrestricted grade/section picker: an adviser is hard-locked
+  // to their advisory section, and a subject teacher only ever sees the
+  // subject/grade/section combinations from their own users/{uid}.assignments.
+  const teacherScope = useTeacherScope(user, schoolYear);
+  const { advisorySection, adviser, subjectMap, loading: scopeLoading } = teacherScope;
+
+  // Every grade level+section this teacher may open Class Record for, plus
+  // (for subject-teacher combos) which subject(s) it's restricted to. `null`
+  // subject means "adviser's own class, any subject" -- advisers commonly
+  // teach every subject to their own section.
+  // `terms` (null | number[]) carries SHS term coverage through -- absent
+  // for adviser combos and non-SHS subject-teacher assignments, which cover
+  // every term.
+  const allowedCombos = [
+    ...(adviser ? [{ gradeLevel: adviser.gradeLevel, section: adviser.section, subject: null, terms: null }] : []),
+    ...Array.from(subjectMap.entries()).flatMap(([subj, classes]) =>
+      classes.map((c) => ({ gradeLevel: c.gradeLevel, section: c.section, subject: subj, terms: c.terms }))
+    ),
+  ];
+  const hasAnyAssignment = allowedCombos.length > 0;
+
+  const scopedGradeLevels = [...new Set(allowedCombos.map((c) => c.gradeLevel))];
+  const scopedSectionsForGrade = (gl) =>
+    [...new Set(allowedCombos.filter((c) => c.gradeLevel === gl).map((c) => c.section))];
+  // `termNum` (1/2/3), when given, restricts to combos actually covering
+  // that term -- an SHS assignment scoped to Terms 1-2 stops appearing once
+  // Term 3 is selected, unless another assignment covers Term 3.
+  const scopedSubjectsForClass = (gl, sec, termNum) =>
+    allowedCombos.filter(
+      (c) =>
+        c.gradeLevel === gl &&
+        c.section === sec &&
+        (termNum === undefined || !c.terms || c.terms.includes(termNum))
+    );
+
+  // Seed grade/section from scope the first time it resolves, then let the
+  // teacher move between their OWN allowed combos (never outside them).
   useEffect(() => {
-    if (advisoryApplied || !advisorySection || section) return;
+    if (scopeLoading || !hasAnyAssignment || section) return;
+    const first = allowedCombos[0];
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setGradeLevel(advisorySection.gradeLevel);
-    setSection(advisorySection.name);
-    setAdvisoryApplied(true);
-  }, [advisorySection, advisoryApplied, section]);
+    setGradeLevel(first.gradeLevel);
+    setSection(first.section);
+    if (first.subject) setSubject(first.subject);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scopeLoading, hasAnyAssignment, section]);
 
   // Grid / Data state
   const [isLoaded, setIsLoaded] = useState(false);
@@ -74,14 +104,35 @@ export default function ClassRecord({ user }) {
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Sidebar "Class Record > <subject>" click: only applied when it matches
+  // one of this teacher's OWN allowed combos (never lets initialSelection
+  // itself grant access to something outside the resolved scope). Re-runs
+  // on every new initialSelection so switching subjects from the sidebar
+  // while already viewing a class record works, and drops back to the
+  // setup panel (pre-filled) rather than showing the previous class's grid.
+  useEffect(() => {
+    if (scopeLoading || !initialSelection) return;
+    const match = allowedCombos.find(
+      (c) =>
+        c.gradeLevel === initialSelection.gradeLevel &&
+        c.section === initialSelection.section &&
+        (!initialSelection.subject || c.subject === null || c.subject === initialSelection.subject)
+    );
+    if (!match) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGradeLevel(match.gradeLevel);
+    setSection(match.section);
+    if (initialSelection.subject) setSubject(initialSelection.subject);
+    setIsLoaded(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSelection, scopeLoading]);
+
   const [learners, setLearners] = useState([]);
   const [wwItems, setWwItems] = useState([{ id: "ww1", hps: 0 }]);
   const [ptItems, setPtItems] = useState([{ id: "pt1", hps: 0 }]);
   const [exHPS, setExHPS] = useState({ st1: 0, st2: 0, te: 0 });
   const [scores, setScores] = useState({});
   const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
-
-  const GRADE_OPTIONS = gradeOptions;
 
   // DO 017 SHS: Grade 11/12 draw their subject list from the school's
   // configured SHS subjects (core + elective-cluster subjects) instead of
@@ -99,14 +150,46 @@ export default function ClassRecord({ user }) {
   const SUBJECT_OPTIONS = isSHS
     ? shsSubjectList.map((s) => s.name).filter(Boolean)
     : Object.keys(SUBJECT_WEIGHTS);
-
+  // Same desync risk as gradeLevel above: subjectChoice may have been seeded
+  // before config (and therefore isSHS/shsSubjectList) resolved, or the user
+  // may have picked a grade level whose SUBJECT_OPTIONS no longer contains
+  // the previously chosen subject. Derive the effective value at render time.
   // Term options
   const TERM_OPTIONS = ["Term 1", "Term 2", "Term 3"];
+  // SHS subjects are term-based (§4-9 of the term-versioning update): an
+  // assignment scoped to only some terms must drop out of Class Record once
+  // an unrelated term is selected. Non-SHS combos carry `terms: null` and
+  // are unaffected.
+  const termNum = TERM_OPTIONS.indexOf(term) + 1 || undefined;
+
+  // Narrow SUBJECT_OPTIONS to what this teacher is actually scoped for at
+  // the currently-selected grade/section/term: adviser combos (subject:
+  // null) keep the full list (advisers commonly teach every subject to
+  // their own class); subject-teacher combos restrict to only their
+  // assigned subjects that cover the active term.
+  const combosForCurrentClass = scopedSubjectsForClass(gradeLevel, section, isSHS ? termNum : undefined);
+  const isAdviserForCurrentClass = combosForCurrentClass.some((c) => c.subject === null);
+  const SCOPED_SUBJECT_OPTIONS =
+    !hasAnyAssignment || isAdviserForCurrentClass
+      ? SUBJECT_OPTIONS
+      : SUBJECT_OPTIONS.filter((s) =>
+          combosForCurrentClass.some((c) => c.subject === s)
+        );
+  const subject = SCOPED_SUBJECT_OPTIONS.includes(subjectChoice)
+    ? subjectChoice
+    : SCOPED_SUBJECT_OPTIONS[0] || "";
 
   // Helper to construct deterministic Firestore Document ID
+  // One class record per grade+section+subject+term+schoolYear -- the doc
+  // belongs to the CLASS, not to whichever teacher currently teaches it.
+  // `teacherId` is stored in the payload as last-editor metadata only (see
+  // handleSave), never as part of the document's identity, so a mid-year
+  // teacher reassignment doesn't orphan the existing scores. Firestore
+  // access is authorized by matching this exact grade/section/subject
+  // against the caller's own users/{uid}.assignmentKeys (see firestore.rules
+  // and utils/assignmentKeys.js) -- not by who originally saved it.
   function getDocId() {
-    const teacherId = user?.uid || "unknown_teacher";
-    const raw = `${teacherId}_${subject}_${gradeLevel}_${section.trim()}_${term}_${schoolYear.trim()}`;
+    const raw = `${gradeLevel}_${section.trim()}_${subject}_${term}_${schoolYear.trim()}`;
     return raw.toLowerCase().replace(/\s+/g, "-");
   }
 
@@ -115,6 +198,13 @@ export default function ClassRecord({ user }) {
     if (e) e.preventDefault();
     if (!section.trim()) {
       setErrorMessage("Please enter a section name.");
+      return;
+    }
+    // Defense in depth: the pickers above already restrict grade/section/
+    // subject to this teacher's own assignments, but re-check here too in
+    // case client state was manipulated -- never load outside the scope.
+    if (hasAnyAssignment && scopedSubjectsForClass(gradeLevel, section).length === 0) {
+      setErrorMessage("You are not assigned to this class.");
       return;
     }
 
@@ -189,6 +279,11 @@ export default function ClassRecord({ user }) {
 
     try {
       const docId = getDocId();
+      // Last-editor metadata only -- NOT part of the doc's identity (see
+      // getDocId) and not what authorizes the write; firestore.rules
+      // checks the caller's own assignmentKeys against subject/gradeLevel/
+      // section instead, so a different teacher later assigned to this
+      // exact class can open and save the same record.
       const teacherId = user?.uid || "unknown_teacher";
       const teacherEmail = user?.email || "";
 
@@ -504,7 +599,21 @@ export default function ClassRecord({ user }) {
       ))}
 
       {/* SETUP PANEL */}
-      {!isLoaded ? (
+      {!isLoaded && scopeLoading ? (
+        <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 text-sm text-gray-500 dark:text-gray-400">
+          Loading your class assignments…
+        </div>
+      ) : !isLoaded && !hasAnyAssignment ? (
+        <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 space-y-2">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
+            No class assignment yet
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            You haven't been assigned as an adviser or subject teacher for any class. Ask your ICT
+            Coordinator to set this up in User Management or Class Program.
+          </p>
+        </div>
+      ) : !isLoaded ? (
         <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 space-y-6">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-3">
             Select Class &amp; Subject Parameters
@@ -512,8 +621,7 @@ export default function ClassRecord({ user }) {
 
           {advisorySection && (
             <p className="text-xs text-primary dark:text-primary-light bg-primary/10 dark:bg-primary/20 rounded-lg px-3 py-2 -mt-2">
-              Your advisory: {advisorySection.gradeLevel} — {advisorySection.name} (pre-filled below, still
-              changeable)
+              Your advisory: {advisorySection.gradeLevel} — {advisorySection.name}
             </p>
           )}
 
@@ -523,51 +631,49 @@ export default function ClassRecord({ user }) {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
                   Grade Level
                 </label>
-                <select
-                  value={gradeLevel}
-                  onChange={(e) => {
-                    const nextGrade = e.target.value;
-                    setGradeLevel(nextGrade);
-                    // Subject options differ entirely between Grade 4-10 and
-                    // SHS (11-12) -- reset so the selected subject is never
-                    // left pointing at an option that no longer exists.
-                    const nextIsSHS = nextGrade === "Grade 11" || nextGrade === "Grade 12";
-                    if (nextIsSHS !== isSHS) {
-                      const nextOptions = nextIsSHS
-                        ? shsSubjectList.map((s) => s.name).filter(Boolean)
-                        : Object.keys(SUBJECT_WEIGHTS);
-                      setSubject(nextOptions[0] || "");
-                    }
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
-                >
-                  {GRADE_OPTIONS.map((g) => (
-                    <option key={g} value={g}>
-                      {g}
-                    </option>
-                  ))}
-                </select>
+                {scopedGradeLevels.length <= 1 ? (
+                  <p className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm">
+                    {gradeLevel}
+                  </p>
+                ) : (
+                  <select
+                    value={gradeLevel}
+                    onChange={(e) => {
+                      const nextGrade = e.target.value;
+                      setGradeLevel(nextGrade);
+                      const nextSections = scopedSectionsForGrade(nextGrade);
+                      setSection(nextSections[0] || "");
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
+                  >
+                    {scopedGradeLevels.map((g) => (
+                      <option key={g} value={g}>
+                        {g}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">
                   Section
                 </label>
-                <select
-                  value={section}
-                  onChange={(e) => setSection(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
-                  required
-                >
-                  <option value="">Select a section</option>
-                  {availableSections.map((sec) => (
-                    <option key={sec} value={sec}>{sec}</option>
-                  ))}
-                </select>
-                {availableSections.length === 0 && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {loading ? "Loading sections..." : "No sections found. Add learners in SF1 first."}
+                {scopedSectionsForGrade(gradeLevel).length <= 1 ? (
+                  <p className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm">
+                    {section}
                   </p>
+                ) : (
+                  <select
+                    value={section}
+                    onChange={(e) => setSection(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
+                    required
+                  >
+                    {scopedSectionsForGrade(gradeLevel).map((sec) => (
+                      <option key={sec} value={sec}>{sec}</option>
+                    ))}
+                  </select>
                 )}
               </div>
 
@@ -580,7 +686,7 @@ export default function ClassRecord({ user }) {
                   onChange={(e) => setSubject(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm outline-none transition-colors"
                 >
-                  {SUBJECT_OPTIONS.map((s) => (
+                  {SCOPED_SUBJECT_OPTIONS.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>

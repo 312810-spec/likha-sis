@@ -90,9 +90,11 @@ describe("pageAccess", () => {
       expect(canAccessPage("anecdotalRecords", ["stakeholder"])).toBe(false);
     });
 
-    it("blocks viewLearners specifically for stakeholder role", () => {
-      expect(canAccessPage("viewLearners", ["adviser"])).toBe(true);
-      expect(canAccessPage("viewLearners", ["subjectTeacher"])).toBe(true);
+    it("blocks viewLearners for stakeholder, and for teacher/adviser accounts (no section-scoped view exists)", () => {
+      expect(canAccessPage("viewLearners", ["principal"])).toBe(true);
+      expect(canAccessPage("viewLearners", ["ictCoordinator"])).toBe(true);
+      expect(canAccessPage("viewLearners", ["adviser"])).toBe(false);
+      expect(canAccessPage("viewLearners", ["subjectTeacher"])).toBe(false);
       expect(canAccessPage("viewLearners", ["stakeholder"])).toBe(false);
       expect(canAccessPage("viewLearners", ["adviser", "stakeholder"])).toBe(false);
     });
@@ -174,7 +176,7 @@ describe("pageAccess", () => {
       expect(PAGE_ACCESS.announcements).toBe("all");
       expect(PAGE_ACCESS.schoolCalendar).toBe("all");
       expect(ANNOUNCEMENT_AUTHOR_ROLES).toEqual(["principal", "ictCoordinator"]);
-      expect(VIEW_LEARNERS_BLOCKED_ROLES).toEqual(["stakeholder", "parent"]);
+      expect(VIEW_LEARNERS_BLOCKED_ROLES).toEqual(["stakeholder", "parent", "adviser", "subjectTeacher"]);
       expect(VIEW_LEARNERS_EDIT_ROLES).toEqual(["adviser"]);
     });
   });

@@ -40,7 +40,13 @@ export const PAGE_ACCESS = {
   schoolCalendar: "all",
 };
 
-export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder", "parent"];
+// Teacher/adviser accounts are scoped to their own advisory/subject
+// assignments everywhere else in the app; View Learners has no such
+// scoping (it lists the whole school), so it's hidden from those roles
+// entirely rather than exposing unrelated sections. Preserved for the
+// oversight roles (ictCoordinator, principal, masterTeacher,
+// smeaCoordinator, guidance) that legitimately need a school-wide view.
+export const VIEW_LEARNERS_BLOCKED_ROLES = ["stakeholder", "parent", "adviser", "subjectTeacher"];
 export const VIEW_LEARNERS_EDIT_ROLES = ["adviser"];
 
 // Schedules carry no learner PII, so reading is broad -- advisers and master
