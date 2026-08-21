@@ -204,6 +204,14 @@ describe("schoolCalendar", () => {
         expect(c.tint).toBeTruthy();
       });
     });
+
+    it("includes a DepEd/gov announcement category", () => {
+      expect(EVENT_CATEGORIES.find((c) => c.id === "depedAnnouncement")).toEqual({
+        id: "depedAnnouncement",
+        label: "DepEd/Gov Announcement",
+        tint: "blue",
+      });
+    });
   });
 
   describe("birthdayEntries", () => {

@@ -21,6 +21,7 @@ export const EVENT_CATEGORIES = [
   { id: "activity", label: "School Activity", tint: "blue" },
   { id: "deadline", label: "Deadline", tint: "rose" },
   { id: "meeting", label: "Meeting", tint: "violet" },
+  { id: "depedAnnouncement", label: "DepEd/Gov Announcement", tint: "blue" },
   { id: "holiday", label: "School Holiday", tint: "emerald" },
 ];
 
