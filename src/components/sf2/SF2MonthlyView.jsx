@@ -198,7 +198,7 @@ export default function SF2MonthlyView({
             ))}
             {maleLearners.length > 0 && (
               <TotalRow
-                label="<== MALE | TOTAL Per Day ==>"
+                label="<=== MALE | TOTAL Per Day ===>"
                 count={maleLearners.length}
                 weekdays={weekdays}
                 records={records}
@@ -220,7 +220,7 @@ export default function SF2MonthlyView({
             ))}
             {femaleLearners.length > 0 && (
               <TotalRow
-                label="<== FEMALE | TOTAL Per Day ==>"
+                label="<=== FEMALE | TOTAL Per Day ===>"
                 count={femaleLearners.length}
                 weekdays={weekdays}
                 records={records}
@@ -295,7 +295,7 @@ export default function SF2MonthlyView({
             </SummaryLine>
 
             <div className="sf2-box-title sf2-box-title-spaced">Learner Movement</div>
-            <SummaryLine label="Late Enrollment during month" editable={editable}>
+            <SummaryLine label="Late enrolment during month" editable={editable}>
               <input
                 type="number"
                 min="0"
@@ -340,6 +340,11 @@ export default function SF2MonthlyView({
             />
             <SummaryLine label="Absent (Total for the Month)" value={summary.monthlyAbsentTotal ?? 0} />
             <SummaryLine label="Present (Total for the Month)" value={summary.monthlyPresentTotal ?? 0} />
+            <SummaryLine
+              label="Number of students absent for 5 consecutive days"
+              value={summary.absentFiveConsecutiveDays ?? 0}
+            />
+            <SummaryLine label="Dropped out" value={summary.droppedOut ?? 0} />
 
             <div className="sf2-box-title sf2-box-title-spaced">Formulas</div>
             {SF2_FORMULAS.map((f) => (
@@ -397,11 +402,11 @@ const PRINT_CSS = `
   font-family: Arial, Helvetica, sans-serif;
   box-sizing: border-box;
 }
-.sf2-title { font-weight: bold; font-size: 11pt; text-align: center; }
-.sf2-subtitle { font-size: 6.5pt; font-style: italic; text-align: center; margin-bottom: 4px; }
-.sf2-meta-row { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 7.5pt; margin-bottom: 2px; }
-.sf2-meta-label { font-weight: normal; }
-.sf2-meta-value { font-weight: bold; border-bottom: 1px solid #000; padding: 0 6px; }
+.sf2-title { font-weight: normal; font-size: 13pt; text-align: center; }
+.sf2-subtitle { font-size: 5pt; font-style: italic; text-align: center; margin-bottom: 4px; }
+.sf2-meta-row { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 2px; }
+.sf2-meta-label { font-weight: normal; font-size: 6pt; }
+.sf2-meta-value { font-weight: bold; font-size: 8pt; border-bottom: 1px solid #000; padding: 0 6px; }
 .sf2-meta-wide { min-width: 2.2in; }
 
 .sf2-table { border-collapse: collapse; width: 100%; table-layout: fixed; margin-top: 6px; }
@@ -419,7 +424,7 @@ const PRINT_CSS = `
 .sf2-c-name, .sf2-c-remarks { text-align: left !important; }
 .sf2-c-no { width: 2em; }
 .sf2-date-head { font-size: 6pt; }
-.sf2-row { height: 0.24in; }
+.sf2-row { height: 0.278in; }
 
 .sf2-mark-btn {
   width: 100%;

@@ -9,6 +9,8 @@ import {
   groupCountOnDate,
   groupDailyTotals,
   computeMonthlySummary,
+  countAbsentFiveConsecutiveDays,
+  countDroppedOut,
 } from "../sf2Summary.js";
 
 const WEEKDAYS = [
@@ -110,5 +112,70 @@ describe("computeMonthlySummary", () => {
     });
     expect(summary.pctEnrolment).toBeNull();
     expect(summary.pctAttendance).toBeNull();
+  });
+
+  it("includes the 5-consecutive-day and dropped-out summary fields", () => {
+    const summary = computeMonthlySummary({
+      maleLearnerIds: ["juan"],
+      femaleLearnerIds: ["maria"],
+      weekdays: WEEKDAYS,
+      records: {
+        juan: {
+          "2026-08-03": "A",
+          "2026-08-04": "A",
+          "2026-08-05": "A",
+          "2026-08-06": "A",
+          "2026-08-07": "A",
+        },
+        maria: {},
+      },
+      remarksData: { maria: "Dropped Out - b3: Death" },
+      enrolmentFirstFriday: 2,
+    });
+    expect(summary.absentFiveConsecutiveDays).toBe(1);
+    expect(summary.droppedOut).toBe(1);
+  });
+});
+
+describe("countAbsentFiveConsecutiveDays", () => {
+  it("counts a learner absent every school day this month (streak reaches 5)", () => {
+    const records = {
+      juan: {
+        "2026-08-03": "A",
+        "2026-08-04": "A",
+        "2026-08-05": "A",
+        "2026-08-06": "A",
+        "2026-08-07": "A",
+      },
+    };
+    expect(countAbsentFiveConsecutiveDays(["juan"], records, WEEKDAYS)).toBe(1);
+  });
+
+  it("does not count a streak broken by a Present or Tardy day", () => {
+    const records = {
+      juan: {
+        "2026-08-03": "A",
+        "2026-08-04": "A",
+        "2026-08-05": "T",
+        "2026-08-06": "A",
+        "2026-08-07": "A",
+      },
+    };
+    expect(countAbsentFiveConsecutiveDays(["juan"], records, WEEKDAYS)).toBe(0);
+  });
+});
+
+describe("countDroppedOut", () => {
+  it("counts only learners whose remark starts with 'Dropped Out'", () => {
+    const remarksData = {
+      juan: "Dropped Out - b3: Death",
+      maria: "Transferred Out - Public School XYZ",
+      pedro: "Dropped Out - d2: Armed conflict (incl. Tribal wars & clanfeuds)",
+    };
+    expect(countDroppedOut(["juan", "maria", "pedro"], remarksData)).toBe(2);
+  });
+
+  it("returns 0 when no remarks are set", () => {
+    expect(countDroppedOut(["juan", "maria"], {})).toBe(0);
   });
 });

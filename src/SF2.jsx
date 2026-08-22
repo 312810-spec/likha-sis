@@ -418,6 +418,7 @@ function SF2({ user, userRoles }) {
     femaleLearnerIds: femaleLearners.map((l) => l.id),
     weekdays,
     records,
+    remarksData,
     enrolmentFirstFriday: summaryInputs.enrolmentFirstFriday,
   });
 

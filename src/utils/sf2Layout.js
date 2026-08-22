@@ -80,7 +80,7 @@ export const DROPOUT_REASONS = [
   { code: "c2", label: "Physical condition of classroom" },
   { code: "c3", label: "Peer influence" },
   { code: "d1", label: "Distance between home and school" },
-  { code: "d2", label: "Armed conflict" },
+  { code: "d2", label: "Armed conflict (incl. Tribal wars & clanfeuds)" },
   { code: "d3", label: "Calamities/Disasters" },
   { code: "e1", label: "Child labor, work" },
   { code: "f", label: "Others (Specify)" },
@@ -113,10 +113,13 @@ export const NLS_REASON_GROUPS = [
   { letter: "f", title: "Others (Specify)", items: [] },
 ];
 
-/** "1. CODES FOR CHECKING ATTENDANCE" -- official wording, verbatim (including
- * the source workbook's own "Commer" spelling). */
+/** "1. CODES FOR CHECKING ATTENDANCE" -- official wording, verbatim,
+ * including the source workbook's own "Commer" spelling and its inconsistent
+ * spacing around "-" and "=" (re-verified via xlrd against the real
+ * workbook; a prior pass claimed this matched but the string still read
+ * "Comer" with one m and evenly-spaced punctuation). */
 export const ATTENDANCE_CODES_TEXT =
-  "(blank) - Present; (x) - Absent; Tardy (half shaded = Upper for Late Comer, Lower for Cutting Classes)";
+  "(blank) - Present; (x)- Absent; Tardy (half shaded= Upper for Late Commer, Lower for Cutting Classes)";
 
 /** The three official summary formulas, exactly as labelled on the sheet. */
 export const SF2_FORMULAS = [

@@ -61,6 +61,38 @@ export function groupDailyTotals(learnerIds, records, dateString) {
   return { present, absent, tardy, total: learnerIds.length };
 }
 
+/** Count of learners with 5+ consecutive Absent-marked school days this
+ * month -- the official Summary field backing SF2_GUIDELINES_TEXT's
+ * intervention note (#5). "Consecutive" means consecutive entries in
+ * `weekdays` (actual school days), not consecutive calendar dates, since a
+ * weekend or holiday doesn't break a streak. */
+export function countAbsentFiveConsecutiveDays(learnerIds, records, weekdays) {
+  return learnerIds.reduce((count, id) => {
+    const dateMap = (records && records[id]) || {};
+    let streak = 0;
+    let reachedFive = false;
+    for (const w of weekdays) {
+      if (dateMap[w.dateString] === "A") {
+        streak += 1;
+        if (streak >= 5) reachedFive = true;
+      } else {
+        streak = 0;
+      }
+    }
+    return count + (reachedFive ? 1 : 0);
+  }, 0);
+}
+
+/** Count of learners whose Remarks this month record a "Dropped Out" status
+ * (see dropoutLabel() in sf2Layout.js for the stored string format). */
+export function countDroppedOut(learnerIds, remarksData = {}) {
+  return learnerIds.reduce(
+    (sum, id) =>
+      sum + (typeof remarksData[id] === "string" && remarksData[id].startsWith("Dropped Out") ? 1 : 0),
+    0
+  );
+}
+
 /**
  * Auto-calculated Monthly SF2 summary values (CLAUDE.md-aligned: never make
  * a teacher type a number LIKHA-SIS already knows). `enrolmentFirstFriday`
@@ -71,6 +103,7 @@ export function computeMonthlySummary({
   femaleLearnerIds = [],
   weekdays = [],
   records = {},
+  remarksData = {},
   enrolmentFirstFriday = 0,
 }) {
   const allIds = [...maleLearnerIds, ...femaleLearnerIds];
@@ -92,6 +125,8 @@ export function computeMonthlySummary({
   const monthlyAbsentTotal = maleTotals.absent + femaleTotals.absent;
   const monthlyPresentTotal = maleTotals.present + femaleTotals.present;
   const monthlyTardyTotal = maleTotals.tardy + femaleTotals.tardy;
+  const absentFiveConsecutiveDays = countAbsentFiveConsecutiveDays(allIds, records, weekdays);
+  const droppedOut = countDroppedOut(allIds, remarksData);
 
   return {
     registeredLearners,
@@ -103,5 +138,7 @@ export function computeMonthlySummary({
     monthlyAbsentTotal,
     monthlyPresentTotal,
     monthlyTardyTotal,
+    absentFiveConsecutiveDays,
+    droppedOut,
   };
 }
