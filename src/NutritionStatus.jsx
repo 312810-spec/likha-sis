@@ -424,7 +424,9 @@ export default function NutritionStatus({ user }) {
              asymmetric margins. */
           @page { size: A4 portrait; margin: 0.17in 0.1in 0.32in 0.1in; }
         }
-        .sf8-table { border-collapse: collapse; width: 100%; }
+        /* Measured via styled-exceljs: outer top/left frame is a medium
+           border, internal grid lines are thin. */
+        .sf8-table { border-collapse: collapse; width: 100%; border-left: 2px solid #000; border-top: 2px solid #000; }
         .sf8-table th, .sf8-table td {
           border: 1px solid #000;
           padding: 2px 3px;

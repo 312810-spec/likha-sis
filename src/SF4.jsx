@@ -421,7 +421,9 @@ function SF4({ user, goBack }) {
            A4 landscape, asymmetric margins (top 0.29in, other sides 0.19in). */
         @page { size: A4 landscape; margin: 0.29in 0.19in 0.19in 0.19in; }
         .sf4-print-area { font-family: Arial, Helvetica, sans-serif; }
-        .sf4-table { border-collapse: collapse; width: 100%; }
+        /* Measured via styled-exceljs: outer left/right frame is a medium
+           border, internal grid lines are thin. */
+        .sf4-table { border-collapse: collapse; width: 100%; border-left: 2px solid #000; border-right: 2px solid #000; }
         .sf4-table th, .sf4-table td {
           border: 1px solid #000;
           padding: 2px 3px;
@@ -713,6 +715,10 @@ function SF4({ user, goBack }) {
                           ? "bg-primary/10 dark:bg-primary/20 font-bold text-gray-900 dark:text-gray-100"
                           : "hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150"
                       }
+                      // Measured via styled-exceljs: a double rule above the
+                      // TOTAL row, medium below -- the standard accounting
+                      // "sum row" convention, not the shared thin grid line.
+                      style={isTotal ? { borderTop: "3px double #000", borderBottom: "2px solid #000" } : undefined}
                     >
                       <td className="sf4-cell-left p-1 border border-gray-300 dark:border-gray-700">
                         {isTotal ? "" : gradeLevel}

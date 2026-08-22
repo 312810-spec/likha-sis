@@ -152,9 +152,14 @@ export default function NutritionConsolidator({ goBack }) {
             color: #000;
             background: #fff;
           }
-          @page { size: A4 landscape; margin: 8mm; }
+          /* Measured via raw pageSetup/margins XML against the real
+             workbook: orientation was already correct, margins were not
+             (was a flat 8mm; real is asymmetric). */
+          @page { size: A4 landscape; margin: 0.75in 0.24in; }
         }
-        .nc-table { border-collapse: collapse; width: 100%; }
+        /* Outer left/right frame is a medium border per styled-exceljs;
+           internal grid lines stay thin. */
+        .nc-table { border-collapse: collapse; width: 100%; border-left: 2px solid #000; border-right: 2px solid #000; }
         .nc-table th, .nc-table td {
           border: 1px solid #000;
           padding: 2px 3px;

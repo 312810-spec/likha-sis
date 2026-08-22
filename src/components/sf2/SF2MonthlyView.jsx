@@ -412,7 +412,9 @@ const PRINT_CSS = `
 .sf2-meta-value { font-weight: bold; font-size: 8pt; border-bottom: 1px solid #000; padding: 0 6px; }
 .sf2-meta-wide { min-width: 2.2in; }
 
-.sf2-table { border-collapse: collapse; width: 100%; table-layout: fixed; margin-top: 6px; }
+/* Measured via styled-exceljs: the table's outer left/right frame is a
+   medium border, not the thin border used for internal grid lines. */
+.sf2-table { border-collapse: collapse; width: 100%; table-layout: fixed; margin-top: 6px; border-left: 2px solid #000; border-right: 2px solid #000; }
 .sf2-table th, .sf2-table td {
   border: 1px solid #000;
   padding: 1px 2px;
@@ -455,6 +457,10 @@ const PRINT_CSS = `
   padding: 0;
 }
 .sf2-total-row { font-weight: bold; background: #e8e8e8; }
+/* Measured via styled-exceljs: MALE/FEMALE/Combined total rows get a
+   medium bottom border marking the section boundary, not the shared
+   thin grid line. */
+.sf2-total-row td, .sf2-total-row th { border-bottom: 2px solid #000; }
 .sf2-combined-row { background: #cfcfcf; }
 
 .sf2-footer { display: flex; gap: 10px; margin-top: 8px; font-size: 6.5pt; line-height: 1.4; }

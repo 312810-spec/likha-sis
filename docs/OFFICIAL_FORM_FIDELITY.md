@@ -27,26 +27,45 @@ measurement or a new reference file changes what's actually known.
 
 ## Tooling and its limits
 
-- **`.xls` (legacy binary)**: read via `xlrd` (Python, `formatting_info=True`).
-  Reliable for row heights, merged ranges, column widths, and cell text.
-  **Not reliable for the bold flag** — this project's own history has two
-  documented cases (SF1, and this manifest's own SF2/SF4 corrections) where
-  `xlrd` reported a stale/wrong bold bit. Page setup (orientation, paper
-  size, margins) is **not exposed** by `xlrd` for these particular files.
-- **`.xlsx`**: read via `openpyxl` (Python, free/open-source, added this
-  session as a dev-only inspection tool — not a shipped app dependency) when
-  a clean `.xlsx` export is available. Reliable for font name/size/bold and,
-  critically, **page setup** (orientation, paper size, margins), which
-  neither `xlrd` nor the project's existing `xlsx` npm package (SheetJS
+- **`styled-exceljs`** (npm, `npm install --no-save styled-exceljs` — a
+  free/open-source SheetJS-compatible fork with real style support; added
+  as a dev-only inspection tool, not a shipped app dependency, per explicit
+  direction). `XLSX.read(data, { cellStyles: true })` gives `cell.s.font`
+  (name/size/bold/color), `cell.s.border` (per-side style: thin/medium/
+  thick/double), `cell.s.alignment` (horizontal/vertical/wrap), and
+  `ws["!margins"]`, all in one call, for both `.xls` and `.xlsx`. It also
+  opened `CONSO SF v2025.xlsx` cleanly where `openpyxl`'s normal mode
+  choked on that file's embedded drawing XML. **Does not expose page
+  orientation/paper size** — for that, unzip the `.xlsx` (it's a zip
+  archive) and grep `xl/worksheets/sheetN.xml` for `<pageSetup` directly;
+  resolve which `sheetN.xml` belongs to a given sheet via
+  `xl/workbook.xml` (sheet name → `r:id`) and `xl/_rels/workbook.xml.rels`
+  (`r:id` → `worksheets/sheetN.xml`). This is now the preferred method for
+  border/alignment/margin data — reach for it first.
+- **`.xls` (legacy binary)**: read via `xlrd` (Python, `formatting_info=True`)
+  when no `.xlsx` re-export exists. Reliable for row heights, merged
+  ranges, column widths, and cell text. **Not reliable for the bold
+  flag** — this project's own history has two documented cases (SF1, and
+  this manifest's own SF2/SF4 corrections) where `xlrd` reported a
+  stale/wrong bold bit. Page setup is **not exposed** by `xlrd` for these
+  particular files.
+- **`.xlsx`**: `openpyxl` (Python, free/open-source) also works and was
+  used earlier in this sweep before `styled-exceljs` was available;
+  reliable for font name/size/bold and page setup, but its normal read
+  mode fails outright on workbooks with malformed embedded drawing XML
+  (`CONSO SF v2025.xlsx`) — `read_only=True` works around that but drops
+  page-setup access. Superseded by `styled-exceljs` + raw-XML page setup
+  for new work, kept here because prior corrections in this file cite it.
+  Neither `xlrd` nor the project's existing `xlsx` npm package (SheetJS
   Community Edition — no font/style data at all) can provide.
 - Where both an `.xls` and a matching `.xlsx` export of the same form exist
   (SF1, SF2, SF4), `openpyxl`'s reading is treated as authoritative over
   `xlrd`'s for anything they disagree on, per the above.
 - `openpyxl` cannot open `public/CONSO SF v2025.xlsx` in normal mode (it
-  contains malformed drawing/image XML); `read_only=True` works for cell
-  text/font but does not expose page setup. SF9's page setup is therefore
-  **UNVERIFIED** — no dedicated single-form SF9 export exists, only this
-  82-sheet consolidator.
+  contains malformed drawing/image XML); `styled-exceljs` opens it fine.
+  Orientation for SF9's FRONT/BACK sheets was recovered via the raw-XML
+  method above even without a dedicated single-form SF9 export — see the
+  SF9 section below for what is and isn't confirmed.
 - No reference file of any kind was found for Nutrition Consolidator's own
   cited source or for a byte-exact SF10/SF5 in the current 3-Term era (the
   only SF5/SF10 material on file uses the legacy Q1–Q4 quarterly system).
@@ -73,7 +92,9 @@ measurement or a new reference file changes what's actually known.
 | Register table row heights | PASS | pt-based, matches measured |
 | Footer geometry (legend/tally/signatures) | PASS | Rebuilt this session to the real 7-row block with correct rowSpans; row heights and every checked bold value cross-verified against `openpyxl` |
 | Footer/legend/signature wording | PASS | Verified verbatim, including punctuation |
-| Font family | UNVERIFIED | `xlrd`/`openpyxl` report the generic family name `'SansSerif'`, not a real installed font name — current `Arial, Helvetica, sans-serif` is the documented closest-safe-equivalent choice, not a verified exact match |
+| Font family | UNVERIFIED | `xlrd`/`openpyxl`/`styled-exceljs` all report the generic family name `'SansSerif'`, not a real installed font name — current `Arial, Helvetica, sans-serif` is the documented closest-safe-equivalent choice, not a verified exact match |
+| Cell borders | PASS | Checked via `styled-exceljs` across header/data/tally rows and both table edges — uniformly thin, no medium/thick frame (unlike SF2/SF4/SF8/Nutrition Consolidator, which do have one) — current uniform `1px solid` is already correct |
+| Cell alignment | PASS | Spot-checked, matches existing left-align-exception classes |
 | Print safety (dark mode) | PASS | `!important` white/black force, `print-color-adjust: exact` |
 | Canonical renderer | PASS | Single component for screen + print; the one CSS-provenance split (duplicate `.sf1-print-view` rule across two files) was consolidated this session |
 
@@ -105,6 +126,8 @@ unverified guess — documented, not silently accepted.
 | Summary fields | PASS | Added the two the source has and this form lacked (5-consecutive-day absences, dropped out), with tested pure functions in `sf2Summary.js` |
 | Male/Female table grouping | PASS | Confirmed Male block → Female block → Combined, matching source row order |
 | Font family | UNVERIFIED | Same generic-`'SansSerif'` limitation as SF1 |
+| Cell borders | PASS | Was uniform `1px solid` everywhere. Real table has a **medium** left/right outer frame plus a **medium** bottom border on the MALE-total, FEMALE-total, and Combined-total rows marking section boundaries — internal grid stays thin. Fixed via `.sf2-table` frame + `.sf2-total-row td/th` border-bottom |
+| Cell alignment | PASS | Name column left/center-vertical, data columns center/center — matches |
 | Print safety | PASS | `!important` enforcement, zoom reset |
 | Canonical renderer | PASS | Single component |
 
@@ -133,6 +156,8 @@ unverified guess — documented, not silently accepted.
 | Mortality table | PASS | Removed a fabricated 4th "Detail" column and "School-wide Total" label not in the source; fixed to the real 3-column layout with the source's own "Cummulative" spelling; header bold corrected |
 | Certification footer | PASS | Was two invented signature lines (adviser + separate "Certified Correct"); real form has one ("Prepared and Submitted by:" over the school head's name). Added the missing "Generated thru LIS"/"Generated on:" lines. Bold pattern (label/caption/"Generated thru LIS" bold; name/"Generated on:" not) re-verified via `openpyxl` |
 | "SECONDARY:" section-divider row | KNOWN GAP | The source has a row-label dividing elementary/secondary grade blocks; not rendered here. Ambiguous whether it's ever meaningful for a secondary-only school — flagged rather than guessed at |
+| Cell borders | PASS | Was uniform `1px solid`. Real table has a **medium** left/right outer frame (thin internal grid), and the TOTAL row has a **double** border above it and medium below — the standard accounting "sum row" convention. Fixed via `.sf4-table` frame + an inline border style on the TOTAL `<tr>` |
+| Cell alignment | PASS | Center-aligned data columns, left-aligned identity columns — matches |
 | Print safety | PASS | `html.dark` override present |
 | Canonical renderer | PASS | Single file |
 
@@ -157,7 +182,7 @@ polish.
 |---|---|---|
 | Page size/orientation | PASS | A4 **portrait** — was wrongly set to A4 landscape |
 | Page margins | PASS | 0.17in/0.1in/0.32in/0.1in (was a flat 8mm) |
-| Font family | PASS | Was generic `Arial`; real is **Arial Narrow** (which is why an 11pt table fits a portrait page) — fixed with an `Arial, Helvetica, sans-serif` fallback chain |
+| Font family | PASS | Was generic `Arial`; real is **Arial Narrow** (which is why an 11pt table fits a portrait page) — fixed to `'Arial Narrow', Arial, Helvetica, sans-serif` |
 | Title text | PASS | Word order was wrong ("(SF8)" belongs at the end, not right after "Form 8") |
 | Title size | PASS | 14pt bold (was 13pt) |
 | "Department of Education" header line | PASS | Was missing entirely; added at the measured 14pt bold |
@@ -165,6 +190,8 @@ polish.
 | School-info header size/weight | PASS | 11pt, not bold (was 8.5pt bold) |
 | Table column structure | PASS | "Nutritional Status" now correctly groups BMI + BMI Category under one 2-row header (was a flat single row) |
 | Table font size | PASS | 11pt Arial Narrow (was 7pt generic Arial) |
+| Cell borders | PASS | Was uniform `1px solid`. Real table has a **medium** top/left outer frame (thin internal grid) — fixed via `.sf8-table` frame |
+| Cell alignment | PASS | Center-aligned data columns — matches |
 | Print safety | PASS | Explicit black/white force |
 | Canonical renderer | PASS | Data-entry grid and print form are legitimately separate, not a fidelity violation |
 
@@ -184,7 +211,9 @@ that would have produced genuinely mis-formatted printouts.
 
 | Dimension | Status | Notes |
 |---|---|---|
-| Page size/orientation | UNVERIFIED | No page-setup-capable source exists for a standalone SF9; `@page { size: letter portrait }` was added this round as a reasonable default (better than the prior "unset, browser default"), but it is **not measured** — do not treat it as confirmed |
+| Page orientation | PASS | **Landscape** — read directly from the raw `<pageSetup orientation="landscape">` XML inside both the FRONT and BACK sheets (unzipped the `.xlsx` and grepped the sheet XML directly, since neither `openpyxl` nor `styled-exceljs` exposes this for embedded consolidator sheets). Was wrongly set to `letter portrait` earlier this session — corrected, along with the print container's max-width (was 780px portrait-shaped, now 1080px landscape-shaped) |
+| Paper size | UNVERIFIED | Not set explicitly in the source XML (inherits printer default) — A4 used for consistency with every other measured LIKHA-SIS form, not independently confirmed for SF9 specifically |
+| Page margins | PASS | ~0.24in sides / ~0.75in top-bottom, read from the same raw XML (`<pageMargins>`) |
 | Font family | PASS | Calibri (10pt bold on section titles), confirmed via `openpyxl`. Fixed from the previously-set `Arial` — the codebase's font-strictness rule was violated here until this correction. `Carlito` fallback documented for platforms without Calibri installed |
 | Grade Descriptors table | PASS | Was using entirely invented terminology (Advancing/Benchmarking/Connecting/Developing/Emerging) with wrong score bands that match no official DepEd descriptor set at all. Replaced with the real ones and column order |
 | "Report on Learner's Observed Values" section | PASS (structure) | Was missing entirely — a required official section. Added with DepEd's real 4 core values and their real behavior statements, sized to the measured 10pt bold. Uses Term 1-3 columns (project convention) instead of the source's legacy Quarter columns — a deliberate, documented adaptation, not a fidelity miss. **No digital AO/SO/RO/NO rating capture exists** — cells print blank; wiring that up is a feature decision, out of scope here |
@@ -193,11 +222,12 @@ that would have produced genuinely mis-formatted printouts.
 | Print safety | PASS | `html.dark` override and `@page` added this session (previously absent) |
 | Canonical renderer | PASS | Single component |
 
-**Overall: real fixes made (wrong descriptors, missing section, wrong
-font), but this is the least fully-measured of the five actively-worked
-forms.** Its page setup and several text sections remain UNVERIFIED, not
-PASS — a follow-up pass against a dedicated SF9 export (if one becomes
-available) is needed before this can honestly be called complete.
+**Overall: substantially corrected (wrong descriptors, missing section,
+wrong font, wrong page orientation), but still the least fully-measured of
+the five actively-worked forms.** The attendance/grades table structure and
+several text sections (Teacher's Comments, Certificate of Transfer, etc.)
+remain UNVERIFIED, not PASS — a follow-up cell-by-cell pass against the
+FRONT/BACK sheets is needed before this can honestly be called complete.
 
 ---
 
@@ -212,6 +242,9 @@ available) is needed before this can honestly be called complete.
 |---|---|---|
 | Table orientation | **KNOWN GAP — major** | The real form puts sex (M/F/T) as **row-groups** under each grade level, with No./% **column pairs** per BMI/HFA category. The current implementation is oriented the other way (grade-level rows, M/F/T as column triples) and **has no percentage columns at all**. This is a data-model and rendering rewrite, not a fidelity tweak — not attempted this round |
 | BMI/HFA category labels | PASS | Already matched exactly |
+| Page orientation | PASS | Landscape — already correct, confirmed via raw `<pageSetup>` XML |
+| Page margins | PASS | 0.24in sides / 0.75in top-bottom (was a flat 8mm) |
+| Cell borders | PASS | Was uniform `1px solid`. Real table has a **medium** left/right outer frame — fixed via `.nc-table` frame (the table-orientation gap above means this fix applies to the current, not-yet-correctly-oriented, table) |
 | Print safety | PASS | Explicit black/white force |
 | Canonical renderer | PASS | No duplication |
 
@@ -268,9 +301,11 @@ sheet exists inside `CONSO SF v2025.xlsx` if this is ever prioritized).
   Helvetica, sans-serif` is used as the closest safe equivalent. This is
   not fixable by better tooling — the source itself doesn't pin an exact
   typeface.
-- **SF9 page setup**: no dedicated single-form SF9 export exists to measure
-  against; `CONSO SF v2025.xlsx` doesn't expose page setup via any tool on
-  hand for its embedded sheets.
+- **SF9 paper size**: orientation and margins were recovered from the raw
+  `<pageSetup>`/`<pageMargins>` XML, but the source doesn't set an explicit
+  paper size (inherits printer default) — A4 is inferred from every other
+  measured LIKHA-SIS form's consistent use of it, not independently
+  confirmed for SF9.
 - **Calibri on non-Windows systems**: SF9 uses a `Carlito` (free,
   metrically-compatible) fallback for browsers/OSes without Calibri
   installed. Print output will be visually near-identical but not

@@ -348,7 +348,14 @@ export default function ReportCard({ user, goBack }) {
             color: #000 !important;
             border-color: #000 !important;
           }
-          @page { size: letter portrait; margin: 0.4in; }
+          /* Measured directly from the real workbook's pageSetup XML (both
+             the FRONT and BACK sheets of the source are landscape) --
+             replaces an earlier, unmeasured "letter portrait" guess.
+             Paper size isn't set explicitly in the source XML (inherits
+             printer default); A4 is used here for consistency with every
+             other measured LIKHA-SIS DepEd form (SF1/SF2/SF4/SF8 all
+             measured A4), not independently confirmed for SF9. */
+          @page { size: A4 landscape; margin: 0.3in 0.24in; }
         }
         .rc-table { border-collapse: collapse; width: 100%; }
         .rc-table th, .rc-table td {
@@ -549,7 +556,10 @@ export default function ReportCard({ user, goBack }) {
             padding: "8px 12px",
             marginTop: "16px",
             border: "1px solid #ccc",
-            maxWidth: "780px",
+            /* A4 landscape printable width (11.69in - 0.24in*2 margins) at
+               96px/in -- matches the real page orientation now that @page
+               is measured, not the portrait-shaped 780px this used to be. */
+            maxWidth: "1080px",
           }}
         >
           {/* ===== HEADER: two-column ===== */}
