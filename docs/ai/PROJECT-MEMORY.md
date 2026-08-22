@@ -107,6 +107,20 @@ rework.
   these files.
 - Official DepEd form layouts (SF1/SF2/SF4/SF8/SF9/SF10) are structurally
   fixed; changing their layout is a compliance risk, not a styling choice.
+  `docs/OFFICIAL_FORM_FIDELITY.md` tracks what's actually been measured and
+  verified per form (font, geometry, wording, page setup) versus what's
+  still unverified or a known gap — update it, don't let it drift stale.
+- When measuring an official form against a reference workbook: `xlrd`'s
+  bold-flag reads on legacy `.xls` files are not reliable (confirmed twice
+  — once before this note existed, once during the fidelity sweep that
+  added it, both on real files in this repo). Where a matching `.xlsx`
+  export is available, cross-check bold (and get page setup — orientation/
+  paper size/margins, which `xlrd` doesn't expose at all) via `openpyxl`
+  (free, open-source Python; `read_only=True` if the file has embedded
+  images/drawings openpyxl's normal reader chokes on, though that mode
+  drops page-setup access too). The project's `xlsx` npm package (SheetJS
+  Community Edition) exposes no font/style data for `.xlsx` at all — don't
+  rely on it for typography, only geometry (merges/column widths/rows).
 
 ## Testing conventions
 
