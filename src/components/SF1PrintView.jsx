@@ -23,6 +23,7 @@ import {
   SF1_COLUMN_PERCENTS,
   SF1_GRID_PERCENTS,
   SF1_TITLE_ROW_HEIGHTS,
+  SF1_FOOTER_ROW_HEIGHTS,
   REMARKS_INDICATORS,
   REMARKS_INDICATORS_RIGHT,
 } from "../importers/sf1/sf1Layout.js";
@@ -156,18 +157,18 @@ export default function SF1PrintView({
         <table className="sf1-head">
           <GridCols />
           <tbody>
-            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[0]}px` }}>
+            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[0]}pt` }}>
               <td className="sf1-title" colSpan={46}>
                 School Form 1 (SF 1) School Register
               </td>
             </tr>
-            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[1]}px` }}>
+            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[1]}pt` }}>
               <td className="sf1-subtitle" colSpan={46}>
                 (This replaces Form 1, Master List &amp; STS Form 2-Family
                 Background and Profile)
               </td>
             </tr>
-            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[2]}px` }}>
+            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[2]}pt` }}>
               <td className="sf1-meta-label" colSpan={5}>School ID</td>
               <td className="sf1-meta-value" colSpan={4}>{school.schoolId || ""}</td>
               <td className="sf1-meta-gap" />
@@ -178,7 +179,7 @@ export default function SF1PrintView({
               <td className="sf1-meta-value" colSpan={13}>{school.division || ""}</td>
               <td className="sf1-meta-gap" colSpan={14} />
             </tr>
-            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[3]}px` }}>
+            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[3]}pt` }}>
               <td className="sf1-meta-label" colSpan={5}>School Name</td>
               <td className="sf1-meta-value" colSpan={10}>{school.schoolName || ""}</td>
               <td className="sf1-meta-gap" />
@@ -205,7 +206,7 @@ export default function SF1PrintView({
 
           {/* Two-row header, merged exactly like the official sheet. */}
           <thead>
-            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[4]}px` }}>
+            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[4]}pt` }}>
               <th rowSpan={2}>LRN</th>
               <th rowSpan={2}>
                 NAME
@@ -237,7 +238,7 @@ export default function SF1PrintView({
               <th rowSpan={2}>Learning Modality</th>
               <th>REMARKS</th>
             </tr>
-            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[5]}px` }}>
+            <tr style={{ height: `${SF1_TITLE_ROW_HEIGHTS[5]}pt` }}>
               <th>House #/ Street/ Sitio/ Purok</th>
               <th>Barangay</th>
               <th>Municipality/ City</th>
@@ -292,14 +293,14 @@ export default function SF1PrintView({
         <table className="sf1-foot">
           <GridCols />
           <tbody>
-            <tr>
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[0]}pt` }}>
               <td className="sf1-legend-title" colSpan={19}>
                 List and Code of Indicators under REMARKS column
               </td>
-              <td className="sf1-meta-gap" colSpan={27} />
+              <td className="sf1-meta-gap" colSpan={26} />
             </tr>
 
-            <tr className="sf1-foot-head">
+            <tr className="sf1-foot-head" style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[1]}pt` }}>
               <th>Indicator</th>
               <th colSpan={2}>Code</th>
               <th colSpan={5}>Required Information</th>
@@ -316,81 +317,111 @@ export default function SF1PrintView({
               <th className="sf1-sign-label" colSpan={6}>Certified Correct:</th>
             </tr>
 
-            <tr>
-              <td className="sf1-legend-cell" rowSpan={4}>
+            {/*
+              ---------- Tally/signature block: LIS rows 36-42 (0-based 35-41) ----------
+              A genuinely 7-row-tall block, not the 4 rows this used to render
+              as. Each of the three column groups subdivides those 7 rows
+              differently -- verified against the real workbook's merges, not
+              assumed: the legend and the col28-29/col37-38 divider gaps span
+              all 7 rows; MALE/FEMALE/TOTAL split 3+2+2; "Prepared by"'s name
+              cell spans 3 rows with a 1-row caption below it; "Certified
+              Correct"'s name is only 1 row with a 2-row caption below it (the
+              two signature stacks are offset by one row from each other,
+              which is why each needs its own blank filler row).
+            */}
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[2]}pt` }}>
+              <td className="sf1-legend-cell" rowSpan={7}>
                 {REMARKS_INDICATORS.map((x) => (
                   <div key={x.code}>{x.indicator}</div>
                 ))}
               </td>
-              <td className="sf1-legend-cell sf1-c-center" colSpan={2} rowSpan={4}>
+              <td className="sf1-legend-cell sf1-c-center" colSpan={2} rowSpan={7}>
                 {REMARKS_INDICATORS.map((x) => (
                   <div key={x.code}>{x.code}</div>
                 ))}
               </td>
-              <td className="sf1-legend-cell" colSpan={5} rowSpan={4}>
+              <td className="sf1-legend-cell" colSpan={5} rowSpan={7}>
                 {REMARKS_INDICATORS.map((x) => (
                   <div key={x.code}>{x.info}</div>
                 ))}
               </td>
-              <td className="sf1-legend-cell" colSpan={4} rowSpan={4}>
+              <td className="sf1-legend-cell" colSpan={4} rowSpan={7}>
                 {REMARKS_INDICATORS_RIGHT.map((x) => (
                   <div key={x.code}>{x.indicator}</div>
                 ))}
               </td>
-              <td className="sf1-legend-cell sf1-c-center" rowSpan={4}>
+              <td className="sf1-legend-cell sf1-c-center" rowSpan={7}>
                 {REMARKS_INDICATORS_RIGHT.map((x) => (
                   <div key={x.code}>{x.code}</div>
                 ))}
               </td>
-              <td className="sf1-legend-cell" colSpan={6} rowSpan={4}>
+              <td className="sf1-legend-cell" colSpan={6} rowSpan={7}>
                 {REMARKS_INDICATORS_RIGHT.map((x) => (
                   <div key={x.code}>{x.info}</div>
                 ))}
               </td>
-              <td className="sf1-meta-gap" colSpan={2} rowSpan={4} />
+              <td className="sf1-meta-gap" colSpan={2} rowSpan={7} />
 
-              <td className="sf1-reg-label" colSpan={2}>MALE</td>
-              <td className="sf1-reg-value" colSpan={3}>{males.length}</td>
-              <td className="sf1-reg-value" colSpan={2} />
-              <td className="sf1-meta-gap" colSpan={2} rowSpan={4} />
-              <td className="sf1-sign-name" colSpan={7}>{preparedBy}</td>
-              <td className="sf1-meta-gap" colSpan={2} rowSpan={4} />
+              <td className="sf1-reg-label" colSpan={2} rowSpan={3}>MALE</td>
+              <td className="sf1-reg-value" colSpan={3} rowSpan={3}>{males.length}</td>
+              <td className="sf1-reg-value" colSpan={2} rowSpan={3} />
+              <td className="sf1-meta-gap" colSpan={2} rowSpan={7} />
+              <td className="sf1-sign-name" colSpan={7} rowSpan={3}>{preparedBy}</td>
+              <td className="sf1-meta-gap" colSpan={2} rowSpan={7} />
               <td className="sf1-sign-name" colSpan={6}>{certifiedBy}</td>
             </tr>
 
-            <tr>
-              <td className="sf1-reg-label" colSpan={2}>FEMALE</td>
-              <td className="sf1-reg-value" colSpan={3}>{females.length}</td>
-              <td className="sf1-reg-value" colSpan={2} />
-              <td className="sf1-sign-caption" colSpan={7}>
-                (Signature of Adviser over Printed Name)
-              </td>
-              <td className="sf1-sign-caption" colSpan={6}>
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[3]}pt` }}>
+              <td className="sf1-meta-gap" colSpan={6} />
+            </tr>
+
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[4]}pt` }}>
+              <td className="sf1-sign-caption" colSpan={6} rowSpan={2}>
                 (Signature of School Head over Printed Name)
               </td>
             </tr>
 
-            <tr>
-              <td className="sf1-reg-label" colSpan={2}>TOTAL</td>
-              <td className="sf1-reg-value" colSpan={3}>{total}</td>
-              <td className="sf1-reg-value" colSpan={2} />
-              <td className="sf1-sign-dates" colSpan={4}>BoSY Date: {bosyDate}</td>
-              <td className="sf1-sign-dates" colSpan={3}>EoSY Date: {eosyDate}</td>
-              <td className="sf1-sign-dates" colSpan={3}>BoSY Date: {bosyDate}</td>
-              <td className="sf1-sign-dates" colSpan={3}>EoSY Date: {eosyDate}</td>
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[5]}pt` }}>
+              <td className="sf1-reg-label" colSpan={2} rowSpan={2}>FEMALE</td>
+              <td className="sf1-reg-value" colSpan={3} rowSpan={2}>{females.length}</td>
+              <td className="sf1-reg-value" colSpan={2} rowSpan={2} />
+              <td className="sf1-sign-caption" colSpan={7}>
+                (Signature of Adviser over Printed Name)
+              </td>
             </tr>
 
-            <tr>
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[6]}pt` }}>
               <td className="sf1-meta-gap" colSpan={7} />
-              <td className="sf1-meta-gap" colSpan={7} />
-              <td className="sf1-generated sf1-generated-bold" colSpan={7}>Generated thru LIS</td>
+              <td className="sf1-sign-dates" colSpan={3} rowSpan={2}>BoSY Date: {bosyDate}</td>
+              <td className="sf1-sign-dates" colSpan={3} rowSpan={2}>EoSY Date: {eosyDate}</td>
             </tr>
 
-            <tr>
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[7]}pt` }}>
+              <td className="sf1-reg-label" colSpan={2} rowSpan={2}>TOTAL</td>
+              <td className="sf1-reg-value" colSpan={3} rowSpan={2}>{total}</td>
+              <td className="sf1-reg-value" colSpan={2} rowSpan={2} />
+              <td className="sf1-sign-dates" colSpan={4} rowSpan={2}>BoSY Date: {bosyDate}</td>
+              <td className="sf1-sign-dates" colSpan={3} rowSpan={2}>EoSY Date: {eosyDate}</td>
+            </tr>
+
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[8]}pt` }}>
+              <td className="sf1-meta-gap" colSpan={6} />
+            </tr>
+
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[9]}pt` }}>
+              <td className="sf1-meta-gap" colSpan={45} />
+            </tr>
+
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[10]}pt` }}>
+              <td className="sf1-meta-gap" colSpan={39} />
+              <td className="sf1-generated sf1-generated-bold" colSpan={6}>Generated thru LIS</td>
+            </tr>
+
+            <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[11]}pt` }}>
               <td className="sf1-generated sf1-c-left" colSpan={37}>
                 {generatedOn ? `Generated on: ${generatedOn}` : ""}
               </td>
-              <td className="sf1-meta-gap" colSpan={9} />
+              <td className="sf1-meta-gap" colSpan={8} />
             </tr>
           </tbody>
         </table>
@@ -610,8 +641,13 @@ html.dark .sf1-tally td {
 
   .sf1-print-view {
     display: block !important;
+    position: absolute;
+    left: 0;
+    top: 0;
     width: 100%;
-    margin: 0 auto;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
     background: #fff !important;
     color: #000 !important;
     overflow: visible !important;

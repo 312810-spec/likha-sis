@@ -514,8 +514,10 @@ function SF1({ user }) {
   return (
     <div className="space-y-6 max-w-none w-full">
       {/* Print CSS — every piece of LIKHA-SIS screen chrome is hidden so only
-          the SF1 replica reaches the printer. The sheet's own colours live in
-          components/SF1PrintView.jsx. */}
+          the SF1 replica reaches the printer. The sheet's own geometry and
+          colours (including .sf1-print-view's own positioning) live entirely
+          in components/SF1PrintView.jsx -- this file only hides chrome the
+          print view has no knowledge of (nav/sidebar/buttons/inputs). */}
       <style>{`
         @media print {
           .no-print,
@@ -528,16 +530,6 @@ function SF1({ user }) {
 
           body * { visibility: hidden !important; }
           .sf1-print-view, .sf1-print-view * { visibility: visible !important; }
-
-          .sf1-print-view {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
 
           /* The Fit to Screen preview zoom is a screen-only convenience --
              print always renders the register at true, official size. */

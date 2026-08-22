@@ -165,5 +165,14 @@ export const SF1_GRID_PERCENTS = [
   4.5192, 0.0961,
 ];
 
-/** Row heights (px) of the title band, LIS rows 1-6 (0-based rows 0-5). */
+/** Row heights (pt, not px -- xlrd reports these in twips/20) of the title
+ * band, LIS rows 1-6 (0-based rows 0-5). */
 export const SF1_TITLE_ROW_HEIGHTS = [30, 20, 20, 20, 25, 40];
+
+/** Row heights (pt) of the footer band, 0-based sheet rows 33-44: legend
+ * title, foot header, the 7-row tally/signature block (rows 35-41, where the
+ * "Prepared by" name cell spans 3 rows but "Certified Correct" spans only 1,
+ * offset by the 1pt sliver row at index 3), a blank spacer row, the
+ * "Generated thru LIS" row, and the "Generated on" row. Measured via xlrd
+ * against the real workbook. */
+export const SF1_FOOTER_ROW_HEIGHTS = [15, 15, 14, 1, 10, 10, 10, 10, 15, 10, 10, 20];
