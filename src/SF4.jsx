@@ -373,6 +373,12 @@ function SF4({ user, goBack }) {
   // included in the printable Mortality (Death) block below the table.
   const mortalityTotal =
     (Number(mortalityInputs.previousMonths) || 0) + (Number(mortalityInputs.forTheMonth) || 0);
+  const generatedOn = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   if (isAdviserRole && !scopeLoading && !adviser) {
     return (
@@ -416,7 +422,7 @@ function SF4({ user, goBack }) {
         .sf4-table th, .sf4-table td {
           border: 1px solid #000;
           padding: 2px 3px;
-          font-size: 6.8pt;
+          font-size: 6pt;
           text-align: center;
           line-height: 1.25;
           overflow-wrap: break-word;
@@ -747,15 +753,13 @@ function SF4({ user, goBack }) {
             <table className="sf4-table mt-1" style={{ maxWidth: 700, marginLeft: "auto", marginRight: "auto" }}>
               <thead>
                 <tr>
-                  <th className="p-1" style={{ width: "34%" }}>Detail</th>
-                  <th className="p-1" style={{ width: "22%" }}>Previous Month/s</th>
-                  <th className="p-1" style={{ width: "22%" }}>For the Month</th>
-                  <th className="p-1" style={{ width: "22%" }}>Cumulative as of End of Month</th>
+                  <th className="p-1" style={{ width: "33%" }}>Previous Month/s</th>
+                  <th className="p-1" style={{ width: "33%" }}>For the Month</th>
+                  <th className="p-1" style={{ width: "34%" }}>Cummulative as of End of Month</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="sf4-cell-left p-1 font-semibold">School-wide Total</td>
                   <td className="p-1 font-mono">{cell(mortalityInputs.previousMonths)}</td>
                   <td className="p-1 font-mono">{cell(mortalityInputs.forTheMonth)}</td>
                   <td className="p-1 font-mono font-bold">{cell(mortalityTotal)}</td>
@@ -763,20 +767,21 @@ function SF4({ user, goBack }) {
               </tbody>
             </table>
 
-            {/* Certification Footer */}
-            <div className="mt-6 flex flex-wrap items-center justify-between text-xs max-w-2xl mx-auto pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div className="text-center w-5/12">
-                <div className="border-b border-black dark:border-gray-400 min-h-[20px]" />
-                <div className="mt-1 text-[11px] text-gray-700 dark:text-gray-300 font-medium">Prepared by: Class Advisers</div>
+            {/* Certification Footer -- the real form has one signature line
+                ("Prepared and Submitted by:"), not separate adviser/principal
+                lines. */}
+            <div className="mt-6 text-xs max-w-md mx-auto pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
+              <p className="text-[11px] text-gray-700 dark:text-gray-300 font-medium mb-1">Prepared and Submitted by:</p>
+              <div className="border-b border-black dark:border-gray-400 min-h-[20px] font-bold text-gray-900 dark:text-gray-100">
+                {config?.principalName || ""}
               </div>
-              <div className="text-center w-5/12">
-                <div className="border-b border-black dark:border-gray-400 min-h-[20px] font-bold text-gray-900 dark:text-gray-100">
-                  {config?.principalName || ""}
-                </div>
-                <div className="mt-1 text-[11px] text-gray-700 dark:text-gray-300 font-medium">
-                  {config?.principalPosition || "School Principal"} / Certified Correct
-                </div>
+              <div className="mt-1 text-[11px] text-gray-700 dark:text-gray-300 font-medium">
+                (Signature of School Head over Printed Name)
               </div>
+            </div>
+            <div className="mt-3 flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+              <span>{generatedOn ? `Generated on: ${generatedOn}` : ""}</span>
+              <span className="font-semibold">Generated thru LIS</span>
             </div>
           </div>
         </div>

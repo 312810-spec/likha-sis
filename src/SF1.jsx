@@ -494,7 +494,12 @@ function SF1({ user }) {
     learners: printableLearners,
     bosyDate: calendar?.[schoolYear]?.terms?.[0]?.startDate || "",
     eosyDate: calendar?.[schoolYear]?.terms?.slice(-1)[0]?.endDate || "",
-    generatedOn: new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
+    generatedOn: new Date().toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }),
     school: {
       schoolId: config.schoolId || "",
       schoolName: config.schoolName || "",
