@@ -240,18 +240,25 @@ FRONT/BACK sheets is needed before this can honestly be called complete.
 
 | Dimension | Status | Notes |
 |---|---|---|
-| Table orientation | **KNOWN GAP — major** | The real form puts sex (M/F/T) as **row-groups** under each grade level, with No./% **column pairs** per BMI/HFA category. The current implementation is oriented the other way (grade-level rows, M/F/T as column triples) and **has no percentage columns at all**. This is a data-model and rendering rewrite, not a fidelity tweak — not attempted this round |
+| Aggregation granularity | PASS | Was per-**section** (e.g. separate "Grade 7 - Love", "Grade 7 - Faith" rows); the real workbook rolls up to **grade level only**, school-wide. `consolidateBySection` renamed to `consolidateByGradeLevel` and its grouping key changed accordingly — confirmed with FranzShin before implementing, since this loses the per-section drill-down the old screen had |
+| Table orientation | PASS | Was grade-rows with M/F/T as column-triples; real form is 3 rows per grade (M/F/T, with T = M+F, `rowSpan`'d Grade Level cell), No./% column pairs per category |
+| Percentage columns | PASS | Were entirely absent. Added via a new `withPercentages()` pure function, formula verified against the real workbook's own cell formulas (not guessed): Pupils Weighed % = weighed ÷ enrolment; every BMI/HFA category % = category count ÷ **weighed** (not enrolment) — confirmed via `cell.f` on several real data rows. Tested for both the correct-denominator behavior and the null-on-zero-denominator case |
 | BMI/HFA category labels | PASS | Already matched exactly |
 | Page orientation | PASS | Landscape — already correct, confirmed via raw `<pageSetup>` XML |
 | Page margins | PASS | 0.24in sides / 0.75in top-bottom (was a flat 8mm) |
-| Cell borders | PASS | Was uniform `1px solid`. Real table has a **medium** left/right outer frame — fixed via `.nc-table` frame (the table-orientation gap above means this fix applies to the current, not-yet-correctly-oriented, table) |
+| Cell borders | PASS | Was uniform `1px solid`. Real table has a **medium** left/right outer frame — fixed via `.nc-table` frame |
 | Print safety | PASS | Explicit black/white force |
 | Canonical renderer | PASS | No duplication |
 
-**Overall: NOT PASS.** The table orientation gap is real and significant.
-Left untouched deliberately rather than risk a rushed rewrite of the
-underlying aggregation logic (`NutritionConsolidator.jsx`'s `result.sections`
-model would need to change, which is business logic, not markup).
+**Overall: now complete.** The table-orientation and missing-percentage
+gaps were real and required both a data-model change (`nutritionConsolidation.js`)
+and a full table-rendering rewrite (`NutritionConsolidator.jsx`) — not
+attempted in the first pass because the exact percentage formula and the
+section-vs-grade-level aggregation question were both still unclear at the
+time; both were resolved (the formula by reading the source workbook's own
+cell formulas, the aggregation question by asking FranzShin directly)
+before implementing, per the project's own rule against guessing at
+business logic.
 
 ---
 

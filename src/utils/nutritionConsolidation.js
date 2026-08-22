@@ -31,10 +31,9 @@ function zeroCategoryBlock(categoryMap) {
   return block;
 }
 
-function emptyRow(gradeLevel, section) {
+function emptyRow(gradeLevel) {
   return {
     gradeLevel,
-    section,
     enrolment: zeroCount(),
     weighed: zeroCount(),
     bmi: zeroCategoryBlock(BMI_CATEGORIES),
@@ -50,35 +49,34 @@ function increment(countObj, sexKey) {
 }
 
 /**
- * Aggregates learners + nutritionRecords into per-section DepEd Nutritional
- * Status Report rows for one schoolYear + period.
+ * Aggregates learners + nutritionRecords into per-GRADE-LEVEL DepEd
+ * Nutritional Status Report rows for one schoolYear + period -- school-wide
+ * by grade, not broken out per section, matching the real workbook's own
+ * rollup granularity (verified against public/TingubNHS-BASELINE-NS-CONSO-
+ * 2026-2027.xlsx: its "GRADE LEVEL" column has no per-section breakdown).
  *
  * @param {Array<object>} learners - full learners collection
  * @param {Array<object>} nutritionRecords - full nutritionRecords collection
  * @param {{schoolYear: string, period: "Baseline"|"Endline", gradeLevelsOffered: string[]}} options
- * @returns {{sections: object[], grandTotal: object}}
+ * @returns {{gradeLevels: object[], grandTotal: object}}
  */
-export function consolidateBySection(learners, nutritionRecords, { schoolYear, period, gradeLevelsOffered = [] }) {
-  const rowsByKey = new Map();
+export function consolidateByGradeLevel(learners, nutritionRecords, { schoolYear, period, gradeLevelsOffered = [] }) {
+  const rowsByGrade = new Map();
 
-  function rowFor(gradeLevel, section) {
-    const key = `${gradeLevel}|${section}`;
-    if (!rowsByKey.has(key)) {
-      rowsByKey.set(key, emptyRow(gradeLevel, section));
+  function rowFor(gradeLevel) {
+    if (!rowsByGrade.has(gradeLevel)) {
+      rowsByGrade.set(gradeLevel, emptyRow(gradeLevel));
     }
-    return rowsByKey.get(key);
+    return rowsByGrade.get(gradeLevel);
   }
 
   for (const learner of learners) {
     if ((learner.schoolYear || "") !== schoolYear) continue;
     // Trim before grouping: learner docs are not guaranteed to be trimmed,
     // while nutritionRecords always are (NutritionStatus.jsx trims on save).
-    // Without this, "Love " and "Love" would split one section into two rows —
-    // one with enrolment but no weighed, one with weighed but no enrolment.
     const gradeLevel = (learner.gradeLevel || "").trim();
-    const section = (learner.section || "").trim();
-    if (!gradeLevel || !section) continue;
-    const row = rowFor(gradeLevel, section);
+    if (!gradeLevel) continue;
+    const row = rowFor(gradeLevel);
     increment(row.enrolment, normalizeSex(learner.sex));
   }
 
@@ -88,9 +86,8 @@ export function consolidateBySection(learners, nutritionRecords, { schoolYear, p
     // Defensive trim for parity with the learner loop above, even though
     // records are already trimmed at write time.
     const gradeLevel = (record.gradeLevel || "").trim();
-    const section = (record.section || "").trim();
-    if (!gradeLevel || !section) continue;
-    const row = rowFor(gradeLevel, section);
+    if (!gradeLevel) continue;
+    const row = rowFor(gradeLevel);
     const sexKey = normalizeSex(record.sex);
 
     increment(row.weighed, sexKey);
@@ -102,19 +99,16 @@ export function consolidateBySection(learners, nutritionRecords, { schoolYear, p
     if (hfaKey) increment(row.hfa[hfaKey], sexKey);
   }
 
-  const sections = Array.from(rowsByKey.values()).sort((a, b) => {
-    const gradeDiff = gradeLevelsOffered.indexOf(a.gradeLevel) - gradeLevelsOffered.indexOf(b.gradeLevel);
-    if (gradeDiff !== 0) {
-      // Unknown grades (not in gradeLevelsOffered, indexOf = -1) sort last.
-      if (gradeLevelsOffered.indexOf(a.gradeLevel) === -1) return 1;
-      if (gradeLevelsOffered.indexOf(b.gradeLevel) === -1) return -1;
-      return gradeDiff;
-    }
-    return a.section.localeCompare(b.section);
+  const gradeLevels = Array.from(rowsByGrade.values()).sort((a, b) => {
+    const diff = gradeLevelsOffered.indexOf(a.gradeLevel) - gradeLevelsOffered.indexOf(b.gradeLevel);
+    // Unknown grades (not in gradeLevelsOffered, indexOf = -1) sort last.
+    if (gradeLevelsOffered.indexOf(a.gradeLevel) === -1) return 1;
+    if (gradeLevelsOffered.indexOf(b.gradeLevel) === -1) return -1;
+    return diff;
   });
 
-  const grandTotal = emptyRow("", "GRAND TOTAL");
-  for (const row of sections) {
+  const grandTotal = emptyRow("GRAND TOTAL");
+  for (const row of gradeLevels) {
     for (const key of ["M", "F", "T"]) {
       grandTotal.enrolment[key] += row.enrolment[key];
       grandTotal.weighed[key] += row.weighed[key];
@@ -131,5 +125,44 @@ export function consolidateBySection(learners, nutritionRecords, { schoolYear, p
     }
   }
 
-  return { sections, grandTotal };
+  return { gradeLevels, grandTotal };
+}
+
+/**
+ * Derives the official form's percentage columns from a row's already-
+ * correct counts -- pure math, no new counting logic. Per the real
+ * workbook's own formulas (verified against public/TingubNHS-BASELINE-NS-
+ * CONSO-2026-2027.xlsx): Pupils Weighed % = weighed / enrolment (coverage),
+ * and every BMI/HFA category % = category count / weighed (not enrolment).
+ * Returns null for a percentage whose denominator is 0, matching the
+ * null-on-divide-by-zero convention used elsewhere (see sf2Summary.js's
+ * pctEnrolment/pctAttendance) -- never NaN or a fabricated 0%.
+ */
+export function withPercentages(row) {
+  function pct(count, denom) {
+    return denom > 0 ? (count / denom) * 100 : null;
+  }
+  function pctBlock(categoryBlock, denomBlock) {
+    const out = {};
+    for (const [cat, counts] of Object.entries(categoryBlock)) {
+      out[cat] = {
+        M: pct(counts.M, denomBlock.M),
+        F: pct(counts.F, denomBlock.F),
+        T: pct(counts.T, denomBlock.T),
+      };
+    }
+    return out;
+  }
+  return {
+    ...row,
+    pct: {
+      weighed: {
+        M: pct(row.weighed.M, row.enrolment.M),
+        F: pct(row.weighed.F, row.enrolment.F),
+        T: pct(row.weighed.T, row.enrolment.T),
+      },
+      bmi: pctBlock(row.bmi, row.weighed),
+      hfa: pctBlock(row.hfa, row.weighed),
+    },
+  };
 }

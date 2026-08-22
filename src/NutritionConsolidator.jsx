@@ -7,7 +7,7 @@ import { Fragment, useState, useEffect } from "react";
 import { collection, getDocs, query, where, limit } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
-import { consolidateBySection } from "./utils/nutritionConsolidation.js";
+import { consolidateByGradeLevel, withPercentages } from "./utils/nutritionConsolidation.js";
 import {
   ArrowLeft,
   ClipboardList,
@@ -64,7 +64,7 @@ export default function NutritionConsolidator({ goBack }) {
   // generated with, so the printed header can never drift from the numbers
   // when the user changes a dropdown after generating.
   const [result, setResult] = useState({
-    sections: [],
+    gradeLevels: [],
     grandTotal: null,
     schoolYear: "",
     period: "",
@@ -85,7 +85,7 @@ export default function NutritionConsolidator({ goBack }) {
       const generatedSchoolYear = schoolYear.trim();
       const generatedPeriod = period;
 
-      const consolidated = consolidateBySection(learners, nutritionRecords, {
+      const consolidated = consolidateByGradeLevel(learners, nutritionRecords, {
         schoolYear: generatedSchoolYear,
         period: generatedPeriod,
         gradeLevelsOffered,
@@ -108,29 +108,58 @@ export default function NutritionConsolidator({ goBack }) {
     window.print();
   }
 
-  function renderCountCell(count) {
+  // The real workbook formats a percentage to one decimal place (e.g. 8.3%),
+  // "—" when the denominator was 0 (see withPercentages' null convention).
+  function formatPct(value) {
+    return value == null ? "—" : `${value.toFixed(1)}%`;
+  }
+
+  // One sex's No./% pair for one category -- the leaf unit both Enrolment
+  // (No. only, no % column in the source) and every other category (No.+%)
+  // are built from.
+  function renderNoCell(count) {
+    return <td>{count}</td>;
+  }
+  function renderNoPctCells(count, pctValue) {
     return (
       <>
-        <td>{count.M}</td>
-        <td>{count.F}</td>
-        <td>{count.T}</td>
+        <td>{count}</td>
+        <td>{formatPct(pctValue)}</td>
       </>
     );
   }
 
-  function renderRow(row, isGrandTotal) {
+  // Renders the 3 sex rows (M/F/T) for one grade-level group, with the
+  // Grade Level cell rowSpan'd across all 3 -- matches the real workbook's
+  // row structure (verified: each grade is 3 physical rows, T = M+F).
+  function renderGradeGroup(row, isGrandTotal) {
+    const withPct = withPercentages(row);
+    const sexRows = ["M", "F", "T"];
     return (
-      <tr key={`${row.gradeLevel}|${row.section}`} className={isGrandTotal ? "nc-grand-total" : ""}>
-        <td className="nc-cell-left">{isGrandTotal ? "GRAND TOTAL" : `${row.gradeLevel} - ${row.section}`}</td>
-        {renderCountCell(row.enrolment)}
-        {renderCountCell(row.weighed)}
-        {BMI_COLUMNS.map((col) => (
-          <Fragment key={col.key}>{renderCountCell(row.bmi[col.key])}</Fragment>
+      <Fragment key={row.gradeLevel}>
+        {sexRows.map((sex, i) => (
+          <tr key={sex} className={isGrandTotal ? "nc-grand-total" : ""}>
+            {i === 0 && (
+              <td className="nc-cell-left" rowSpan={3}>
+                {isGrandTotal ? "GRAND TOTAL" : row.gradeLevel}
+              </td>
+            )}
+            <td>{sex}</td>
+            {renderNoCell(row.enrolment[sex])}
+            {renderNoPctCells(row.weighed[sex], withPct.pct.weighed[sex])}
+            {BMI_COLUMNS.map((col) => (
+              <Fragment key={col.key}>
+                {renderNoPctCells(row.bmi[col.key][sex], withPct.pct.bmi[col.key][sex])}
+              </Fragment>
+            ))}
+            {HFA_COLUMNS.map((col) => (
+              <Fragment key={`hfa-${col.key}`}>
+                {renderNoPctCells(row.hfa[col.key][sex], withPct.pct.hfa[col.key][sex])}
+              </Fragment>
+            ))}
+          </tr>
         ))}
-        {HFA_COLUMNS.map((col) => (
-          <Fragment key={`hfa-${col.key}`}>{renderCountCell(row.hfa[col.key])}</Fragment>
-        ))}
-      </tr>
+      </Fragment>
     );
   }
 
@@ -268,46 +297,44 @@ export default function NutritionConsolidator({ goBack }) {
             <table className="nc-table" style={{ marginTop: "10px" }}>
               <thead>
                 <tr>
-                  <th rowSpan={2} style={{ width: "12%" }}>Grade &amp; Section</th>
-                  <th colSpan={3}>Enrolment</th>
-                  <th colSpan={3}>Pupils Weighed</th>
+                  <th rowSpan={2} style={{ width: "10%" }}>Grade Level</th>
+                  <th rowSpan={2} style={{ width: "4%" }} />
+                  <th rowSpan={2}>Enrolment</th>
+                  <th colSpan={2}>Pupils Weighed</th>
                   {BMI_COLUMNS.map((col) => (
-                    <th key={col.key} colSpan={3}>{col.label}</th>
+                    <th key={col.key} colSpan={2}>{col.label}</th>
                   ))}
                   {HFA_COLUMNS.map((col) => (
-                    <th key={`hfa-${col.key}`} colSpan={3}>{col.label}</th>
+                    <th key={`hfa-${col.key}`} colSpan={2}>{col.label}</th>
                   ))}
                 </tr>
                 <tr>
-                  <th>M</th><th>F</th><th>T</th>
-                  <th>M</th><th>F</th><th>T</th>
+                  <th>No.</th><th>%</th>
                   {BMI_COLUMNS.map((col) => (
                     <Fragment key={col.key}>
-                      <th>M</th>
-                      <th>F</th>
-                      <th>T</th>
+                      <th>No.</th>
+                      <th>%</th>
                     </Fragment>
                   ))}
                   {HFA_COLUMNS.map((col) => (
                     <Fragment key={`hfa-${col.key}`}>
-                      <th>M</th>
-                      <th>F</th>
-                      <th>T</th>
+                      <th>No.</th>
+                      <th>%</th>
                     </Fragment>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {result.sections.length === 0 ? (
+                {result.gradeLevels.length === 0 ? (
                   <tr>
-                    <td colSpan={7 + BMI_COLUMNS.length * 3 + HFA_COLUMNS.length * 3} style={{ padding: "12px" }}>
+                    <td colSpan={5 + BMI_COLUMNS.length * 2 + HFA_COLUMNS.length * 2} style={{ padding: "12px" }}>
                       No learners found for {result.schoolYear}.
                     </td>
                   </tr>
                 ) : (
-                  result.sections.map((row) => renderRow(row, false))
+                  result.gradeLevels.map((row) => renderGradeGroup(row, false))
                 )}
-                {result.grandTotal && renderRow(result.grandTotal, true)}
+                {result.grandTotal && renderGradeGroup(result.grandTotal, true)}
               </tbody>
             </table>
 
