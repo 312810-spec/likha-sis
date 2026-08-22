@@ -147,7 +147,8 @@ export const REMARKS_INDICATORS_RIGHT = [
  * the printable width. The register table merges these into 19 logical columns
  * (SF1_COLUMN_PERCENTS); the title block and the footer instead lay themselves
  * out on this raw 47-column grid, because their merges (School ID at c0-4, the
- * REGISTERED tally at c21-27, the signature block at c30-46 …) do not line up
+ * REGISTERED tally at c21-27, the asymmetric signature block at c30-36 and
+ * c39-44 …) do not line up
  * with the register's column boundaries. Column 46 (source col AU) is a sliver
  * -- 2px wide in the source workbook -- that only the School Year/Grade/Section
  * metadata row's Section-value cell actually merges into (c38-46); every other

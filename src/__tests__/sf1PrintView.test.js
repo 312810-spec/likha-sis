@@ -332,6 +332,23 @@ describe("SF1 print view - title and footer bands match the LIS grid", () => {
     expect(screen.getByText("Generated thru LIS")).toBeTruthy();
   });
 
+  it("keeps the signature block's real asymmetry -- Prepared by is 7 columns, Certified Correct is 6", () => {
+    // Verified against the source workbook's own merges: "Prepared by"
+    // (adviser) spans c30-36, "Certified Correct" (school head) spans only
+    // c39-44. They are NOT mirror-image widths, despite how symmetric the
+    // printed form looks -- don't "fix" this back to 7/7.
+    renderSheet({ preparedBy: "ADVISER NAME", certifiedBy: "SCHOOL HEAD NAME" });
+    const preparedByLabel = screen.getByText("Prepared by;");
+    const certifiedByLabel = screen.getByText("Certified Correct:");
+    expect(preparedByLabel.getAttribute("colspan")).toBe("7");
+    expect(certifiedByLabel.getAttribute("colspan")).toBe("6");
+
+    const preparedByName = screen.getByText("ADVISER NAME");
+    const certifiedByName = screen.getByText("SCHOOL HEAD NAME");
+    expect(preparedByName.getAttribute("colspan")).toBe("7");
+    expect(certifiedByName.getAttribute("colspan")).toBe("6");
+  });
+
   it("prints the LIS generated-on line when a date is supplied", () => {
     renderSheet({ generatedOn: "Saturday, August 15, 2026" });
     expect(

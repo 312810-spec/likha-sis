@@ -271,13 +271,16 @@ export default function SF1PrintView({
 
         {/*
           ---------- Footer band: LIS rows 30-41 ----------
-          One table on the same 46-column grid as the title band. The export
+          One table on the same 47-column grid as the title band. The export
           lays the legend (c0-18), the REGISTERED tally (c21-27) and the two
-          signature columns (c30-36 and c39-45) side by side across a single
-          band of rows, not stacked, and it closes with the two provenance
-          lines. The legend's indicator/code/information cells are single
-          merged cells holding four lines each, so no horizontal rules run
-          between the four indicators.
+          signature columns side by side across a single band of rows, not
+          stacked, and it closes with the two provenance lines. The two
+          signature columns are NOT symmetric in the source: "Prepared by"
+          (adviser) spans c30-36 (7 cols) but "Certified Correct" (school
+          head) spans only c39-44 (6 cols) -- verified against the real
+          workbook's merges, not assumed. The legend's indicator/code/
+          information cells are single merged cells holding four lines each,
+          so no horizontal rules run between the four indicators.
         */}
         <table className="sf1-foot">
           <GridCols />
@@ -303,7 +306,7 @@ export default function SF1PrintView({
               <td className="sf1-meta-gap" colSpan={2} />
               <th className="sf1-sign-label" colSpan={7}>Prepared by;</th>
               <td className="sf1-meta-gap" colSpan={2} />
-              <th className="sf1-sign-label" colSpan={7}>Certified Correct:</th>
+              <th className="sf1-sign-label" colSpan={6}>Certified Correct:</th>
             </tr>
 
             <tr>
@@ -345,7 +348,7 @@ export default function SF1PrintView({
               <td className="sf1-meta-gap" colSpan={2} rowSpan={4} />
               <td className="sf1-sign-name" colSpan={7}>{preparedBy}</td>
               <td className="sf1-meta-gap" colSpan={2} rowSpan={4} />
-              <td className="sf1-sign-name" colSpan={7}>{certifiedBy}</td>
+              <td className="sf1-sign-name" colSpan={6}>{certifiedBy}</td>
             </tr>
 
             <tr>
@@ -355,7 +358,7 @@ export default function SF1PrintView({
               <td className="sf1-sign-caption" colSpan={7}>
                 (Signature of Adviser over Printed Name)
               </td>
-              <td className="sf1-sign-caption" colSpan={7}>
+              <td className="sf1-sign-caption" colSpan={6}>
                 (Signature of School Head over Printed Name)
               </td>
             </tr>
@@ -367,7 +370,7 @@ export default function SF1PrintView({
               <td className="sf1-sign-dates" colSpan={4}>BoSY Date: {bosyDate}</td>
               <td className="sf1-sign-dates" colSpan={3}>EoSY Date: {eosyDate}</td>
               <td className="sf1-sign-dates" colSpan={3}>BoSY Date: {bosyDate}</td>
-              <td className="sf1-sign-dates" colSpan={4}>EoSY Date: {eosyDate}</td>
+              <td className="sf1-sign-dates" colSpan={3}>EoSY Date: {eosyDate}</td>
             </tr>
 
             <tr>
