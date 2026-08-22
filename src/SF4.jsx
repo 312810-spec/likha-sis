@@ -417,7 +417,10 @@ function SF4({ user, goBack }) {
             border-color: #000 !important;
           }
         }
-        @page { size: A4 landscape; margin: 8mm; }
+        /* Measured via openpyxl against the real workbook's page setup:
+           A4 landscape, asymmetric margins (top 0.29in, other sides 0.19in). */
+        @page { size: A4 landscape; margin: 0.29in 0.19in 0.19in 0.19in; }
+        .sf4-print-area { font-family: Arial, Helvetica, sans-serif; }
         .sf4-table { border-collapse: collapse; width: 100%; }
         .sf4-table th, .sf4-table td {
           border: 1px solid #000;
@@ -427,7 +430,7 @@ function SF4({ user, goBack }) {
           line-height: 1.25;
           overflow-wrap: break-word;
         }
-        .sf4-table th { background: #e8e8e8; font-weight: bold; }
+        .sf4-table th { background: #e8e8e8; }
         .sf4-cell-left { text-align: left !important; }
       `}</style>
 
@@ -601,39 +604,59 @@ function SF4({ user, goBack }) {
       {/* Report table */}
       {!loading && hasSelection && rows.length > 0 && (
         <div className="sf4-print-area bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-          {/* Printable header */}
+          {/* Printable header -- font-family and every size/weight below
+              (18pt bold title, 7pt not-bold subtitle, 9pt not-bold meta)
+              are measured via openpyxl against the real workbook (xlrd's
+              bold bit proved unreliable for this project before, see git
+              history -- cross-checked here rather than trusted blindly). */}
           <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700">
-            <p className="text-sm font-bold text-center uppercase tracking-wide text-gray-900 dark:text-gray-100">
-              School Form 4 — Monthly Learner Movement and Attendance Report
+            <p
+              className="text-center text-gray-900 dark:text-gray-100"
+              style={{ fontSize: "18pt", fontWeight: "bold" }}
+            >
+              School Form 4 (SF4) Monthly Learner&apos;s Movement and Attendance
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-center text-gray-600 dark:text-gray-400 mt-1.5">
-              <span>School ID: <strong>{config?.schoolId || "—"}</strong></span>
-              <span>School: <strong>{config?.schoolName || "—"}</strong></span>
-              {config?.district && <span>District: <strong>{config.district}</strong></span>}
-              {config?.divisionOffice && (
-                <span>Division: <strong>{config.divisionOffice}</strong></span>
-              )}
-              {config?.region && <span>Region: <strong>{config.region}</strong></span>}
-              <span>Grade: <strong>{gradeLevel}</strong></span>
-              <span>SY: <strong>{schoolYear}</strong></span>
-              <span>Month: <strong>{monthValue}</strong></span>
+            <p
+              className="text-center text-gray-700 dark:text-gray-300"
+              style={{ fontSize: "7pt", fontWeight: "normal", marginTop: "2px" }}
+            >
+              (This replaces Form 3 &amp; STS Form 4-Absenteeism and Dropout Profile)
+            </p>
+            <div
+              className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center text-gray-600 dark:text-gray-400 mt-1.5"
+              style={{ fontSize: "9pt" }}
+            >
+              <span>School ID: {config?.schoolId || "—"}</span>
+              <span>School: {config?.schoolName || "—"}</span>
+              {config?.district && <span>District: {config.district}</span>}
+              {config?.divisionOffice && <span>Division: {config.divisionOffice}</span>}
+              {config?.region && <span>Region: {config.region}</span>}
+              <span>Grade: {gradeLevel}</span>
+              <span>SY: {schoolYear}</span>
+              <span>Month: {monthValue}</span>
             </div>
           </div>
           <div className="overflow-x-auto">
             <table className="sf4-table w-full text-xs">
+              {/* Header bold pattern is deliberately mixed in the source, not
+                  uniform -- measured via openpyxl (xlrd's bold bit proved
+                  unreliable for this project before, see git history):
+                  the 4 identity/registered-learners headers and every
+                  sub-header (rows 2-3) are NOT bold; only Attendance, NLPA,
+                  Transferred Out and Transferred In are bold. */}
               <thead>
-                <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 font-semibold">
-                  <th rowSpan={3} className="p-1 w-16">Grade/Year Level</th>
-                  <th rowSpan={3} className="p-1 w-20">Section</th>
-                  <th rowSpan={3} className="sf4-cell-left p-1 w-28">Name of Adviser</th>
-                  <th colSpan={2} className="p-1">Registered Learners<br />(As of End of the Month)</th>
-                  <th colSpan={3} className="p-1">Attendance<br />Daily Average</th>
-                  <th colSpan={3} className="p-1">Attendance<br />Percentage for the Month</th>
-                  <th colSpan={9} className="p-1">NLPA (No Longer Participating in Learning Activities)</th>
-                  <th colSpan={9} className="p-1">Transferred Out</th>
-                  <th colSpan={9} className="p-1">Transferred In</th>
+                <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200">
+                  <th rowSpan={3} className="p-1 w-16 font-normal">Grade/Year Level</th>
+                  <th rowSpan={3} className="p-1 w-20 font-normal">Section</th>
+                  <th rowSpan={3} className="sf4-cell-left p-1 w-28 font-normal">Name of Adviser</th>
+                  <th colSpan={2} className="p-1 font-normal">Registered Learners<br />(As of End of the Month)</th>
+                  <th colSpan={3} className="p-1 font-bold">Attendance<br />Daily Average</th>
+                  <th colSpan={3} className="p-1 font-bold">Attendance<br />Percentage for the Month</th>
+                  <th colSpan={9} className="p-1 font-bold">NLPA (No Longer Participating in Learning Activities)</th>
+                  <th colSpan={9} className="p-1 font-bold">Transferred Out</th>
+                  <th colSpan={9} className="p-1 font-bold">Transferred In</th>
                 </tr>
-                <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold">
+                <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-normal">
                   <th colSpan={2} />
                   <th colSpan={3} />
                   <th colSpan={3} />
@@ -647,7 +670,7 @@ function SF4({ user, goBack }) {
                   <th colSpan={3} className="p-1">B<br />(For the Month)</th>
                   <th colSpan={3} className="p-1">A+B<br />(Cum. as of End of Mo.)</th>
                 </tr>
-                <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-semibold">
+                <tr className="bg-primary/5 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 font-normal">
                   <th className="p-1">M</th>
                   <th className="p-1">F</th>
                   <th className="p-1">M</th>
@@ -747,41 +770,51 @@ function SF4({ user, goBack }) {
               who has not communicated with the adviser for 7 or more consecutive
               weeks (replaces the former "Dropped Out" designation).
             </p>
-            <p className="mt-3 text-center text-[11px] font-bold uppercase tracking-wide text-gray-900 dark:text-gray-100">
-              Mortality (Death) — School-wide Total
+            <p
+              className="mt-3 text-center text-gray-900 dark:text-gray-100"
+              style={{ fontSize: "9pt", fontWeight: "bold" }}
+            >
+              Mortality (Death)
             </p>
-            <table className="sf4-table mt-1" style={{ maxWidth: 700, marginLeft: "auto", marginRight: "auto" }}>
+            <table className="mt-1" style={{ maxWidth: 700, marginLeft: "auto", marginRight: "auto", borderCollapse: "collapse", width: "100%" }}>
               <thead>
                 <tr>
-                  <th className="p-1" style={{ width: "33%" }}>Previous Month/s</th>
-                  <th className="p-1" style={{ width: "33%" }}>For the Month</th>
-                  <th className="p-1" style={{ width: "34%" }}>Cummulative as of End of Month</th>
+                  <th className="p-1 border border-gray-300 dark:border-gray-700" style={{ width: "33%", fontSize: "9pt", fontWeight: "bold" }}>Previous Month/s</th>
+                  <th className="p-1 border border-gray-300 dark:border-gray-700" style={{ width: "33%", fontSize: "9pt", fontWeight: "bold" }}>For the Month</th>
+                  <th className="p-1 border border-gray-300 dark:border-gray-700" style={{ width: "34%", fontSize: "9pt", fontWeight: "bold" }}>Cummulative as of End of Month</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td className="p-1 font-mono">{cell(mortalityInputs.previousMonths)}</td>
-                  <td className="p-1 font-mono">{cell(mortalityInputs.forTheMonth)}</td>
-                  <td className="p-1 font-mono font-bold">{cell(mortalityTotal)}</td>
+                  <td className="p-1 font-mono border border-gray-300 dark:border-gray-700" style={{ fontSize: "9pt" }}>{cell(mortalityInputs.previousMonths)}</td>
+                  <td className="p-1 font-mono border border-gray-300 dark:border-gray-700" style={{ fontSize: "9pt" }}>{cell(mortalityInputs.forTheMonth)}</td>
+                  <td className="p-1 font-mono border border-gray-300 dark:border-gray-700" style={{ fontSize: "9pt" }}>{cell(mortalityTotal)}</td>
                 </tr>
               </tbody>
             </table>
 
             {/* Certification Footer -- the real form has one signature line
                 ("Prepared and Submitted by:"), not separate adviser/principal
-                lines. */}
-            <div className="mt-6 text-xs max-w-md mx-auto pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
-              <p className="text-[11px] text-gray-700 dark:text-gray-300 font-medium mb-1">Prepared and Submitted by:</p>
-              <div className="border-b border-black dark:border-gray-400 min-h-[20px] font-bold text-gray-900 dark:text-gray-100">
+                lines. Weights re-verified via openpyxl: the label, caption,
+                and "Generated thru LIS" are bold; only the printed name and
+                "Generated on:" are not. */}
+            <div className="mt-6 max-w-md mx-auto pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
+              <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: "6pt", fontWeight: "bold", marginBottom: "2px" }}>
+                Prepared and Submitted by:
+              </p>
+              <div
+                className="border-b border-black dark:border-gray-400 min-h-[20px] text-gray-900 dark:text-gray-100"
+                style={{ fontSize: "6pt", fontWeight: "normal" }}
+              >
                 {config?.principalName || ""}
               </div>
-              <div className="mt-1 text-[11px] text-gray-700 dark:text-gray-300 font-medium">
+              <div className="mt-1 text-gray-700 dark:text-gray-300" style={{ fontSize: "6pt", fontWeight: "bold" }}>
                 (Signature of School Head over Printed Name)
               </div>
             </div>
-            <div className="mt-3 flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
-              <span>{generatedOn ? `Generated on: ${generatedOn}` : ""}</span>
-              <span className="font-semibold">Generated thru LIS</span>
+            <div className="mt-3 flex items-center justify-between text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+              <span style={{ fontSize: "8pt", fontWeight: "normal" }}>{generatedOn ? `Generated on: ${generatedOn}` : ""}</span>
+              <span style={{ fontSize: "6pt", fontWeight: "bold" }}>Generated thru LIS</span>
             </div>
           </div>
         </div>

@@ -21,10 +21,11 @@ export const SF2_TOTAL_GRID_UNITS = 47;
 /**
  * The sheet's fixed physical width for the Fit to Screen preview (see
  * sf1FitScale.computeFitScale, reused here since the math is identical):
- * legal landscape (14in) minus the source workbook's own 0.28in margins on
- * each side.
+ * A4 landscape (11.69in, measured via openpyxl page setup -- not Legal's
+ * 14in as this used to assume) minus the source workbook's own 0.28in
+ * margins on each side.
  */
-export const SF2_SHEET_NATURAL_WIDTH_PX = 13.44 * 96;
+export const SF2_SHEET_NATURAL_WIDTH_PX = 11.14 * 96;
 
 /** No. + Name, at the left of the register (2 + 3 base units). */
 export const SF2_LEFT_UNITS = { no: 2, name: 3 };

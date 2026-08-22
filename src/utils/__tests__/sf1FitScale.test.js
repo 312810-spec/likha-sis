@@ -4,7 +4,7 @@ import { computeFitScale, SF1_SHEET_NATURAL_WIDTH_PX } from "../sf1FitScale.js";
 
 describe("computeFitScale", () => {
   it("shrinks to fit a narrower container", () => {
-    const scale = computeFitScale(648, SF1_SHEET_NATURAL_WIDTH_PX); // half the sheet width
+    const scale = computeFitScale(SF1_SHEET_NATURAL_WIDTH_PX / 2, SF1_SHEET_NATURAL_WIDTH_PX);
     expect(scale).toBeCloseTo(0.5, 5);
   });
 

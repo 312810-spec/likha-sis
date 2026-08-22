@@ -419,13 +419,16 @@ export default function NutritionStatus({ user }) {
             color: #000;
             background: #fff;
           }
-          @page { size: A4 landscape; margin: 8mm; }
+          /* Measured via openpyxl against the real workbook's page setup:
+             A4 PORTRAIT (this used to say landscape), with tight,
+             asymmetric margins. */
+          @page { size: A4 portrait; margin: 0.17in 0.1in 0.32in 0.1in; }
         }
         .sf8-table { border-collapse: collapse; width: 100%; }
         .sf8-table th, .sf8-table td {
           border: 1px solid #000;
           padding: 2px 3px;
-          font-size: 7pt;
+          font-size: 11pt;
           text-align: center;
           line-height: 1.2;
           color: #000;
@@ -441,10 +444,11 @@ export default function NutritionStatus({ user }) {
         .sf8-hdr-label, .sf8-hdr-value {
           border: 1px solid #000;
           padding: 3px 6px;
+          font-size: 11pt;
           color: #000;
           background: #fff;
         }
-        .sf8-hdr-label { font-weight: bold; white-space: nowrap; }
+        .sf8-hdr-label { font-weight: normal; white-space: nowrap; }
         .sf8-hdr-value { text-align: left; }
       `}</style>
       {/* Header */}
@@ -842,10 +846,14 @@ export default function NutritionStatus({ user }) {
       {/* Printable SF8 Health and Nutrition Report — only rendered while printing. */}
       {showPrintArea && gridData.length > 0 && (
         <div className="sf8-print-area">
-          <div style={{ padding: "0.4in 0.5in", fontFamily: "Arial, Helvetica, sans-serif" }}>
-            {/* Title */}
+          <div style={{ padding: "0.4in 0.5in", fontFamily: "'Arial Narrow', Arial, Helvetica, sans-serif" }}>
+            {/* Title -- font/size measured via openpyxl against the real
+                workbook. "Department of Education" was missing entirely. */}
             <div style={{ textAlign: "center", color: "#000" }}>
-              <div style={{ fontWeight: "bold", fontSize: "13pt", lineHeight: 1.3 }}>
+              <div style={{ fontWeight: "bold", fontSize: "14pt", lineHeight: 1.3 }}>
+                Department of Education
+              </div>
+              <div style={{ fontWeight: "bold", fontSize: "14pt", lineHeight: 1.3 }}>
                 School Form 8 Learner&apos;s Basic Health and Nutrition Report (SF8)
               </div>
               <div style={{ fontSize: "10pt", marginTop: "2px" }}>

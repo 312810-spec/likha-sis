@@ -441,7 +441,11 @@ const PRINT_CSS = `
   overflow-x: auto;
 }
 .sf1-sheet {
-  width: 13.5in;
+  /* A4 landscape (11.69in) minus the real workbook's own left/right
+     margins (0.19in each) -- measured via openpyxl, not Legal-paper's
+     14in as this used to assume. Keep in sync with
+     SF1_SHEET_NATURAL_WIDTH_PX in utils/sf1FitScale.js. */
+  width: 11.3in;
   margin: 0 auto;
   padding: 0;
   background: #fff;
@@ -629,8 +633,11 @@ html.dark .sf1-tally td {
 /* ---- print ---- */
 @media print {
   @page {
-    size: legal landscape;
-    margin: 0.25in;
+    /* Measured via openpyxl against the real workbook's page setup --
+       A4 landscape (paperSize 9), not Legal, with asymmetric margins
+       (top 0.29in, the other three sides 0.19in). */
+    size: A4 landscape;
+    margin: 0.29in 0.19in 0.19in 0.19in;
   }
 
   body {
@@ -653,7 +660,7 @@ html.dark .sf1-tally td {
     overflow: visible !important;
   }
 
-  /* The sheet fills the printable area of a legal-landscape page. */
+  /* The sheet fills the printable area of an A4-landscape page. */
   .sf1-sheet {
     width: 100% !important;
     background: #fff !important;

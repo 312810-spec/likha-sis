@@ -394,7 +394,10 @@ const PRINT_CSS = `
   overflow-x: auto;
 }
 .sf2-sheet {
-  width: 13.44in;
+  /* A4 landscape (11.69in) minus the source workbook's own 0.28in
+     margins on each side -- keep in sync with SF2_SHEET_NATURAL_WIDTH_PX
+     in utils/sf2Layout.js. */
+  width: 11.14in;
   margin: 0 auto;
   padding: 0.15in;
   background: #fff;
@@ -402,7 +405,7 @@ const PRINT_CSS = `
   font-family: Arial, Helvetica, sans-serif;
   box-sizing: border-box;
 }
-.sf2-title { font-weight: normal; font-size: 13pt; text-align: center; }
+.sf2-title { font-weight: bold; font-size: 13pt; text-align: center; }
 .sf2-subtitle { font-size: 5pt; font-style: italic; text-align: center; margin-bottom: 4px; }
 .sf2-meta-row { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 2px; }
 .sf2-meta-label { font-weight: normal; font-size: 6pt; }
@@ -504,7 +507,9 @@ html.dark .sf2-sig-line { border-bottom-color: #6b7280; }
 
 /* ---- print ---- */
 @media print {
-  @page { size: legal landscape; margin: 0.28in; }
+  /* Measured via openpyxl against the real workbook's page setup -- A4
+     landscape (paperSize 9), not Legal. */
+  @page { size: A4 landscape; margin: 0.28in; }
   body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; background: #fff !important; }
   .sf2-print-view { display: block !important; width: 100%; background: #fff !important; color: #000 !important; overflow: visible !important; }
   .sf2-sheet { width: 100% !important; background: #fff !important; color: #000 !important; }

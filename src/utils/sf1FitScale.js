@@ -4,11 +4,13 @@
 // so scaling never distorts the official proportions -- this only computes how
 // much to shrink the whole sheet so it fits the available preview width.
 
-// The sheet's fixed physical width is `.sf1-sheet { width: 13.5in }` in
-// components/SF1PrintView.jsx's PRINT_CSS -- 13.5in at the CSS-standard 96px/in
-// is a constant, independent of how many learners are on the roster. Keep
-// this in sync if that literal ever changes.
-export const SF1_SHEET_NATURAL_WIDTH_PX = 13.5 * 96;
+// The sheet's fixed physical width is `.sf1-sheet { width: 11.3in }` in
+// components/SF1PrintView.jsx's PRINT_CSS -- A4 landscape minus the real
+// workbook's own left/right margins (measured via openpyxl page setup: A4,
+// not Legal). 11.3in at the CSS-standard 96px/in is a constant, independent
+// of how many learners are on the roster. Keep this in sync if that literal
+// ever changes.
+export const SF1_SHEET_NATURAL_WIDTH_PX = 11.3 * 96;
 
 /**
  * The CSS zoom factor that fits a sheet of `naturalWidth` px into a container

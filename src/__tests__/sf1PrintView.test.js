@@ -208,11 +208,11 @@ describe("SF1 print view — register content", () => {
 });
 
 describe("SF1 print view — print safety (CLAUDE.md §2)", () => {
-  it("targets a legal landscape page with the official quarter-inch margin", () => {
+  it("targets an A4 landscape page with the workbook's own asymmetric margins", () => {
     const container = renderSheet();
     const css = container.querySelector("style").textContent;
-    expect(css).toMatch(/@page\s*\{[^}]*size:\s*legal landscape/);
-    expect(css).toMatch(/@page\s*\{[^}]*margin:\s*0\.25in/);
+    expect(css).toMatch(/@page\s*\{[^}]*size:\s*A4 landscape/);
+    expect(css).toMatch(/@page\s*\{[^}]*margin:\s*0\.29in 0\.19in 0\.19in 0\.19in/);
   });
 
   it("forces a pure white background and black text when printing", () => {

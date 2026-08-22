@@ -543,7 +543,7 @@ export default function ReportCard({ user, goBack }) {
         <div
           className="rc-print-area"
           style={{
-            fontFamily: "Arial, Helvetica, sans-serif",
+            fontFamily: "Calibri, Carlito, Arial, sans-serif",
             fontSize: "8.5pt",
             background: "#fff",
             padding: "8px 12px",
@@ -965,7 +965,7 @@ export default function ReportCard({ user, goBack }) {
           */}
           <div
             style={{
-              fontSize: "7.5pt",
+              fontSize: "10pt",
               fontWeight: "bold",
               textTransform: "uppercase",
               margin: "6px 0 2px",
