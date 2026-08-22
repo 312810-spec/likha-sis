@@ -9,7 +9,7 @@
 // components/SF1PrintView.jsx — screen and print never drift apart.
 
 import { useState, useEffect, useRef } from "react";
-import { Printer, Save, ArrowLeft, ClipboardList, AlertTriangle } from "lucide-react";
+import { Printer, Save, ArrowLeft, ClipboardList, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import {
   collection,
   addDoc,
@@ -217,6 +217,9 @@ function SF1({ user }) {
 
   // "live" shows the official register; "edit" shows the learner list/editor.
   const [pageMode, setPageMode] = useState("live");
+  // SF1 Record Check starts collapsed -- only the compact totals show by
+  // default so the Live Register stays the main content on the page.
+  const [recordCheckOpen, setRecordCheckOpen] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   // null | { mode: "existing", index, focusField? } | { mode: "new", sex }
@@ -727,26 +730,41 @@ function SF1({ user }) {
               </p>
             )}
 
-            {fieldIssueEntries.length > 0 && (
-              <ul className="mt-3 space-y-1.5">
-                {fieldIssueEntries.map(({ index, learner, issues }) => (
-                  <li key={index} className="flex flex-wrap items-center justify-between gap-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
-                    <span className="text-gray-800 dark:text-gray-200">
-                      <span className="font-semibold">{learnerName(learner) || "(No name entered)"}</span>
-                      {" — "}
-                      {issues.map((i) => i.label).join(", ")}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleFixLearner(index, issues[0].field)}
-                      className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 transition-colors min-h-[36px]"
-                    >
-                      Fix
-                    </button>
-                  </li>
-                ))}
-              </ul>
+            {needAttentionEntries.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setRecordCheckOpen((open) => !open)}
+                aria-expanded={recordCheckOpen}
+                aria-controls="sf1-record-check-details"
+                className="mt-3 w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
+              >
+                {recordCheckOpen ? "Hide Details" : "Show Details"}
+                {recordCheckOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
             )}
+
+            <div id="sf1-record-check-details">
+              {recordCheckOpen && fieldIssueEntries.length > 0 && (
+                <ul className="mt-3 space-y-1.5">
+                  {fieldIssueEntries.map(({ index, learner, issues }) => (
+                    <li key={index} className="flex flex-wrap items-center justify-between gap-2 text-sm rounded-lg bg-gray-50 dark:bg-gray-800 px-3 py-2">
+                      <span className="text-gray-800 dark:text-gray-200">
+                        <span className="font-semibold">{learnerName(learner) || "(No name entered)"}</span>
+                        {" — "}
+                        {issues.map((i) => i.label).join(", ")}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleFixLearner(index, issues[0].field)}
+                        className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700 transition-colors min-h-[36px]"
+                      >
+                        Fix
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
 
           {missingSchoolSettings.length > 0 && (

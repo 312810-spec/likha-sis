@@ -28,7 +28,7 @@ import {
 } from "../importers/sf1/sf1Layout.js";
 
 /**
- * The raw 46-column <colgroup> of the LIS sheet. The title band and the footer
+ * The raw 47-column <colgroup> of the LIS sheet. The title band and the footer
  * are merged against these columns rather than against the register's 19, so
  * they each open their own table on this grid and stay in register with it.
  */
@@ -183,7 +183,7 @@ export default function SF1PrintView({
               <td className="sf1-meta-value" colSpan={3}>{school.gradeLevel || ""}</td>
               <td className="sf1-meta-gap" colSpan={2} />
               <td className="sf1-meta-label" colSpan={3}>Section</td>
-              <td className="sf1-meta-value" colSpan={8}>{school.section || ""}</td>
+              <td className="sf1-meta-value" colSpan={9}>{school.section || ""}</td>
             </tr>
           </tbody>
         </table>
@@ -469,11 +469,12 @@ const PRINT_CSS = `
   font-size: 5pt;
   vertical-align: middle;
 }
-.sf1-row { height: 0.34in; page-break-inside: avoid; }
+.sf1-row { height: 47pt; page-break-inside: avoid; }
 .sf1-c-lrn { font-size: 5.5pt; letter-spacing: -0.2px; }
 .sf1-c-name { text-align: left !important; font-weight: normal; }
 .sf1-c-left { text-align: left !important; }
 .sf1-c-wrap { hyphens: auto; }
+.sf1-tally { height: 20pt; }
 .sf1-tally td { font-weight: bold; }
 
 /* ---- footer band: legend, REGISTERED tally, signatures, provenance ---- */

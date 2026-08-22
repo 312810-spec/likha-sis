@@ -272,33 +272,43 @@ describe("SF1 print view — screen Dark Mode (CLAUDE.md §4E/§20-21)", () => {
 });
 
 // The title band (LIS rows 1-6) and the footer band (LIS rows 30-41) are laid
-// out on the sheet's raw 46-column grid rather than the register's merged 19,
+// out on the sheet's raw 47-column grid rather than the register's merged 19,
 // because their merges do not line up with the register's column boundaries.
+// Column 46 (source col AU) is a 2px sliver that only the Section-value cell
+// on the School Name/Year/Grade/Section row actually reaches -- every other
+// row's real merges stop at column 45, matching the source workbook exactly.
 describe("SF1 print view - title and footer bands match the LIS grid", () => {
-  it("exposes a 46-column grid totalling the register's own width", () => {
-    expect(SF1_GRID_PERCENTS).toHaveLength(46);
+  it("exposes a 47-column grid totalling the register's own width", () => {
+    expect(SF1_GRID_PERCENTS).toHaveLength(47);
     const total = SF1_GRID_PERCENTS.reduce((sum, p) => sum + p, 0);
     expect(total).toBeGreaterThan(99.5);
     expect(total).toBeLessThan(100.5);
   });
 
-  it("lays the title band on that grid, every row totalling 46 columns", () => {
+  it("lays the title band on that grid, with only the Section-value row reaching all 47 columns", () => {
     const head = renderSheet().querySelector(".sf1-head");
     expect(head).toBeTruthy();
-    expect(head.querySelectorAll("col")).toHaveLength(46);
-    for (const row of head.querySelectorAll("tr")) {
-      const width = [...row.children].reduce(
+    expect(head.querySelectorAll("col")).toHaveLength(47);
+    const rows = [...head.querySelectorAll("tr")];
+    const widths = rows.map((row) =>
+      [...row.children].reduce(
         (sum, cell) => sum + (Number(cell.getAttribute("colspan")) || 1),
         0
-      );
-      expect(width).toBe(46);
+      )
+    );
+    // Every row reaches 46 (the source's real merges); the metadata row
+    // carrying Section reaches the full 47 because its value cell alone
+    // merges into column 46.
+    for (const width of widths) {
+      expect(width === 46 || width === 47).toBe(true);
     }
+    expect(widths).toContain(47);
   });
 
   it("lays the footer band on the same grid", () => {
     const foot = renderSheet().querySelector(".sf1-foot");
     expect(foot).toBeTruthy();
-    expect(foot.querySelectorAll("col")).toHaveLength(46);
+    expect(foot.querySelectorAll("col")).toHaveLength(47);
   });
 
   it("prints the region bare, with no invented Region caption", () => {
