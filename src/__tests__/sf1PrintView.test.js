@@ -358,27 +358,44 @@ describe("SF1 print view - title and footer bands match the LIS grid", () => {
 });
 
 // Every value below is verified against the real workbook's own per-cell XF
-// (font/alignment) records -- extracted with xlrd, which resolves BIFF style
-// info the xlsx npm package could not for this .xls file -- not guessed or
-// "made to look more like a form". Several are deliberately counter-
-// intuitive (the title, table headers, and signature captions are NOT bold/
-// italic in the source), so this locks them in against being "corrected"
-// back to the more expected-looking values later.
+// (font/alignment) records, extracted with xlrd. Bold specifically needed a
+// SECOND pass: xlrd's Font.bold is a legacy BIFF bit that this Apache-POI-
+// generated workbook leaves at its default (0) even on genuinely bold fonts
+// -- the field Excel actually renders from is Font.weight (400 normal, 700
+// bold). Trusting .bold alone said "nothing is bold anywhere," which was
+// wrong; re-deriving bold as weight >= 700 found 5 of the workbook's 15
+// fonts really are bold -- the title, every table/footer header label, the
+// legend body, REGISTERED labels/values, signature captions, and the BoSY/
+// EoSY date labels. The signature *names* (preparedBy/certifiedBy) and the
+// tally rows are confirmed NOT bold either way. Don't "fix" bold back to
+// what looks more form-like without re-deriving it from weight, not .bold.
 describe("SF1 print view - font weight/size/alignment match the real workbook", () => {
   function cssText(container) {
     return container.querySelector("style").textContent;
   }
 
-  it("renders the title at 21pt, regular weight, centered -- not 11pt bold left", () => {
+  it("renders the title at 21pt bold, centered -- not 11pt left", () => {
     const css = cssText(renderSheet());
     expect(css).toMatch(/\.sf1-title\s*\{[^}]*font-size:\s*21pt/);
-    expect(css).toMatch(/\.sf1-title\s*\{[^}]*font-weight:\s*normal/);
+    expect(css).toMatch(/\.sf1-title\s*\{[^}]*font-weight:\s*bold/);
     expect(css).toMatch(/\.sf1-title\s*\{[^}]*text-align:\s*center/);
   });
 
-  it("does not bold the learner table's column headers", () => {
+  it("bolds the learner table's column headers", () => {
     const css = cssText(renderSheet());
-    expect(css).toMatch(/\.sf1-table th\s*\{[^}]*font-weight:\s*normal/);
+    expect(css).toMatch(/\.sf1-table th\s*\{[^}]*font-weight:\s*bold/);
+  });
+
+  it("bolds the footer's legend title, legend body, REGISTERED cells, and signature captions/dates, but not the signature names", () => {
+    const css = cssText(renderSheet());
+    const ruleFor = (selector) => css.match(new RegExp(`${selector}\\s*\\{[^}]*\\}`))?.[0] || "";
+    expect(ruleFor("\\.sf1-legend-title")).toMatch(/font-weight:\s*bold/);
+    expect(ruleFor("\\.sf1-legend-cell")).toMatch(/font-weight:\s*bold/);
+    expect(ruleFor("\\.sf1-reg-label")).toMatch(/font-weight:\s*bold/);
+    expect(ruleFor("\\.sf1-reg-value")).toMatch(/font-weight:\s*bold/);
+    expect(ruleFor("\\.sf1-sign-caption")).toMatch(/font-weight:\s*bold/);
+    expect(ruleFor("\\.sf1-sign-dates")).toMatch(/font-weight:\s*bold/);
+    expect(ruleFor("\\.sf1-sign-name")).toMatch(/font-weight:\s*normal/);
   });
 
   it("does not italicize the signature captions", () => {

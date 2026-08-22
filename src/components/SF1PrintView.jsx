@@ -246,7 +246,7 @@ export default function SF1PrintView({
               <th>Mother&apos;s Maiden Name (Last Name, First Name, Middle Name)</th>
               <th>Name</th>
               <th>Relationship</th>
-              <th className="sf1-th-note">
+              <th>
                 (Please refer to the legend on last page)
               </th>
             </tr>
@@ -383,7 +383,7 @@ export default function SF1PrintView({
             <tr>
               <td className="sf1-meta-gap" colSpan={7} />
               <td className="sf1-meta-gap" colSpan={7} />
-              <td className="sf1-generated" colSpan={7}>Generated thru LIS</td>
+              <td className="sf1-generated sf1-generated-bold" colSpan={7}>Generated thru LIS</td>
             </tr>
 
             <tr>
@@ -435,7 +435,7 @@ const PRINT_CSS = `
 }
 .sf1-title {
   font-size: 21pt;
-  font-weight: normal;
+  font-weight: bold;
   text-align: center;
   vertical-align: top !important;
 }
@@ -474,7 +474,7 @@ const PRINT_CSS = `
   overflow-wrap: break-word;
 }
 .sf1-table th {
-  font-weight: normal;
+  font-weight: bold;
   font-size: 6pt;
   vertical-align: middle;
 }
@@ -508,28 +508,31 @@ const PRINT_CSS = `
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
-.sf1-foot th { border: 1px solid #000; font-weight: normal; }
+.sf1-foot th { border: 1px solid #000; font-weight: bold; }
 .sf1-legend-title {
   font-size: 8pt !important;
-  font-weight: normal;
+  font-weight: bold;
   text-align: left !important;
   border: 0;
   padding-bottom: 2px !important;
 }
 .sf1-legend-cell {
   border: 1px solid #000;
+  font-weight: bold;
   text-align: left !important;
 }
 .sf1-c-center { text-align: center !important; }
 .sf1-reg-label {
   border: 1px solid #000;
   font-size: 6pt !important;
+  font-weight: bold;
   text-align: center !important;
   vertical-align: middle !important;
 }
 .sf1-reg-value {
   border: 1px solid #000;
   font-size: 6pt !important;
+  font-weight: bold;
   vertical-align: middle !important;
 }
 .sf1-sign-label {
@@ -545,14 +548,15 @@ const PRINT_CSS = `
   padding-top: 14px !important;
   border-bottom: 1px solid #000;
 }
-.sf1-sign-caption { font-size: 6pt !important; }
+.sf1-sign-caption { font-size: 6pt !important; font-weight: bold; }
 .sf1-sign-dates {
   font-size: 6pt !important;
+  font-weight: bold;
   text-align: left !important;
   vertical-align: bottom !important;
 }
 .sf1-generated { font-size: 6pt !important; text-align: center; }
-.sf1-th-note { font-weight: normal !important; }
+.sf1-generated-bold { font-weight: bold; }
 
 /* ---- screen Dark Mode (the print rules further below always win) ----
    Geometry, columns, merged cells and row heights are untouched here; only
