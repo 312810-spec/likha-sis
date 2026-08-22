@@ -2,9 +2,7 @@
 
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from 'vitest';
-import useDarkMode from '../useDarkMode.js';
-
-const STORAGE_KEY = 'likha-sis-dark-mode';
+import useDarkMode, { STORAGE_KEY, readStoredMode, resolveIsDark } from '../useDarkMode.js';
 
 describe('useDarkMode (3-way)', () => {
   let matchMediaMatches = false;
@@ -118,6 +116,81 @@ describe('useDarkMode (3-way)', () => {
     const meta = document.querySelector('meta[name="color-scheme"]');
     expect(meta).not.toBeNull();
     expect(meta.getAttribute('content')).toBe('light');
+  });
+
+  it('sets colorScheme style and meta tag to "dark" when system mode resolves dark', () => {
+    matchMediaMatches = true; // OS is dark, mode stays "system"
+    renderHook(() => useDarkMode());
+
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.style.colorScheme).toBe('dark');
+    const meta = document.querySelector('meta[name="color-scheme"]');
+    expect(meta.getAttribute('content')).toBe('dark');
+  });
+
+  it('does not add theme-transition on first mount, even when the pre-paint bootstrap already applied .dark', () => {
+    // Simulate what index.html's pre-paint script does before React mounts.
+    localStorage.setItem(STORAGE_KEY, 'dark');
+    document.documentElement.classList.add('dark');
+    document.documentElement.style.colorScheme = 'dark';
+
+    renderHook(() => useDarkMode());
+
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(false);
+  });
+
+  it('adds theme-transition when the user changes mode after mount', () => {
+    const { result } = renderHook(() => useDarkMode());
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(false);
+
+    act(() => {
+      result.current[2]('dark');
+    });
+
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    expect(document.documentElement.classList.contains('theme-transition')).toBe(true);
+  });
+});
+
+describe('resolveIsDark (pre-paint parity)', () => {
+  it('stored "dark" resolves true regardless of system preference', () => {
+    expect(resolveIsDark('dark', false)).toBe(true);
+    expect(resolveIsDark('dark', true)).toBe(true);
+  });
+
+  it('stored "light" resolves false regardless of system preference', () => {
+    expect(resolveIsDark('light', true)).toBe(false);
+    expect(resolveIsDark('light', false)).toBe(false);
+  });
+
+  it('stored "system" follows the OS preference', () => {
+    expect(resolveIsDark('system', true)).toBe(true);
+    expect(resolveIsDark('system', false)).toBe(false);
+  });
+});
+
+describe('readStoredMode (pre-paint parity)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('falls back to "system" when nothing is stored', () => {
+    expect(readStoredMode()).toBe('system');
+  });
+
+  it('falls back to "system" for an invalid stored value', () => {
+    localStorage.setItem(STORAGE_KEY, 'purple');
+    expect(readStoredMode()).toBe('system');
+  });
+
+  it('returns the stored value when it is a valid mode', () => {
+    localStorage.setItem(STORAGE_KEY, 'dark');
+    expect(readStoredMode()).toBe('dark');
+    localStorage.setItem(STORAGE_KEY, 'light');
+    expect(readStoredMode()).toBe('light');
+    localStorage.setItem(STORAGE_KEY, 'system');
+    expect(readStoredMode()).toBe('system');
   });
 });
 

@@ -86,6 +86,18 @@ body {
   font-family: "Public Sans", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--color-ink) / 0.2) transparent;
+  /* Matches DashboardShell's bg-gray-50 root surface, so the raw canvas
+     doesn't flash pure white before that (or any) shell mounts. */
+  background-color: #f9fafb;
+}
+
+/* Matches DashboardShell's dark:bg-gray-950 root surface -- applied to
+   <html> too (not just body) so index.html's pre-paint script, which
+   toggles the .dark class on <html> before any CSS/JS below this point
+   runs, can't leave a white gap above/around the body on first paint. */
+html.dark,
+html.dark body {
+  background-color: #030712;
 }
 body::-webkit-scrollbar {
   width: 8px;

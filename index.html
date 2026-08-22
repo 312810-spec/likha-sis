@@ -13,6 +13,37 @@
     <title>LIKHA-SIS</title>
     <link rel="manifest" href="/manifest.json" />
     <script>
+      // Resolve and apply light/dark appearance synchronously before first
+      // paint, so a refresh with a dark preference doesn't flash the light
+      // UI while React mounts. This mirrors resolveIsDark()/STORAGE_KEY in
+      // src/hooks/useDarkMode.js exactly (same storage key, same
+      // light/dark/system rule) -- useDarkMode.js stays the runtime
+      // authority for theme switching, persistence, and OS-change
+      // listening; this script only replays its resolution once, early.
+      (function () {
+        try {
+          var mode = localStorage.getItem("likha-sis-dark-mode");
+          var isDark;
+          if (mode === "dark") {
+            isDark = true;
+          } else if (mode === "light") {
+            isDark = false;
+          } else {
+            isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          }
+          var root = document.documentElement;
+          root.classList.toggle("dark", isDark);
+          root.style.colorScheme = isDark ? "dark" : "light";
+          var meta = document.querySelector('meta[name="color-scheme"]');
+          if (meta) meta.setAttribute("content", isDark ? "dark" : "light");
+        } catch (e) {
+          // localStorage/matchMedia unavailable -- leave the default
+          // "light dark" meta/class alone, same as before this script
+          // existed.
+        }
+      })();
+    </script>
+    <script>
       // Apply the last-known school brand theme before first paint, so a
       // refresh doesn't flash the default colors while useBrandTheme's
       // Firestore onSnapshot is still resolving. useBrandTheme.js mirrors

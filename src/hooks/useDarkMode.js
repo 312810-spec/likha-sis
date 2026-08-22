@@ -1,11 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 
-const STORAGE_KEY = 'likha-sis-dark-mode';
+export const STORAGE_KEY = 'likha-sis-dark-mode';
 
-function readStoredMode() {
+export function readStoredMode() {
   if (typeof window === 'undefined') return 'system';
   const v = localStorage.getItem(STORAGE_KEY);
   return v === 'light' || v === 'dark' || v === 'system' ? v : 'system';
+}
+
+// Single source of truth for the light/dark/system resolution rule. The
+// pre-paint bootstrap in index.html can't import this (it runs before the
+// module graph loads), so it duplicates this exact logic inline -- this
+// export exists so that duplication can be tested for parity instead of
+// trusted by inspection.
+export function resolveIsDark(mode, systemIsDark) {
+  return mode === 'dark' ? true : mode === 'light' ? false : systemIsDark;
 }
 
 export default function useDarkMode() {
@@ -17,7 +26,7 @@ export default function useDarkMode() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  const resolvedIsDark = mode === 'dark' ? true : mode === 'light' ? false : systemIsDark;
+  const resolvedIsDark = resolveIsDark(mode, systemIsDark);
 
   const isFirstRun = useRef(true);
 
