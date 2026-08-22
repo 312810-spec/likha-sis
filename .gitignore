@@ -26,6 +26,12 @@ skills-lock.json
 # graphify knowledge-graph output (generated, not project source)
 graphify-out/
 
+# Ad-hoc local debug/inspection scripts and their output. These are
+# throwaway by convention (see CLAUDE.md workflow notes) and have already
+# leaked real learner PII into git once via a committed workbook-cell dump
+# (tmp-sf1-dump.txt) -- never track anything under this prefix.
+tmp-*
+
 # Real DepEd sample workbooks/exports used to validate the SF1/SF8/SF10
 # importers locally. They hold real learner personal information (full names,
 # LRNs, birth dates, parents' names and addresses of minors) and everything
