@@ -3,7 +3,7 @@
 // Single printable page per learner, showing term grades, final grades,
 // general average, and attendance summary.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 import useSchoolConfig from "./hooks/useSchoolConfig";
@@ -340,6 +340,15 @@ export default function ReportCard({ user, goBack }) {
             padding: 0;
             box-sizing: border-box;
           }
+          /* Same defensive pattern as SF4/SF8/SF10: force this print area back
+             to plain black-on-white if dark mode is active, so a future edit
+             that adds a dark: class here can't silently leak onto paper. */
+          html.dark .rc-print-area, html.dark .rc-print-area * {
+            background-color: #fff !important;
+            color: #000 !important;
+            border-color: #000 !important;
+          }
+          @page { size: letter portrait; margin: 0.4in; }
         }
         .rc-table { border-collapse: collapse; width: 100%; }
         .rc-table th, .rc-table td {
@@ -838,37 +847,26 @@ export default function ReportCard({ user, goBack }) {
                     </tbody>
                   </table>
 
-                  {/* Performance Descriptors */}
-                  <div
-                    style={{
-                      marginTop: "5px",
-                      fontSize: "7.5pt",
-                      fontWeight: "bold",
-                      textTransform: "uppercase",
-                      marginBottom: "2px",
-                    }}
-                  >
-                    Performance Descriptors
-                  </div>
-                  <table className="rc-table" style={{ fontSize: "7pt" }}>
+                  {/* Grade Descriptors */}
+                  <table className="rc-table" style={{ fontSize: "7pt", marginTop: "5px" }}>
                     <thead>
                       <tr>
+                        <th>Grade Descriptors</th>
                         <th>Grading Scale</th>
-                        <th>Description</th>
                         <th>Remarks</th>
                       </tr>
                     </thead>
                     <tbody>
                       {[
-                        ["90–100", "Advancing", "Passed"],
-                        ["80–89", "Benchmarking", "Passed"],
-                        ["75–79", "Connecting", "Passed"],
-                        ["65–74", "Developing", "Failed"],
-                        ["0–64", "Emerging", "Failed"],
-                      ].map(([scale, desc, rem]) => (
-                        <tr key={scale}>
+                        ["Outstanding", "90-100", "Passed"],
+                        ["Very Satisfactory", "85-89", "Passed"],
+                        ["Satisfactory", "80-84", "Passed"],
+                        ["Fairly Satisfactory", "75-79", "Passed"],
+                        ["Did not meet expectations", "Below 75", "Failed"],
+                      ].map(([desc, scale, rem]) => (
+                        <tr key={desc}>
+                          <td className="rc-cell-left">{desc}</td>
                           <td>{scale}</td>
-                          <td>{desc}</td>
                           <td>{rem}</td>
                         </tr>
                       ))}
@@ -951,6 +949,96 @@ export default function ReportCard({ user, goBack }) {
               </tr>
             </tbody>
           </table>
+
+          {/*
+            ===== Report on Learner's Observed Values =====
+            Required section per the official SF9 back page -- was missing
+            entirely. DepEd's 4 core values (Maka-Diyos, Makatao,
+            Makakalikasan, Makabansa), each with their official behavior
+            statements, rated per term as Always/Sometimes/Rarely/Never
+            Observed. Reference uses legacy "Grading Quarter" columns; this
+            uses Term 1-3 per DO 15 s.2026's 3-term calendar (CLAUDE.md --
+            never reintroduce Q1-Q4 terminology). No digital rating capture
+            exists yet for this section (no Firestore field backs it), so
+            the AO/SO/RO/NO cells print blank for manual completion --
+            adding that is a separate feature decision, not a fidelity fix.
+          */}
+          <div
+            style={{
+              fontSize: "7.5pt",
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              margin: "6px 0 2px",
+            }}
+          >
+            Report on Learner&apos;s Observed Values
+          </div>
+          <table className="rc-table" style={{ fontSize: "7pt" }}>
+            <thead>
+              <tr>
+                <th style={{ width: "14%" }}>Core Values</th>
+                <th style={{ width: "46%" }}>Behavior Statements</th>
+                <th colSpan={3}>Term</th>
+              </tr>
+              <tr>
+                <th />
+                <th />
+                <th>1</th>
+                <th>2</th>
+                <th>3</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                {
+                  value: "Maka-Diyos",
+                  statements: [
+                    "Expresses one's spiritual beliefs while respecting the spiritual beliefs of others",
+                    "Shows adherence to ethical principles by upholding truth",
+                  ],
+                },
+                {
+                  value: "Makatao",
+                  statements: [
+                    "Is sensitive to individual, social and cultural differences",
+                    "Demonstrates contributions toward solidarity",
+                  ],
+                },
+                {
+                  value: "Makakalikasan",
+                  statements: [
+                    "Cares for the environment and utilizes resources wisely, judisciously and economically",
+                  ],
+                },
+                {
+                  value: "Makabansa",
+                  statements: [
+                    "Demonstrates pride in being a Filipino; exercises the rights and responsibilities of a Filipino citizen",
+                    "Demonstrates appropriate behavior in carrying out activities in the school, community and country",
+                  ],
+                },
+              ].map((group) => (
+                <Fragment key={group.value}>
+                  {group.statements.map((statement, i) => (
+                    <tr key={statement}>
+                      {i === 0 && (
+                        <td className="rc-cell-left" rowSpan={group.statements.length} style={{ fontWeight: "bold" }}>
+                          {group.value}
+                        </td>
+                      )}
+                      <td className="rc-cell-left">{statement}</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                      <td>&nbsp;</td>
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ fontSize: "6.5pt", marginTop: "2px" }}>
+            Marking: AO - Always Observed &nbsp; SO - Sometimes Observed &nbsp; RO - Rarely Observed &nbsp; NO - Never Observed
+          </div>
         </div>
       )}
 
