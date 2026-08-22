@@ -12,15 +12,16 @@
       "Bash(npm run build*)",
       "Bash(npx vitest*)",
       "Bash(npx eslint*)",
-      "Bash(npm run dev*)"
+      "Bash(npm run dev*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push*)"
     ],
     "ask": [
       "Bash(npm install*)",
       "Bash(npm uninstall*)",
       "Bash(npm remove*)",
-      "Bash(firebase deploy*)",
-      "Bash(git push*)",
-      "Bash(git commit*)"
+      "Bash(firebase deploy*)"
     ],
     "deny": [
       "Bash(git reset --hard*)",
@@ -123,5 +124,5 @@
       }
     ]
   },
-  "description": "LIKHA-SIS project-wide Claude Code defaults: safe read/lint/test permission allowlist, ask-first gates on install/deploy/push/commit, deny on destructive git/rm, Impeccable design detector (UI-file PostToolUse + Stop), and the safety/validation hook chain (SessionStart workspace snapshot, UserPromptSubmit credential check, PreToolUse lockfile/.env/credential-file guard, PostToolUse targeted lint+test, Stop proportional lint/test/build with a print-safety reminder). Shared across the team via git; machine-specific overrides go in settings.local.json."
+  "description": "LIKHA-SIS project-wide Claude Code defaults: safe read/lint/test/commit/push permission allowlist, ask-first gates on install/deploy, deny on destructive git/rm, Impeccable design detector (UI-file PostToolUse + Stop), and the safety/validation hook chain (SessionStart workspace snapshot, UserPromptSubmit credential check, PreToolUse lockfile/.env/credential-file guard, PostToolUse targeted lint+test, Stop proportional lint/test/build with a print-safety reminder). git commit/push are allowlisted (no manual approval) per FranzShin's standing instruction; force-push, --no-verify, and history rewrites stay excluded from the allowlist. Shared across the team via git; machine-specific overrides go in settings.local.json."
 }

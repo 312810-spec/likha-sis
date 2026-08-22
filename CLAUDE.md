@@ -53,7 +53,7 @@ Execution operates directly within Git Bash without third-party prompt handoffs:
     │                        │                        │
     └────────────────────────┼────────────────────────┘
                              ▼
-                    [ Commit, on request ]
+                [ Commit + Push, automatic ]
 ```
 
 ### B. Active Loop Engineering Engine (Self-Correcting Execution)
@@ -61,7 +61,7 @@ Execution operates directly within Git Bash without third-party prompt handoffs:
 2. **Implementation-to-Verification Loop:** Automatically run `npm run lint && npm run test` after making changes.
 3. **Auto-Refactor Loop:** If linting or testing fails, parse error outputs, fix code immediately, and re-verify until a 100% pass rate is achieved.
 4. **Data-Safety Loop:** Automatically append security definitions in `firestore.rules` for any new Firestore collection.
-5. **Git Commit Convention:** Use conventional messages (`feat:`, `fix:`, `docs:`, ...) when the user asks for a commit — never commit or push automatically; `.claude/settings.json` gates both behind explicit approval.
+5. **Git Commit Convention:** Use conventional messages (`feat:`, `fix:`, `docs:`, ...) and commit + push automatically once a change is implemented and verified (lint/test/build pass) — `.claude/settings.json` no longer gates either behind manual approval, per FranzShin's standing instruction (moving forward from the point this line was added). Still never force-push, never rewrite published history, and never skip hooks.
 6. **Business Logic Trigger Loops:**
    * Attendance < 80% (SF2) → Auto-trigger LARDO risk flag.
    * Initial Grade < 70.00 → Auto-trigger DO 15 academic intervention flag.
@@ -133,12 +133,13 @@ Long-term project memory that doesn't belong in this file lives in `docs/ai/PROJ
 ---
 
 ## 5. Commit Convention
-Commit and push only when the user asks (`.claude/settings.json` requires approval for both). When asked, use a conventional message:
+Commit and push automatically once a change is implemented and verified — `.claude/settings.json` no longer requires manual approval for either. Use a conventional message:
 ```bash
 git add <files>
 git commit -m "type: concise summary"
 git push origin master
 ```
+Still never force-push, never `--no-verify`, and never rewrite already-pushed history without being explicitly asked.
 
 ---
 
