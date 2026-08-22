@@ -846,7 +846,7 @@ export default function NutritionStatus({ user }) {
             {/* Title */}
             <div style={{ textAlign: "center", color: "#000" }}>
               <div style={{ fontWeight: "bold", fontSize: "13pt", lineHeight: 1.3 }}>
-                School Form 8 (SF8) Learner&apos;s Basic Health and Nutrition Report
+                School Form 8 Learner&apos;s Basic Health and Nutrition Report (SF8)
               </div>
               <div style={{ fontSize: "10pt", marginTop: "2px" }}>
                 (For All Grade Levels)
@@ -884,6 +884,10 @@ export default function NutritionStatus({ user }) {
                   <td className="sf8-hdr-label">School Year:</td>
                   <td className="sf8-hdr-value">{schoolYear}</td>
                 </tr>
+                <tr>
+                  <td className="sf8-hdr-label">Track/Strand (SHS):</td>
+                  <td className="sf8-hdr-value" colSpan={7} />
+                </tr>
                 {/* Two SF8 printouts now exist per section per school year
                     (Baseline and Endline) — this row is what tells them apart. */}
                 <tr>
@@ -897,20 +901,23 @@ export default function NutritionStatus({ user }) {
             <table className="sf8-table">
               <thead>
                 <tr>
-                  <th style={{ width: "4%" }}>No.</th>
-                  <th style={{ width: "10%" }}>LRN</th>
-                  <th style={{ width: "20%" }}>
+                  <th rowSpan={2} style={{ width: "4%" }}>No.</th>
+                  <th rowSpan={2} style={{ width: "10%" }}>LRN</th>
+                  <th rowSpan={2} style={{ width: "20%" }}>
                     Learner&apos;s Name (Last, First, Name Extension, Middle)
                   </th>
-                  <th style={{ width: "9%" }}>Birthdate</th>
-                  <th style={{ width: "7%" }}>Age</th>
-                  <th style={{ width: "7%" }}>Weight (kg)</th>
-                  <th style={{ width: "7%" }}>Height (m)</th>
-                  <th style={{ width: "7%" }}>Height&sup2; (m&sup2;)</th>
+                  <th rowSpan={2} style={{ width: "9%" }}>Birthdate</th>
+                  <th rowSpan={2} style={{ width: "7%" }}>Age</th>
+                  <th rowSpan={2} style={{ width: "7%" }}>Weight (kg)</th>
+                  <th rowSpan={2} style={{ width: "7%" }}>Height (m)</th>
+                  <th rowSpan={2} style={{ width: "7%" }}>Height&sup2; (m&sup2;)</th>
+                  <th colSpan={2} style={{ width: "19%" }}>Nutritional Status</th>
+                  <th rowSpan={2} style={{ width: "11%" }}>Height for Age (HFA)</th>
+                  <th rowSpan={2} style={{ width: "8%" }}>Remarks</th>
+                </tr>
+                <tr>
                   <th style={{ width: "8%" }}>BMI (kg/m&sup2;)</th>
                   <th style={{ width: "11%" }}>BMI Category</th>
-                  <th style={{ width: "11%" }}>Height for Age (HFA)</th>
-                  <th style={{ width: "8%" }}>Remarks</th>
                 </tr>
               </thead>
               <tbody>
