@@ -440,7 +440,7 @@ export default function NutritionStatus({ user }) {
         .sf8-cell-left { text-align: left !important; }
         .sf8-table td.sf8-group-header {
           background: #e8e8e8;
-          font-weight: bold;
+          font-weight: normal;
           text-align: left;
         }
         .sf8-hdr-label, .sf8-hdr-value {
@@ -451,6 +451,9 @@ export default function NutritionStatus({ user }) {
           background: #fff;
         }
         .sf8-hdr-label { font-weight: normal; white-space: nowrap; }
+        /* "School Name:"/"School ID:" measure 12pt in the source, distinct
+           from the other header labels at 11pt. */
+        .sf8-hdr-label-lg { font-size: 12pt; }
         .sf8-hdr-value { text-align: left; }
       `}</style>
       {/* Header */}
@@ -875,7 +878,7 @@ export default function NutritionStatus({ user }) {
             >
               <tbody>
                 <tr>
-                  <td className="sf8-hdr-label" style={{ width: "10%" }}>School Name:</td>
+                  <td className="sf8-hdr-label sf8-hdr-label-lg" style={{ width: "10%" }}>School Name:</td>
                   <td className="sf8-hdr-value" style={{ width: "15%" }}>{sf8SchoolName}</td>
                   <td className="sf8-hdr-label" style={{ width: "9%" }}>District:</td>
                   <td className="sf8-hdr-value" style={{ width: "16%" }}>{sf8District}</td>
@@ -885,7 +888,7 @@ export default function NutritionStatus({ user }) {
                   <td className="sf8-hdr-value" style={{ width: "13%" }}>{sf8Region}</td>
                 </tr>
                 <tr>
-                  <td className="sf8-hdr-label">School ID:</td>
+                  <td className="sf8-hdr-label sf8-hdr-label-lg">School ID:</td>
                   <td className="sf8-hdr-value">{sf8SchoolId}</td>
                   <td className="sf8-hdr-label">Grade:</td>
                   <td className="sf8-hdr-value">{gradeLevel}</td>

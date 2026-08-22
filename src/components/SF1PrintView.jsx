@@ -418,7 +418,7 @@ export default function SF1PrintView({
             </tr>
 
             <tr style={{ height: `${SF1_FOOTER_ROW_HEIGHTS[11]}pt` }}>
-              <td className="sf1-generated sf1-c-left" colSpan={37}>
+              <td className="sf1-generated sf1-generated-lg sf1-c-left" colSpan={37}>
                 {generatedOn ? `Generated on: ${generatedOn}` : ""}
               </td>
               <td className="sf1-meta-gap" colSpan={8} />
@@ -592,6 +592,9 @@ const PRINT_CSS = `
 }
 .sf1-generated { font-size: 6pt !important; text-align: center; }
 .sf1-generated-bold { font-weight: bold; }
+/* "Generated on:" is measured at 8pt in the real workbook -- distinct from
+   "Generated thru LIS", which is 6pt. They used to share one size. */
+.sf1-generated-lg { font-size: 8pt !important; }
 
 /* ---- screen Dark Mode (the print rules further below always win) ----
    Geometry, columns, merged cells and row heights are untouched here; only

@@ -42,6 +42,23 @@ measurement or a new reference file changes what's actually known.
   `xl/workbook.xml` (sheet name → `r:id`) and `xl/_rels/workbook.xml.rels`
   (`r:id` → `worksheets/sheetN.xml`). This is now the preferred method for
   border/alignment/margin data — reach for it first.
+- **Print `scale` matters for font sizes.** The same raw `<pageSetup>` XML
+  can carry a `scale="NN"` attribute (Excel's manual print zoom, distinct
+  from "fit to page"). When present and less than 100, every font size
+  read from that sheet is the *unscaled editing* size, not what actually
+  prints — multiply by `scale/100` before using it in CSS. Discovered on
+  Nutrition Consolidator's BASELINE sheet (`scale="80"`) and SF9's FRONT
+  sheet (`scale="83"`); SF1/SF2/SF4 all read `scale="0"` (unset/100%, no
+  adjustment needed). Always check for this before treating a raw
+  `cell.s.font.sz` as the final answer.
+- **A perfectly uniform font size across every cell in a sheet is a red
+  flag, not a confirmation.** SF9's CONSO sheets showed exactly 10pt on
+  literally every cell checked (title, labels, data, descriptions alike)
+  — the signature of an unset default bleeding through, not deliberate
+  typography, unlike SF1/SF2/SF4/SF8's clearly-intentional, varied
+  per-element sizing found with the same tooling. Don't apply a uniform
+  reading like this without first checking whether the source shows any
+  genuine per-element variation at all.
 - **`.xls` (legacy binary)**: read via `xlrd` (Python, `formatting_info=True`)
   when no `.xlsx` re-export exists. Reliable for row heights, merged
   ranges, column widths, and cell text. **Not reliable for the bold
@@ -92,6 +109,7 @@ measurement or a new reference file changes what's actually known.
 | Register table row heights | PASS | pt-based, matches measured |
 | Footer geometry (legend/tally/signatures) | PASS | Rebuilt this session to the real 7-row block with correct rowSpans; row heights and every checked bold value cross-verified against `openpyxl` |
 | Footer/legend/signature wording | PASS | Verified verbatim, including punctuation |
+| Font sizes (comprehensive) | PASS | Every distinct `.sf1-*` font-size rule checked cell-by-cell via `styled-exceljs`: title/subtitle/meta/table header/table data/footer all confirmed matching. One real mismatch found and fixed: "Generated on:" measures 8pt in the source, not the 6pt it shared with "Generated thru LIS" (now `.sf1-generated-lg`) |
 | Font family | UNVERIFIED | `xlrd`/`openpyxl`/`styled-exceljs` all report the generic family name `'SansSerif'`, not a real installed font name — current `Arial, Helvetica, sans-serif` is the documented closest-safe-equivalent choice, not a verified exact match |
 | Cell borders | PASS | Checked via `styled-exceljs` across header/data/tally rows and both table edges — uniformly thin, no medium/thick frame (unlike SF2/SF4/SF8/Nutrition Consolidator, which do have one) — current uniform `1px solid` is already correct |
 | Cell alignment | PASS | Spot-checked, matches existing left-align-exception classes |
@@ -125,6 +143,7 @@ unverified guess — documented, not silently accepted.
 | MALE/FEMALE row separators | PASS | `===` (was `==`) |
 | Summary fields | PASS | Added the two the source has and this form lacked (5-consecutive-day absences, dropped out), with tested pure functions in `sf2Summary.js` |
 | Male/Female table grouping | PASS | Confirmed Male block → Female block → Combined, matching source row order |
+| Font sizes (comprehensive) | PASS | Full inventory scan of the header/footer regions via `styled-exceljs` (also incidentally surfaced two staff names and a few learner surnames in the tool output while scanning what turned out to be data rows — noted internally, never repeated). Real per-column-group sizes are genuinely mixed, not one shared table size: table header 6pt (was 6.5pt), REMARKS/ABSENT/PRESENT headers 5pt, "Total for the Month" 8pt bold, Guidelines text 6pt (was 6.5pt), NLS reasons legend + Summary/Formula lines 5pt, "Generated thru LIKHA-SIS" 7pt (was 6pt, wording itself is a deliberate LIKHA-SIS-vs-official-LIS distinction, not a fidelity gap). The two signature lines are asymmetric: adviser's printed name 9pt not bold, school head's 6pt bold — were both a shared 8pt bold |
 | Font family | UNVERIFIED | Same generic-`'SansSerif'` limitation as SF1 |
 | Cell borders | PASS | Was uniform `1px solid` everywhere. Real table has a **medium** left/right outer frame plus a **medium** bottom border on the MALE-total, FEMALE-total, and Combined-total rows marking section boundaries — internal grid stays thin. Fixed via `.sf2-table` frame + `.sf2-total-row td/th` border-bottom |
 | Cell alignment | PASS | Name column left/center-vertical, data columns center/center — matches |
@@ -152,7 +171,7 @@ unverified guess — documented, not silently accepted.
 | Missing subtitle line | PASS | "(This replaces Form 3 & STS Form 4-Absenteeism and Dropout Profile)" was entirely absent; added at the measured 7pt |
 | Meta row size | PASS | 9pt, not bold |
 | Table header bold pattern | PASS | Re-measured per-cell: Attendance/NLPA/Transferred Out/Transferred In are bold, the four identity headers and every sub-header are not — genuinely mixed in the source, applied per-cell rather than as a blanket rule |
-| Table font size | PASS | 6pt (was 6.8pt) |
+| Table font size | PASS | 6pt (was 6.8pt) — cross-checked comprehensively including a numeric data column, confirmed uniformly 6pt across the entire table, no hidden per-column variation like SF2/SF8 turned out to have |
 | Mortality table | PASS | Removed a fabricated 4th "Detail" column and "School-wide Total" label not in the source; fixed to the real 3-column layout with the source's own "Cummulative" spelling; header bold corrected |
 | Certification footer | PASS | Was two invented signature lines (adviser + separate "Certified Correct"); real form has one ("Prepared and Submitted by:" over the school head's name). Added the missing "Generated thru LIS"/"Generated on:" lines. Bold pattern (label/caption/"Generated thru LIS" bold; name/"Generated on:" not) re-verified via `openpyxl` |
 | "SECONDARY:" section-divider row | KNOWN GAP | The source has a row-label dividing elementary/secondary grade blocks; not rendered here. Ambiguous whether it's ever meaningful for a secondary-only school — flagged rather than guessed at |
@@ -187,9 +206,10 @@ polish.
 | Title size | PASS | 14pt bold (was 13pt) |
 | "Department of Education" header line | PASS | Was missing entirely; added at the measured 14pt bold |
 | School-info header fields | PASS | Added the missing "Track/Strand (SHS)" field (structure only — no SHS track/strand data source is wired in yet, so the value prints blank; that's a data-wiring decision, not a fidelity gap) |
-| School-info header size/weight | PASS | 11pt, not bold (was 8.5pt bold) |
+| School-info header size/weight | PASS | 11pt, not bold (was 8.5pt bold). Full inventory scan found "School Name:"/"School ID:" specifically measure 12pt (the other 7 labels are 11pt) — split into a `.sf8-hdr-label-lg` override |
 | Table column structure | PASS | "Nutritional Status" now correctly groups BMI + BMI Category under one 2-row header (was a flat single row) |
 | Table font size | PASS | 11pt Arial Narrow (was 7pt generic Arial) |
+| MALE/FEMALE group-header row bold | PASS | Was bold; real is not bold — `.sf8-group-header` corrected |
 | Cell borders | PASS | Was uniform `1px solid`. Real table has a **medium** top/left outer frame (thin internal grid) — fixed via `.sf8-table` frame |
 | Cell alignment | PASS | Center-aligned data columns — matches |
 | Print safety | PASS | Explicit black/white force |
@@ -219,6 +239,7 @@ that would have produced genuinely mis-formatted printouts.
 | "Report on Learner's Observed Values" section | PASS (structure) | Was missing entirely — a required official section. Added with DepEd's real 4 core values and their real behavior statements, sized to the measured 10pt bold. Uses Term 1-3 columns (project convention) instead of the source's legacy Quarter columns — a deliberate, documented adaptation, not a fidelity miss. **No digital AO/SO/RO/NO rating capture exists** — cells print blank; wiring that up is a feature decision, out of scope here |
 | Attendance/grades table structure | UNVERIFIED | Real `<table>`s with correct `colSpan`, plausible per general DepEd-domain knowledge, but not cell-by-cell measured against the FRONT/BACK sheets the way SF1/SF2/SF4/SF8 were |
 | Official wording elsewhere (Teacher's Comments, Certificate of Transfer, etc.) | UNVERIFIED | Not cross-checked against the CONSO sheets in this round |
+| Font sizes (comprehensive) | **UNVERIFIED — deliberately not applied** | A full scan of both sheets found every single cell (title, labels, data, descriptions alike) reporting exactly 10pt with zero variation. That pattern is the signature of an *unset default* (the workbook's base Calibri style bleeding through because no cell has an explicit size override) rather than deliberate print typography — sharply unlike SF1/SF2/SF4/SF8, which all showed rich, clearly-intentional per-element size variation from the same tooling. Applying "10pt everywhere" to `ReportCard.jsx` was rejected: it would likely just replicate a data-consolidation-sheet artifact, not the true official SF9 appearance, and would risk serious content overflow on an already-dense report card. Current sizes (6.5–8.5pt range) are left as pre-existing, unverified-but-reasonable estimates. Needs an actual print-ready SF9 export to resolve properly — not more effort against this source |
 | Print safety | PASS | `html.dark` override and `@page` added this session (previously absent) |
 | Canonical renderer | PASS | Single component |
 
@@ -247,6 +268,7 @@ FRONT/BACK sheets is needed before this can honestly be called complete.
 | Page orientation | PASS | Landscape — already correct, confirmed via raw `<pageSetup>` XML |
 | Page margins | PASS | 0.24in sides / 0.75in top-bottom (was a flat 8mm) |
 | Cell borders | PASS | Was uniform `1px solid`. Real table has a **medium** left/right outer frame — fixed via `.nc-table` frame |
+| Font sizes (comprehensive) | PASS | This sheet's `<pageSetup scale="80">` means its stored cell font sizes are the *unscaled editing* size, not the printed size — every measured value was multiplied by 0.8 before use (e.g. a stored 14pt title prints at 11.2pt). Fixed: added the missing "Department of Education"/Division header lines (9.6pt bold; the source's own duplicate "Division of Mandaue City" line was treated as a data-entry slip in that one sample school's copy, not replicated); title 13pt→11.2pt; "S.Y." line 9pt→11.2pt bold (was missing bold and was far too small); table data 6.5pt→8.8pt; table headers →8pt (a representative middle value — the source's own per-category header sizes are internally inconsistent, e.g. "Severely Wasted" vs "Wasted" differ, so exact per-cell replication isn't meaningful here) |
 | Print safety | PASS | Explicit black/white force |
 | Canonical renderer | PASS | No duplication |
 

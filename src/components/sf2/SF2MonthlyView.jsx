@@ -171,15 +171,15 @@ export default function SF2MonthlyView({
               {weekdays.map((w) => (
                 <th key={w.dateString} className="sf2-date-head">{w.day}</th>
               ))}
-              <th colSpan={2}>Total for the Month</th>
-              <th rowSpan={2}>REMARKS</th>
+              <th colSpan={2} className="sf2-total-month-head">Total for the Month</th>
+              <th rowSpan={2} className="sf2-remarks-head">REMARKS</th>
             </tr>
             <tr>
               {weekdays.map((w) => (
                 <th key={w.dateString} className="sf2-date-head">{w.label}</th>
               ))}
-              <th>ABSENT</th>
-              <th>PRESENT</th>
+              <th className="sf2-absent-present-head">ABSENT</th>
+              <th className="sf2-absent-present-head">PRESENT</th>
             </tr>
           </thead>
           <tbody>
@@ -356,12 +356,12 @@ export default function SF2MonthlyView({
             <div className="sf2-cert">I certify that this is a true and correct report.</div>
             <div className="sf2-sig">
               <div className="sf2-sig-box">
-                <div className="sf2-sig-line">{preparedBy}</div>
+                <div className="sf2-sig-line sf2-sig-line-adviser">{preparedBy}</div>
                 <div className="sf2-sig-label">(Signature of Adviser over Printed Name)</div>
               </div>
               <div className="sf2-sig-box">
                 <div className="sf2-sig-label sf2-sig-head-label">Attested by:</div>
-                <div className="sf2-sig-line">{certifiedBy}</div>
+                <div className="sf2-sig-line sf2-sig-line-head">{certifiedBy}</div>
                 <div className="sf2-sig-label">(Signature of School Head over Printed Name)</div>
               </div>
             </div>
@@ -425,10 +425,15 @@ const PRINT_CSS = `
   background: #fff;
   word-wrap: break-word;
 }
-.sf2-table th { font-weight: bold; background: #e8e8e8; }
+/* Measured via styled-exceljs: header sizes are not uniform in the source --
+   No./NAME/date sub-headers are 6pt, REMARKS and ABSENT/PRESENT are 5pt,
+   and "Total for the Month" is 8pt bold. */
+.sf2-table th { font-weight: bold; background: #e8e8e8; font-size: 6pt; }
 .sf2-c-name, .sf2-c-remarks { text-align: left !important; }
 .sf2-c-no { width: 2em; }
 .sf2-date-head { font-size: 6pt; }
+.sf2-total-month-head { font-size: 8pt; }
+.sf2-remarks-head, .sf2-absent-present-head { font-size: 5pt; }
 .sf2-row { height: 0.278in; }
 
 .sf2-mark-btn {
@@ -463,8 +468,12 @@ const PRINT_CSS = `
 .sf2-total-row td, .sf2-total-row th { border-bottom: 2px solid #000; }
 .sf2-combined-row { background: #cfcfcf; }
 
-.sf2-footer { display: flex; gap: 10px; margin-top: 8px; font-size: 6.5pt; line-height: 1.4; }
+/* Measured via styled-exceljs: Guidelines/attendance-codes text is 6pt;
+   the NLS reasons legend and the Summary/Formulas lines are 5pt -- not one
+   shared size across the footer. */
+.sf2-footer { display: flex; gap: 10px; margin-top: 8px; font-size: 6pt; line-height: 1.4; }
 .sf2-footer-col { flex: 1 1 0; min-width: 0; }
+.sf2-nls-group-title, .sf2-nls-item { font-size: 5pt; }
 .sf2-box-title { font-weight: bold; font-size: 7pt; margin-bottom: 2px; }
 .sf2-box-title-spaced { margin-top: 8px; }
 .sf2-guideline-line { margin: 0 0 2px 0; }
@@ -475,9 +484,10 @@ const PRINT_CSS = `
 .sf2-mini-table { border-collapse: collapse; width: 100%; margin-bottom: 4px; }
 .sf2-mini-table th, .sf2-mini-table td { border: 1px solid #000; text-align: center; padding: 1px 3px; color: #000; background: #fff; }
 
-.sf2-summary-line { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 2px; }
+.sf2-summary-line { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 2px; font-size: 5pt; }
 .sf2-summary-label { flex: 1; }
 .sf2-summary-value { font-weight: bold; }
+.sf2-formula-line { margin: 0 0 2px 0; font-size: 5pt; }
 .sf2-manual-input {
   width: 3.2em;
   text-align: right;
@@ -487,15 +497,19 @@ const PRINT_CSS = `
   background: #fff;
   padding: 0 2px;
 }
-.sf2-formula-line { margin: 0 0 2px 0; }
 
 .sf2-cert { font-weight: bold; font-size: 8pt; text-align: center; margin-top: 10px; margin-bottom: 6px; }
 .sf2-sig { display: flex; gap: 20px; }
 .sf2-sig-box { flex: 1; text-align: center; }
-.sf2-sig-line { border-bottom: 1px solid #000; min-height: 20px; padding-top: 8px; font-weight: bold; font-size: 8pt; text-transform: uppercase; }
+/* Measured via styled-exceljs: the two signature lines are NOT the same
+   size/weight in the source -- the adviser's printed name is 9pt, not
+   bold; the school head's is 6pt, bold. */
+.sf2-sig-line { border-bottom: 1px solid #000; min-height: 20px; padding-top: 8px; text-transform: uppercase; }
+.sf2-sig-line-adviser { font-size: 9pt; font-weight: normal; }
+.sf2-sig-line-head { font-size: 6pt; font-weight: bold; }
 .sf2-sig-label { font-size: 6pt; margin-top: 2px; }
-.sf2-sig-head-label { margin-bottom: 14px; }
-.sf2-generated { font-size: 6pt; text-align: right; margin-top: 4px; }
+.sf2-sig-head-label { margin-bottom: 14px; font-size: 8pt; }
+.sf2-generated { font-size: 7pt; text-align: right; margin-top: 4px; }
 
 /* ---- screen Dark Mode (the print rules further below always win) ---- */
 html.dark .sf2-print-view { background: #111827; }

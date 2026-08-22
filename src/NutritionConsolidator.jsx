@@ -192,13 +192,19 @@ export default function NutritionConsolidator({ goBack }) {
         .nc-table th, .nc-table td {
           border: 1px solid #000;
           padding: 2px 3px;
-          font-size: 6.5pt;
+          /* Real data-cell size measures 11pt, scaled by the sheet's own
+             80% print scale -> 8.8pt. Was 6.5pt (unscaled-source guess). */
+          font-size: 8.8pt;
           text-align: center;
           line-height: 1.2;
           color: #000;
           background: #fff;
         }
-        .nc-table th { background: #e8e8e8; font-weight: bold; }
+        /* Header sizes vary 8-12pt (6.4-9.6pt scaled) per-category in the
+           source with internal inconsistencies even between sibling
+           categories (e.g. "Severely Wasted" vs "Wasted" differ) -- 8pt is
+           the representative middle value, not a per-cell measurement. */
+        .nc-table th { background: #e8e8e8; font-weight: bold; font-size: 8pt; }
         .nc-cell-left { text-align: left !important; }
         .nc-grand-total td { font-weight: bold; background: #f0f0f0; }
       `}</style>
@@ -286,12 +292,24 @@ export default function NutritionConsolidator({ goBack }) {
       {isLoaded && (
         <div className="nc-print-area">
           <div style={{ padding: "0.4in 0.5in", fontFamily: "Arial, Helvetica, sans-serif" }}>
+            {/* Header block -- sizes measured via styled-exceljs against the
+                real workbook then adjusted for its page setup's 80% print
+                scale (e.g. a stored 14pt title prints at 14*0.8=11.2pt).
+                "Department of Education" and the Division line were missing
+                entirely; the source duplicates "Division of Mandaue City"
+                on two separate lines, which reads as a data-entry slip in
+                this one sample school's copy rather than an official
+                template requirement, so only one Division line is added. */}
             <div style={{ textAlign: "center", color: "#000" }}>
-              <div style={{ fontWeight: "bold", fontSize: "12pt" }}>{config?.schoolName || "—"}</div>
-              <div style={{ fontWeight: "bold", fontSize: "13pt", marginTop: "4px" }}>
+              <div style={{ fontWeight: "bold", fontSize: "9.6pt" }}>Department of Education</div>
+              {config?.divisionOffice && (
+                <div style={{ fontWeight: "bold", fontSize: "9.6pt" }}>Division of {config.divisionOffice}</div>
+              )}
+              <div style={{ fontWeight: "bold", fontSize: "9.6pt" }}>{config?.schoolName || "—"}</div>
+              <div style={{ fontWeight: "bold", fontSize: "11.2pt", marginTop: "4px" }}>
                 NUTRITIONAL STATUS {(result.period || "").toUpperCase()} REPORT OF STUDENTS
               </div>
-              <div style={{ fontSize: "9pt", marginTop: "2px" }}>S.Y. {result.schoolYear}</div>
+              <div style={{ fontWeight: "bold", fontSize: "11.2pt", marginTop: "2px" }}>S.Y. {result.schoolYear}</div>
             </div>
 
             <table className="nc-table" style={{ marginTop: "10px" }}>
