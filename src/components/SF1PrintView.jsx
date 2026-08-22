@@ -67,7 +67,14 @@ function formatBirthDate(value) {
   return s;
 }
 
-/** One learner row, in the official column order. */
+/**
+ * One learner row, in the official column order. Column alignment below is
+ * verified against the real workbook's per-cell XF records (font/alignment,
+ * values never read -- see the sf1-fidelity investigation notes), not
+ * eyeballed: LRN/mother tongue/IP/religion/address/guardian-relationship are
+ * left-aligned, birth date is right-aligned, sex/age/learning modality/
+ * remarks stay centered (the table's own default).
+ */
 function LearnerRow({ learner }) {
   const l = learner;
   return (
@@ -75,20 +82,20 @@ function LearnerRow({ learner }) {
       <td className="sf1-c-lrn">{l.lrn}</td>
       <td className="sf1-c-name">{learnerName(l)}</td>
       <td>{sexLetter(l.sex)}</td>
-      <td>{formatBirthDate(l.birthDate)}</td>
+      <td className="sf1-c-right">{formatBirthDate(l.birthDate)}</td>
       <td>{l.age}</td>
-      <td className="sf1-c-wrap">{l.motherTongue}</td>
-      <td className="sf1-c-wrap">{l.ipEthnicGroup}</td>
-      <td className="sf1-c-wrap">{l.religion}</td>
-      <td className="sf1-c-wrap">{l.houseStreetSitio}</td>
-      <td className="sf1-c-wrap">{l.barangay}</td>
-      <td className="sf1-c-wrap">{l.municipalityCity}</td>
-      <td className="sf1-c-wrap">{l.province}</td>
+      <td className="sf1-c-wrap sf1-c-left">{l.motherTongue}</td>
+      <td className="sf1-c-wrap sf1-c-left">{l.ipEthnicGroup}</td>
+      <td className="sf1-c-wrap sf1-c-left">{l.religion}</td>
+      <td className="sf1-c-wrap sf1-c-left">{l.houseStreetSitio}</td>
+      <td className="sf1-c-wrap sf1-c-left">{l.barangay}</td>
+      <td className="sf1-c-wrap sf1-c-left">{l.municipalityCity}</td>
+      <td className="sf1-c-wrap sf1-c-left">{l.province}</td>
       <td className="sf1-c-wrap sf1-c-left">{l.fathersName}</td>
       <td className="sf1-c-wrap sf1-c-left">{l.mothersMaidenName}</td>
       <td className="sf1-c-wrap sf1-c-left">{l.guardianName}</td>
-      <td className="sf1-c-wrap">{l.guardianRelationship}</td>
-      <td className="sf1-c-wrap">{l.contactNumber}</td>
+      <td className="sf1-c-wrap sf1-c-left">{l.guardianRelationship}</td>
+      <td className="sf1-c-wrap sf1-c-valign-top">{l.contactNumber}</td>
       <td className="sf1-c-wrap">{l.learningModality}</td>
       <td className="sf1-c-wrap">{l.remarks}</td>
     </tr>
@@ -420,30 +427,29 @@ const PRINT_CSS = `
 .sf1-head td {
   color: #000;
   background: #fff;
-  font-size: 7.5pt;
+  font-size: 8pt;
   padding: 0 2px;
   vertical-align: bottom;
   white-space: nowrap;
   overflow: hidden;
 }
 .sf1-title {
-  font-size: 11pt;
-  font-weight: bold;
-  text-align: left;
-  vertical-align: middle !important;
+  font-size: 21pt;
+  font-weight: normal;
+  text-align: center;
+  vertical-align: top !important;
 }
 .sf1-subtitle {
-  font-size: 6.5pt;
+  font-size: 7pt;
   font-style: italic;
-  text-align: left;
-  vertical-align: middle !important;
+  text-align: center;
+  vertical-align: top !important;
 }
-.sf1-meta-label { font-weight: normal; text-align: left; }
+.sf1-meta-label { font-weight: normal; text-align: right; }
 .sf1-meta-value {
-  border-bottom: 1px solid #000;
-  font-weight: bold;
-  text-align: left;
-  padding-left: 4px !important;
+  border: 1px solid #000;
+  font-weight: normal;
+  text-align: center;
 }
 .sf1-meta-gap { border: 0; }
 
@@ -459,7 +465,7 @@ const PRINT_CSS = `
   border: 1px solid #000;
   color: #000;
   background: #fff;
-  font-size: 5.5pt;
+  font-size: 7pt;
   line-height: 1.1;
   padding: 1px;
   text-align: center;
@@ -468,17 +474,19 @@ const PRINT_CSS = `
   overflow-wrap: break-word;
 }
 .sf1-table th {
-  font-weight: bold;
-  font-size: 5pt;
+  font-weight: normal;
+  font-size: 6pt;
   vertical-align: middle;
 }
 .sf1-row { height: 47pt; page-break-inside: avoid; }
-.sf1-c-lrn { font-size: 5.5pt; letter-spacing: -0.2px; }
+.sf1-c-lrn { text-align: left; letter-spacing: -0.2px; }
 .sf1-c-name { text-align: left !important; font-weight: normal; }
 .sf1-c-left { text-align: left !important; }
+.sf1-c-right { text-align: right !important; }
+.sf1-c-valign-top { vertical-align: top !important; }
 .sf1-c-wrap { hyphens: auto; }
 .sf1-tally { height: 20pt; }
-.sf1-tally td { font-weight: bold; }
+.sf1-tally .sf1-c-lrn { text-align: right; }
 
 /* ---- footer band: legend, REGISTERED tally, signatures, provenance ---- */
 .sf1-foot {
@@ -492,7 +500,7 @@ const PRINT_CSS = `
 .sf1-foot th {
   color: #000;
   background: #fff;
-  font-size: 5pt;
+  font-size: 6pt;
   line-height: 1.15;
   padding: 1px 2px;
   text-align: center;
@@ -500,10 +508,10 @@ const PRINT_CSS = `
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
-.sf1-foot th { border: 1px solid #000; font-weight: bold; }
+.sf1-foot th { border: 1px solid #000; font-weight: normal; }
 .sf1-legend-title {
-  font-size: 6pt !important;
-  font-weight: bold;
+  font-size: 8pt !important;
+  font-weight: normal;
   text-align: left !important;
   border: 0;
   padding-bottom: 2px !important;
@@ -515,31 +523,36 @@ const PRINT_CSS = `
 .sf1-c-center { text-align: center !important; }
 .sf1-reg-label {
   border: 1px solid #000;
-  font-size: 5.5pt !important;
-  text-align: left !important;
+  font-size: 6pt !important;
+  text-align: center !important;
+  vertical-align: middle !important;
 }
-.sf1-reg-value { border: 1px solid #000; font-size: 5.5pt !important; }
+.sf1-reg-value {
+  border: 1px solid #000;
+  font-size: 6pt !important;
+  vertical-align: middle !important;
+}
 .sf1-sign-label {
   border: 0 !important;
-  font-size: 6.5pt !important;
+  font-size: 6pt !important;
   text-align: left !important;
 }
 .sf1-sign-name {
-  font-size: 7pt !important;
-  font-weight: bold;
+  font-size: 6pt !important;
+  font-weight: normal;
   text-transform: uppercase;
   vertical-align: bottom !important;
   padding-top: 14px !important;
   border-bottom: 1px solid #000;
 }
-.sf1-sign-caption { font-size: 5.5pt !important; font-style: italic; }
+.sf1-sign-caption { font-size: 6pt !important; }
 .sf1-sign-dates {
   font-size: 6pt !important;
   text-align: left !important;
-  padding-top: 6px !important;
+  vertical-align: bottom !important;
 }
-.sf1-generated { font-size: 6pt !important; text-align: right; }
-.sf1-th-note { font-weight: normal !important; font-style: italic; }
+.sf1-generated { font-size: 6pt !important; text-align: center; }
+.sf1-th-note { font-weight: normal !important; }
 
 /* ---- screen Dark Mode (the print rules further below always win) ----
    Geometry, columns, merged cells and row heights are untouched here; only

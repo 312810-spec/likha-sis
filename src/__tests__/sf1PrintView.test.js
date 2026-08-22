@@ -356,3 +356,49 @@ describe("SF1 print view - title and footer bands match the LIS grid", () => {
     ).toBeTruthy();
   });
 });
+
+// Every value below is verified against the real workbook's own per-cell XF
+// (font/alignment) records -- extracted with xlrd, which resolves BIFF style
+// info the xlsx npm package could not for this .xls file -- not guessed or
+// "made to look more like a form". Several are deliberately counter-
+// intuitive (the title, table headers, and signature captions are NOT bold/
+// italic in the source), so this locks them in against being "corrected"
+// back to the more expected-looking values later.
+describe("SF1 print view - font weight/size/alignment match the real workbook", () => {
+  function cssText(container) {
+    return container.querySelector("style").textContent;
+  }
+
+  it("renders the title at 21pt, regular weight, centered -- not 11pt bold left", () => {
+    const css = cssText(renderSheet());
+    expect(css).toMatch(/\.sf1-title\s*\{[^}]*font-size:\s*21pt/);
+    expect(css).toMatch(/\.sf1-title\s*\{[^}]*font-weight:\s*normal/);
+    expect(css).toMatch(/\.sf1-title\s*\{[^}]*text-align:\s*center/);
+  });
+
+  it("does not bold the learner table's column headers", () => {
+    const css = cssText(renderSheet());
+    expect(css).toMatch(/\.sf1-table th\s*\{[^}]*font-weight:\s*normal/);
+  });
+
+  it("does not italicize the signature captions", () => {
+    const css = cssText(renderSheet());
+    const rule = css.match(/\.sf1-sign-caption\s*\{[^}]*\}/)?.[0] || "";
+    expect(rule).not.toMatch(/font-style:\s*italic/);
+  });
+
+  it("left-aligns LRN and the address/parentage columns, right-aligns birth date", () => {
+    const container = renderSheet();
+    const firstRow = container.querySelector(".sf1-table tbody tr.sf1-row:not(.sf1-tally)");
+    const cells = [...firstRow.children];
+    expect(cells[0].className).toContain("sf1-c-lrn"); // LRN -- left via .sf1-c-lrn
+    expect(cells[3].className).toContain("sf1-c-right"); // birth date
+    expect(cells[5].className).toContain("sf1-c-left"); // mother tongue
+  });
+
+  it("right-aligns the tally row's count despite sharing the LRN column class", () => {
+    const container = renderSheet();
+    const css = cssText(container);
+    expect(css).toMatch(/\.sf1-tally \.sf1-c-lrn\s*\{[^}]*text-align:\s*right/);
+  });
+});
