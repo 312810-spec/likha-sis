@@ -51,8 +51,14 @@ function buildLiveRows(learnerId, classRecordsList, getSubjectWeightsFn) {
       });
     }
     const entry = byYearGrade.get(key);
-    const subjectKey = String(record.subject ?? "").trim().toUpperCase();
-    if (!subjectKey) return;
+    const rawSubject = String(record.subject ?? "").trim();
+    if (!rawSubject) return;
+    // Same canonical-key resolution as buildImportedRows below (e.g. "EPP"
+    // and "TLE" both resolve to "EPP/TLE"), so a live class record's subject
+    // lines up with the same Annex G row an imported record for the same
+    // subject would use, instead of only matching by coincidence.
+    const matchRows = getImportMatchRows(record.schoolYear, record.gradeLevel);
+    const subjectKey = findCanonicalKey(rawSubject, matchRows) || rawSubject.toUpperCase();
     if (!entry.bySubject.has(subjectKey)) entry.bySubject.set(subjectKey, {});
     const termKey = String(record.term ?? "").trim();
     if (TERMS.includes(termKey)) {

@@ -1,8 +1,13 @@
 // src/ClassRecord.jsx
-// Class Record page for LIKHA-SIS.
-// Subject teachers enter scores and view live computed grades (PS, WS, Initial Grade, Term Grade, Description).
+// Class Record page for LIKHA-SIS -- the Guided Class Record Workspace.
+// Subject teachers enter scores across focused tabs (Written Works,
+// Performance Tasks, Summative Tests & Term Exam), review computed Results,
+// and can open the Official ECR Preview for the familiar combined view.
+// Grading math is never duplicated here -- every tab composes the same
+// verified utils/gradeComputations.js + utils/transmutationTable.js pipeline
+// via computeLearnerGrade below.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   collection,
   getDocs,
@@ -14,10 +19,11 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import Tooltip from "./components/Tooltip.jsx";
 import useSchoolConfig from "./hooks/useSchoolConfig";
 import useTeacherScope from "./hooks/useTeacherScope";
+import useAcademicCalendar from "./hooks/useAcademicCalendar";
 import { findClassRecordAssignment } from "./utils/teacherScope";
+import { buildClassRecordId } from "./utils/classRecordId";
 import { getSubjectWeights } from "./utils/subjectWeights";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { transmuteGrade, getGradeDescription } from "./utils/transmutationTable";
@@ -28,12 +34,69 @@ import {
   computeInitialGrade,
 } from "./utils/gradeComputations";
 import checkAutoFlagTriggers from "./utils/autoFlagTriggers";
-import { Plus, X, Save, RefreshCw, Info } from "lucide-react";
+import { Save, RotateCcw, RotateCw, RefreshCw, Info } from "lucide-react";
 import PageHeader from "./components/PageHeader.jsx";
 import Button from "./components/Button.jsx";
+import WrittenWorksPanel from "./components/classRecord/WrittenWorksPanel.jsx";
+import PerformanceTasksPanel from "./components/classRecord/PerformanceTasksPanel.jsx";
+import ExamPanel from "./components/classRecord/ExamPanel.jsx";
+import ResultsPanel from "./components/classRecord/ResultsPanel.jsx";
+import ECRPreview from "./components/classRecord/ECRPreview.jsx";
+
+const DEFAULT_WEIGHTS = { ww: 0.2, pt: 0.5, ex: 0.3 };
+const MAX_HISTORY = 20;
+const AUTOSAVE_DEBOUNCE_MS = 3000;
+
+// A brand-new Class Record starts with 3 Written Works and 3 Performance
+// Task columns already in place -- most subjects need more than one anyway,
+// and it's still just a starting point (Add/Remove both stay available).
+function makeDefaultWWItems() {
+  return [
+    { id: "ww1", hps: 0 },
+    { id: "ww2", hps: 0 },
+    { id: "ww3", hps: 0 },
+  ];
+}
+function makeDefaultPTItems() {
+  return [
+    { id: "pt1", hps: 0 },
+    { id: "pt2", hps: 0 },
+    { id: "pt3", hps: 0 },
+  ];
+}
+
+const TABS = [
+  { key: "ww", label: "Written Works" },
+  { key: "pt", label: "Performance Tasks" },
+  { key: "exam", label: "Summative Tests & Term Exam" },
+  { key: "results", label: "Results" },
+  { key: "ecr", label: "Official ECR Preview" },
+];
+
+// Turns a caught Firestore error into an honest, teacher-facing message.
+// Permission and offline/network problems are recognized from the actual
+// Firebase error code (never assumed), everything else falls back to a
+// message naming the specific step that failed -- so "check your
+// connection" is only ever shown when the problem is actually the
+// connection. The full technical error still goes to console.error at the
+// call site for developer debugging.
+function describeLoadError(err, { step, gradeLevel, section }) {
+  const code = err?.code;
+  if (code === "permission-denied") {
+    return "You do not have permission to open this Class Record. Please contact the ICT Coordinator.";
+  }
+  if (code === "unavailable" || (typeof navigator !== "undefined" && navigator.onLine === false)) {
+    return "LIKHA-SIS could not reach the school database. Check your connection and try again.";
+  }
+  if (step === "learners") {
+    return `The learner list for ${gradeLevel} — ${section} could not be loaded.`;
+  }
+  return "The Class Record could not be opened.";
+}
 
 export default function ClassRecord({ user, initialSelection }) {
   const { config } = useSchoolConfig();
+  const { schoolYears } = useAcademicCalendar();
 
   // Grade Level, Subject, and Section are fixed by the Sidebar leaf that
   // opened this page -- Class Record no longer offers a picker for any of
@@ -41,11 +104,6 @@ export default function ClassRecord({ user, initialSelection }) {
   // can have a record from a different school year.
   const [schoolYear, setSchoolYear] = useState("2026-2027");
 
-  // Canonical subject-teacher scope. classRecordCombos is the same flat,
-  // canonical {gradeLevel, subject, section, terms} list the Sidebar's
-  // Class Record tree is built from (see teacherScope.js
-  // resolveClassRecordCombos) -- a role: "adviser" assignment alone never
-  // contributes a combo here, only an explicit role: "subjectTeacher" entry.
   const { classRecordCombos, loading: scopeLoading } = useTeacherScope(user, schoolYear);
   const hasAnyAssignment = classRecordCombos.length > 0;
 
@@ -60,15 +118,16 @@ export default function ClassRecord({ user, initialSelection }) {
   const gradeLevel = matchedAssignment?.gradeLevel || "";
   const subject = matchedAssignment?.subject || "";
   const section = matchedAssignment?.section || "";
+  const isTleGrade9or10 = subject === "TLE" && (gradeLevel === "Grade 9" || gradeLevel === "Grade 10");
 
-  // Term options, restricted to what the matched assignment's `terms`
-  // actually covers (SHS-only; null/absent covers every term).
   const TERM_OPTIONS = ["Term 1", "Term 2", "Term 3"];
   const allowedTermOptions = matchedAssignment?.terms
     ? TERM_OPTIONS.filter((_, idx) => matchedAssignment.terms.includes(idx + 1))
     : TERM_OPTIONS;
   const [termChoice, setTerm] = useState("Term 1");
   const term = allowedTermOptions.includes(termChoice) ? termChoice : allowedTermOptions[0] || "Term 1";
+
+  const [activeTab, setActiveTab] = useState("ww");
 
   // Grid / Data state
   const [isLoaded, setIsLoaded] = useState(false);
@@ -78,11 +137,33 @@ export default function ClassRecord({ user, initialSelection }) {
   const [errorMessage, setErrorMessage] = useState("");
 
   const [learners, setLearners] = useState([]);
-  const [wwItems, setWwItems] = useState([{ id: "ww1", hps: 0 }]);
-  const [ptItems, setPtItems] = useState([{ id: "pt1", hps: 0 }]);
+  const [wwItems, setWwItems] = useState(makeDefaultWWItems());
+  const [ptItems, setPtItems] = useState(makeDefaultPTItems());
   const [exHPS, setExHPS] = useState({ st1: 0, st2: 0, te: 0 });
   const [scores, setScores] = useState({});
+  const [tleMajor, setTleMajor] = useState("");
   const [pendingFlagCandidates, setPendingFlagCandidates] = useState([]);
+
+  // In-session Undo: a short history of prior {wwItems, ptItems, exHPS,
+  // scores} snapshots, capped at MAX_HISTORY. This undoes typing, not a
+  // database rollback -- it never reaches back past a completed Save
+  // (handleSave doesn't push a history entry; it's the new starting point).
+  const [history, setHistory] = useState([]);
+  // Redo stays available only for as long as nothing new has been typed
+  // since the last Undo -- any real edit (pushHistoryAndMarkDirty) clears
+  // this, since "redo" no longer means anything once the timeline branches.
+  const [redoStack, setRedoStack] = useState([]);
+  // Bumped by every edit; drives the autosave debounce below. Reset to 0 on
+  // load and after a manual save so autosave never fires for data that's
+  // already exactly what's in the database.
+  const [changeVersion, setChangeVersion] = useState(0);
+  // changeVersion value as of the last successful persist (auto or manual)
+  // -- "Unsaved changes" is simply changeVersion > savedVersion, so no
+  // separate state has to be kept in sync with it.
+  const [savedVersion, setSavedVersion] = useState(0);
+  const [autosavePhase, setAutosavePhase] = useState("idle"); // idle | saving
+  const [lastAutosaveAt, setLastAutosaveAt] = useState(null);
+  const autosaveTimerRef = useRef(null);
 
   // DO 017 SHS: Grade 11/12 draw their subject weight profile from the
   // school's configured SHS subjects (core + elective-cluster subjects)
@@ -92,19 +173,71 @@ export default function ClassRecord({ user, initialSelection }) {
     ...((config?.shs?.electiveClusters || []).flatMap((cluster) => cluster.subjects || [])),
   ];
   const getSHSAwareWeights = makeSubjectWeightsResolver(shsSubjectList, getSubjectWeights);
+  const resolvedWeights = subject ? getSHSAwareWeights(subject) : null;
+  const subjectWeights = resolvedWeights || DEFAULT_WEIGHTS;
+  const usedFallbackWeights = !!matchedAssignment && !resolvedWeights;
 
-  // Helper to construct deterministic Firestore Document ID
-  // One class record per grade+section+subject+term+schoolYear -- the doc
-  // belongs to the CLASS, not to whichever teacher currently teaches it.
-  // `teacherId` is stored in the payload as last-editor metadata only (see
-  // handleSave), never as part of the document's identity, so a mid-year
-  // teacher reassignment doesn't orphan the existing scores. Firestore
-  // access is authorized by matching this exact grade/section/subject
-  // against the caller's own users/{uid}.assignmentKeys (see firestore.rules
-  // and utils/assignmentKeys.js) -- not by who originally saved it.
+  // Deterministic Firestore Document ID, built by the one canonical helper
+  // shared with the Dashboard's Class Record widget (see utils/
+  // classRecordId.js) -- one class record per grade+section+subject+term+
+  // schoolYear.
   function getDocId() {
-    const raw = `${gradeLevel}_${section.trim()}_${subject}_${term}_${schoolYear.trim()}`;
-    return raw.toLowerCase().replace(/\s+/g, "-");
+    return buildClassRecordId({ gradeLevel, section, subject, term, schoolYear });
+  }
+
+  function buildPayload() {
+    return {
+      teacherId: user?.uid || "unknown_teacher",
+      teacherEmail: user?.email || "",
+      subject,
+      gradeLevel,
+      section: section.trim(),
+      term,
+      schoolYear: schoolYear.trim(),
+      wwItems,
+      ptItems,
+      exHPS,
+      scores,
+      tleMajor,
+      updatedAt: serverTimestamp(),
+    };
+  }
+
+  // Snapshots pre-edit state onto the Undo stack and marks the record dirty
+  // (which arms the autosave timer). Must be called BEFORE the state setter
+  // in every mutating handler, using this render's own closure values.
+  function pushHistoryAndMarkDirty() {
+    setHistory((prev) => {
+      const next = [...prev, { wwItems, ptItems, exHPS, scores }];
+      return next.length > MAX_HISTORY ? next.slice(next.length - MAX_HISTORY) : next;
+    });
+    // A real edit invalidates any pending Redo -- the timeline has branched.
+    setRedoStack([]);
+    setChangeVersion((v) => v + 1);
+  }
+
+  function handleUndo() {
+    if (history.length === 0) return;
+    const last = history[history.length - 1];
+    setRedoStack((prev) => [...prev, { wwItems, ptItems, exHPS, scores }]);
+    setWwItems(last.wwItems);
+    setPtItems(last.ptItems);
+    setExHPS(last.exHPS);
+    setScores(last.scores);
+    setHistory((prev) => prev.slice(0, -1));
+    setChangeVersion((v) => v + 1);
+  }
+
+  function handleRedo() {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setHistory((prev) => [...prev, { wwItems, ptItems, exHPS, scores }]);
+    setWwItems(next.wwItems);
+    setPtItems(next.ptItems);
+    setExHPS(next.exHPS);
+    setScores(next.scores);
+    setRedoStack((prev) => prev.slice(0, -1));
+    setChangeVersion((v) => v + 1);
   }
 
   // Loads the assigned class record + its roster. Re-runs whenever the
@@ -126,8 +259,11 @@ export default function ClassRecord({ user, initialSelection }) {
       setErrorMessage("");
       setStatusMessage("");
 
+      // Step 1: learners for this exact grade+section -- never the whole
+      // school. Its own try/catch so a roster failure is never reported as
+      // "the Class Record could not be opened" (a different step).
+      let scopedLearners;
       try {
-        // 1. Learners for this exact grade+section -- never the whole school.
         const learnersSnap = await getDocs(
           query(
             collection(db, "learners"),
@@ -135,7 +271,7 @@ export default function ClassRecord({ user, initialSelection }) {
             where("section", "==", section)
           )
         );
-        const scopedLearners = learnersSnap.docs.map((docSnap) => ({
+        scopedLearners = learnersSnap.docs.map((docSnap) => ({
           id: docSnap.id,
           ...docSnap.data(),
         }));
@@ -144,11 +280,20 @@ export default function ClassRecord({ user, initialSelection }) {
           if (last !== 0) return last;
           return (a.firstName || "").toLowerCase().localeCompare((b.firstName || "").toLowerCase());
         });
-        if (cancelled) return;
-        setLearners(scopedLearners);
+      } catch (err) {
+        console.error("Error loading learner roster:", err);
+        if (!cancelled) {
+          setErrorMessage(describeLoadError(err, { step: "learners", gradeLevel, section }));
+          setIsLoading(false);
+        }
+        return;
+      }
+      if (cancelled) return;
+      setLearners(scopedLearners);
 
-        // 2. Fetch classRecord document using deterministic ID
-        const docId = getDocId();
+      // Step 2: fetch the classRecord document using the canonical ID.
+      try {
+        const docId = buildClassRecordId({ gradeLevel, section, subject, term, schoolYear });
         const recordRef = doc(db, "classRecords", docId);
         const recordSnap = await getDoc(recordRef);
         if (cancelled) return;
@@ -158,28 +303,38 @@ export default function ClassRecord({ user, initialSelection }) {
           setWwItems(
             Array.isArray(data.wwItems) && data.wwItems.length > 0
               ? data.wwItems
-              : [{ id: "ww1", hps: 0 }]
+              : makeDefaultWWItems()
           );
           setPtItems(
             Array.isArray(data.ptItems) && data.ptItems.length > 0
               ? data.ptItems
-              : [{ id: "pt1", hps: 0 }]
+              : makeDefaultPTItems()
           );
           setExHPS(data.exHPS || { st1: 0, st2: 0, te: 0 });
           setScores(data.scores || {});
+          setTleMajor(data.tleMajor || "");
         } else {
           // Initialize with default template
-          setWwItems([{ id: "ww1", hps: 0 }]);
-          setPtItems([{ id: "pt1", hps: 0 }]);
+          setWwItems(makeDefaultWWItems());
+          setPtItems(makeDefaultPTItems());
           setExHPS({ st1: 0, st2: 0, te: 0 });
           setScores({});
+          setTleMajor("");
         }
 
+        // A freshly-loaded record has no unsaved edits and no undo/redo
+        // history of its own yet.
+        setHistory([]);
+        setRedoStack([]);
+        setChangeVersion(0);
+        setSavedVersion(0);
+        setAutosavePhase("idle");
+        setLastAutosaveAt(null);
         setIsLoaded(true);
       } catch (err) {
         console.error("Error loading class record:", err);
         if (!cancelled) {
-          setErrorMessage("Failed to load class record. Please check your connection and try again.");
+          setErrorMessage(describeLoadError(err, { step: "record", gradeLevel, section }));
         }
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -190,10 +345,37 @@ export default function ClassRecord({ user, initialSelection }) {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSelection, matchedAssignment, gradeLevel, subject, section, term, schoolYear]);
 
-  // Save current record to Firestore
+  // Quiet background autosave, debounced AUTOSAVE_DEBOUNCE_MS after the
+  // last edit (changeVersion only increments on an actual teacher edit --
+  // see pushHistoryAndMarkDirty). Persists raw scores only; never runs the
+  // LARDO risk check (that stays tied to a deliberate Save Class Record
+  // press, per the "don't generate LARDO candidates from every keystroke"
+  // rule) and never shows the loud "Class record saved!" banner.
+  useEffect(() => {
+    if (changeVersion === 0 || !matchedAssignment) return undefined;
+    const versionAtSchedule = changeVersion;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(async () => {
+      setAutosavePhase("saving");
+      try {
+        const docId = getDocId();
+        await setDoc(doc(db, "classRecords", docId), buildPayload(), { merge: true });
+        setSavedVersion(versionAtSchedule);
+        setLastAutosaveAt(new Date());
+      } catch (err) {
+        console.error("Autosave failed:", err);
+      } finally {
+        setAutosavePhase("idle");
+      }
+    }, AUTOSAVE_DEBOUNCE_MS);
+    return () => clearTimeout(autosaveTimerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [changeVersion]);
+
+  // Save current record to Firestore (the full, deliberate save -- the only
+  // one that evaluates the LARDO auto-flag trigger).
   async function handleSave() {
     // Defense in depth: re-verified here too, in case client state was
     // manipulated -- never save outside this teacher's own classRecordCombos.
@@ -208,34 +390,14 @@ export default function ClassRecord({ user, initialSelection }) {
 
     try {
       const docId = getDocId();
-      // Last-editor metadata only -- NOT part of the doc's identity (see
-      // getDocId) and not what authorizes the write; firestore.rules
-      // checks the caller's own assignmentKeys against subject/gradeLevel/
-      // section instead, so a different teacher later assigned to this
-      // exact class can open and save the same record.
-      const teacherId = user?.uid || "unknown_teacher";
-      const teacherEmail = user?.email || "";
-
-      const payload = {
-        teacherId,
-        teacherEmail,
-        subject,
-        gradeLevel,
-        section: section.trim(),
-        term,
-        schoolYear: schoolYear.trim(),
-        wwItems,
-        ptItems,
-        exHPS,
-        scores,
-        updatedAt: serverTimestamp(),
-      };
-
       const recordRef = doc(db, "classRecords", docId);
-      await setDoc(recordRef, payload, { merge: true });
+      await setDoc(recordRef, buildPayload(), { merge: true });
 
       setStatusMessage("Class record saved successfully!");
       setTimeout(() => setStatusMessage(""), 4000);
+      setChangeVersion(0);
+      setSavedVersion(0);
+      setLastAutosaveAt(null);
 
       // DO 15 s.2026 closed-loop check: Initial Grade below the 70
       // intervention threshold suggests a LARDO risk flag.
@@ -269,11 +431,12 @@ export default function ClassRecord({ user, initialSelection }) {
     }
   }
 
-  // --- Item Column Handlers ---
+  // --- Assessment (WW/PT) management: add, remove (with confirmation when
+  // the assessment already has scores), HPS edits. ---
 
   function addWWItem() {
-    const newId = `ww_${Date.now()}`;
-    setWwItems([...wwItems, { id: newId, hps: 0 }]);
+    pushHistoryAndMarkDirty();
+    setWwItems((prev) => [...prev, { id: `ww_${Date.now()}`, hps: 0 }]);
   }
 
   function removeWWItem(itemId) {
@@ -282,6 +445,18 @@ export default function ClassRecord({ user, initialSelection }) {
       setTimeout(() => setErrorMessage(""), 3000);
       return;
     }
+    const idx = wwItems.findIndex((item) => item.id === itemId);
+    const scoredCount = learners.filter((l) => {
+      const v = scores[l.id]?.ww?.[itemId];
+      return typeof v === "number" && !Number.isNaN(v);
+    }).length;
+    if (scoredCount > 0) {
+      const confirmed = window.confirm(
+        `WW${idx + 1} already contains scores for ${scoredCount} learner${scoredCount === 1 ? "" : "s"}. Remove this assessment and its scores?`
+      );
+      if (!confirmed) return;
+    }
+    pushHistoryAndMarkDirty();
     setWwItems((prev) => prev.filter((item) => item.id !== itemId));
     setScores((prev) => {
       const updated = { ...prev };
@@ -297,15 +472,14 @@ export default function ClassRecord({ user, initialSelection }) {
   }
 
   function updateWWHPS(idx, val) {
-    const updated = [...wwItems];
+    pushHistoryAndMarkDirty();
     const num = val === "" ? 0 : Number(val);
-    updated[idx] = { ...updated[idx], hps: isNaN(num) ? 0 : num };
-    setWwItems(updated);
+    setWwItems((prev) => prev.map((item, i) => (i === idx ? { ...item, hps: Number.isNaN(num) ? 0 : num } : item)));
   }
 
   function addPTItem() {
-    const newId = `pt_${Date.now()}`;
-    setPtItems([...ptItems, { id: newId, hps: 0 }]);
+    pushHistoryAndMarkDirty();
+    setPtItems((prev) => [...prev, { id: `pt_${Date.now()}`, hps: 0 }]);
   }
 
   function removePTItem(itemId) {
@@ -314,6 +488,18 @@ export default function ClassRecord({ user, initialSelection }) {
       setTimeout(() => setErrorMessage(""), 3000);
       return;
     }
+    const idx = ptItems.findIndex((item) => item.id === itemId);
+    const scoredCount = learners.filter((l) => {
+      const v = scores[l.id]?.pt?.[itemId];
+      return typeof v === "number" && !Number.isNaN(v);
+    }).length;
+    if (scoredCount > 0) {
+      const confirmed = window.confirm(
+        `PT${idx + 1} already contains scores for ${scoredCount} learner${scoredCount === 1 ? "" : "s"}. Remove this assessment and its scores?`
+      );
+      if (!confirmed) return;
+    }
+    pushHistoryAndMarkDirty();
     setPtItems((prev) => prev.filter((item) => item.id !== itemId));
     setScores((prev) => {
       const updated = { ...prev };
@@ -329,79 +515,87 @@ export default function ClassRecord({ user, initialSelection }) {
   }
 
   function updatePTHPS(idx, val) {
-    const updated = [...ptItems];
+    pushHistoryAndMarkDirty();
     const num = val === "" ? 0 : Number(val);
-    updated[idx] = { ...updated[idx], hps: isNaN(num) ? 0 : num };
-    setPtItems(updated);
+    setPtItems((prev) => prev.map((item, i) => (i === idx ? { ...item, hps: Number.isNaN(num) ? 0 : num } : item)));
   }
 
   function updateExHPS(field, val) {
+    pushHistoryAndMarkDirty();
     const num = val === "" ? 0 : Number(val);
-    setExHPS((prev) => ({
-      ...prev,
-      [field]: isNaN(num) ? 0 : num,
-    }));
+    setExHPS((prev) => ({ ...prev, [field]: Number.isNaN(num) ? 0 : num }));
   }
 
-  // --- Learner Score Handlers ---
+  // --- Learner score handlers. Each rejects (rather than silently clamps)
+  // a score above that item's HPS, per the Score Input Safety requirement. ---
+
+  function showScoreTooHighError(hps) {
+    setErrorMessage(`Score cannot be higher than the Highest Possible Score of ${hps}.`);
+    setTimeout(() => setErrorMessage(""), 4000);
+  }
 
   function updateLearnerWWScore(learnerId, itemId, val) {
+    if (val !== "") {
+      const num = Number(val);
+      if (Number.isNaN(num)) return;
+      const hps = Number(wwItems.find((i) => i.id === itemId)?.hps) || 0;
+      if (hps > 0 && num > hps) {
+        showScoreTooHighError(hps);
+        return;
+      }
+    }
+    pushHistoryAndMarkDirty();
     const num = val === "" ? "" : Number(val);
     setScores((prev) => ({
       ...prev,
-      [learnerId]: {
-        ...prev[learnerId],
-        ww: {
-          ...prev[learnerId]?.ww,
-          [itemId]: isNaN(num) ? "" : num,
-        },
-      },
+      [learnerId]: { ...prev[learnerId], ww: { ...prev[learnerId]?.ww, [itemId]: num } },
     }));
   }
 
   function updateLearnerPTScore(learnerId, itemId, val) {
+    if (val !== "") {
+      const num = Number(val);
+      if (Number.isNaN(num)) return;
+      const hps = Number(ptItems.find((i) => i.id === itemId)?.hps) || 0;
+      if (hps > 0 && num > hps) {
+        showScoreTooHighError(hps);
+        return;
+      }
+    }
+    pushHistoryAndMarkDirty();
     const num = val === "" ? "" : Number(val);
     setScores((prev) => ({
       ...prev,
-      [learnerId]: {
-        ...prev[learnerId],
-        pt: {
-          ...prev[learnerId]?.pt,
-          [itemId]: isNaN(num) ? "" : num,
-        },
-      },
+      [learnerId]: { ...prev[learnerId], pt: { ...prev[learnerId]?.pt, [itemId]: num } },
     }));
   }
 
   function updateLearnerExamScore(learnerId, field, val) {
+    if (val !== "") {
+      const num = Number(val);
+      if (Number.isNaN(num)) return;
+      const hps = Number(exHPS[field]) || 0;
+      if (hps > 0 && num > hps) {
+        showScoreTooHighError(hps);
+        return;
+      }
+    }
+    pushHistoryAndMarkDirty();
     const num = val === "" ? "" : Number(val);
     setScores((prev) => ({
       ...prev,
-      [learnerId]: {
-        ...prev[learnerId],
-        [field]: isNaN(num) ? "" : num,
-      },
+      [learnerId]: { ...prev[learnerId], [field]: num },
     }));
   }
 
-  // Helper to format computed values cleanly
-  function formatComputed(val, decimals = 2) {
-    if (val === null || val === undefined || typeof val !== "number" || isNaN(val)) {
-      return "—";
-    }
-    return val.toFixed(decimals);
-  }
-
-  const subjectWeights = getSHSAwareWeights(subject) || { ww: 0.2, pt: 0.5, ex: 0.3 };
-
-  // Shared by the live grid render and the post-save auto-flag check, so the
-  // Initial Grade used for both never drifts apart.
+  // Shared by every tab and the post-save auto-flag check, so the Initial
+  // Grade used everywhere never drifts apart.
   function computeLearnerGrade(learner) {
     const learnerScore = scores[learner.id] || {};
 
     const wwRaw = wwItems.map((item) => {
       const val = learnerScore.ww?.[item.id];
-      return typeof val === "number" && !isNaN(val) ? val : 0;
+      return typeof val === "number" && !Number.isNaN(val) ? val : 0;
     });
     const wwHPSArr = wwItems.map((item) => Number(item.hps) || 0);
     const wwPS = computeComponentPS(wwRaw, wwHPSArr);
@@ -409,15 +603,15 @@ export default function ClassRecord({ user, initialSelection }) {
 
     const ptRaw = ptItems.map((item) => {
       const val = learnerScore.pt?.[item.id];
-      return typeof val === "number" && !isNaN(val) ? val : 0;
+      return typeof val === "number" && !Number.isNaN(val) ? val : 0;
     });
     const ptHPSArr = ptItems.map((item) => Number(item.hps) || 0);
     const ptPS = computeComponentPS(ptRaw, ptHPSArr);
     const ptWS = computeWeightedScore(ptPS, subjectWeights.pt);
 
-    const st1Raw = typeof learnerScore.st1 === "number" && !isNaN(learnerScore.st1) ? learnerScore.st1 : 0;
-    const st2Raw = typeof learnerScore.st2 === "number" && !isNaN(learnerScore.st2) ? learnerScore.st2 : 0;
-    const teRaw = typeof learnerScore.te === "number" && !isNaN(learnerScore.te) ? learnerScore.te : 0;
+    const st1Raw = typeof learnerScore.st1 === "number" && !Number.isNaN(learnerScore.st1) ? learnerScore.st1 : 0;
+    const st2Raw = typeof learnerScore.st2 === "number" && !Number.isNaN(learnerScore.st2) ? learnerScore.st2 : 0;
+    const teRaw = typeof learnerScore.te === "number" && !Number.isNaN(learnerScore.te) ? learnerScore.te : 0;
 
     const st1HPS = Number(exHPS.st1) || 0;
     const st2HPS = Number(exHPS.st2) || 0;
@@ -436,22 +630,47 @@ export default function ClassRecord({ user, initialSelection }) {
     return { wwPS, wwWS, ptPS, ptWS, exPS, exWS, initialGrade, termGrade, description };
   }
 
+  function getWWScore(learnerId, itemId) {
+    return scores[learnerId]?.ww?.[itemId] ?? "";
+  }
+  function getPTScore(learnerId, itemId) {
+    return scores[learnerId]?.pt?.[itemId] ?? "";
+  }
+  function getExamScore(learnerId, field) {
+    return scores[learnerId]?.[field] ?? "";
+  }
+
+  const autosaveLabel = (() => {
+    if (autosavePhase === "saving") return "Saving…";
+    if (changeVersion > savedVersion) return "Unsaved changes";
+    if (lastAutosaveAt) return `Saved automatically at ${lastAutosaveAt.toLocaleTimeString()}`;
+    return "";
+  })();
+
   return (
     <div className="space-y-6 max-w-none w-full">
-      {/* Top Banner / Navigation */}
       <PageHeader
-        description="Enter scores and calculate DepEd grades live based on subject weights."
+        description="Enter scores and review DepEd grades, organized by Written Works, Performance Tasks, Summative Tests & Term Exam, and Results."
         actions={
           isLoaded && (
-            <Button onClick={handleSave} disabled={isSaving}>
-              <Save size={18} />
-              {isSaving ? "Saving..." : "Save Class Record"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={handleUndo} disabled={history.length === 0}>
+                <RotateCcw size={16} />
+                Undo
+              </Button>
+              <Button variant="secondary" onClick={handleRedo} disabled={redoStack.length === 0}>
+                <RotateCw size={16} />
+                Redo
+              </Button>
+              <Button onClick={handleSave} disabled={isSaving}>
+                <Save size={18} />
+                {isSaving ? "Saving..." : "Save Class Record"}
+              </Button>
+            </div>
           )
         }
       />
 
-      {/* Global Status Banner */}
       {statusMessage && (
         <div className="animate-fade-in p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-xl text-sm font-medium">
           {statusMessage}
@@ -462,8 +681,13 @@ export default function ClassRecord({ user, initialSelection }) {
           {errorMessage}
         </div>
       )}
+      {usedFallbackWeights && (
+        <div className="animate-fade-in p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 rounded-xl text-sm font-medium">
+          This subject's DepEd weight profile could not be determined automatically. Using the default
+          Core weighting (20% / 50% / 30%). Contact your ICT Coordinator if this looks wrong.
+        </div>
+      )}
 
-      {/* Auto-flag confirmation banners (Initial Grade below 70) */}
       {pendingFlagCandidates.map((c) => (
         <div
           key={c.docId}
@@ -489,17 +713,11 @@ export default function ClassRecord({ user, initialSelection }) {
                     schoolYear: schoolYear.trim(),
                     riskFactors: c.trigger.riskFactors,
                     status: "monitoring",
-                    interventions: [
-                      {
-                        date: nowIso,
-                        note: c.trigger.suggestedNote,
-                      },
-                    ],
+                    interventions: [{ date: nowIso, note: c.trigger.suggestedNote }],
                     flaggedDate: nowIso,
                     flaggedByEmail: user?.email || "",
                     updatedAt: serverTimestamp(),
                   };
-
                   await setDoc(doc(db, "lardoRecords", c.docId), newRecordData, { merge: true });
                   setPendingFlagCandidates((prev) => prev.filter((p) => p.docId !== c.docId));
                 } catch (err) {
@@ -521,20 +739,13 @@ export default function ClassRecord({ user, initialSelection }) {
         </div>
       ))}
 
-      {/* Fixed identity, fail-closed states -- Class Record no longer offers
-          a Grade/Section/Subject picker of any kind. A record can only be
-          opened from an assigned Sidebar leaf (Grade Level > Subject >
-          Section), which is re-verified against this teacher's own
-          classRecordCombos below (see teacherScope.js findClassRecordAssignment). */}
       {scopeLoading ? (
         <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 text-sm text-gray-500 dark:text-gray-400">
           Loading your class assignments…
         </div>
       ) : !hasAnyAssignment ? (
         <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 space-y-2">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-            No class records assigned.
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">No class records assigned.</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             You haven't been assigned as a subject teacher for any class. Ask your ICT Coordinator to
             set this up in User Management. An advisory assignment alone does not grant Class Record
@@ -543,9 +754,7 @@ export default function ClassRecord({ user, initialSelection }) {
         </div>
       ) : !initialSelection ? (
         <div className="max-w-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card p-6 space-y-2">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
-            Select a Class Record
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Select a Class Record</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Open the Class Record menu in the sidebar and pick a Grade Level, then a Subject, then a
             Section.
@@ -564,16 +773,13 @@ export default function ClassRecord({ user, initialSelection }) {
           <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
         </div>
       ) : (
-        /* SCORE GRID VIEW */
         <div className="space-y-4">
-          {/* Info Summary Strip: Grade/Subject/Section are the fixed,
-              read-only identity of this Class Record (set by the Sidebar
-              leaf that opened it); Term and School Year stay live controls. */}
+          {/* Top context strip */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 text-sm shadow-card">
             <div className="flex flex-wrap items-center gap-6">
               <div>
                 <span className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold">Class Record</span>
-                <span className="font-bold text-gray-800 dark:text-gray-100">
+                <span className="font-bold text-base text-gray-800 dark:text-gray-100">
                   {gradeLevel} <span className="text-gray-400 dark:text-gray-500 font-normal">›</span> {subject}{" "}
                   <span className="text-gray-400 dark:text-gray-500 font-normal">›</span> {section}
                 </span>
@@ -586,7 +792,7 @@ export default function ClassRecord({ user, initialSelection }) {
                   id="crTerm"
                   value={term}
                   onChange={(e) => setTerm(e.target.value)}
-                  className="px-2 py-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                  className="px-2 py-1.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
                 >
                   {allowedTermOptions.map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -597,18 +803,44 @@ export default function ClassRecord({ user, initialSelection }) {
                 <label htmlFor="crSchoolYear" className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold mb-1">
                   School Year
                 </label>
-                <input
+                <select
                   id="crSchoolYear"
-                  type="text"
                   value={schoolYear}
                   onChange={(e) => setSchoolYear(e.target.value)}
-                  className="w-28 px-2 py-1 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
-                />
+                  className="px-2 py-1.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                >
+                  {schoolYears.map((sy) => (
+                    <option key={sy} value={sy}>{sy}</option>
+                  ))}
+                </select>
               </div>
+              {isTleGrade9or10 && (
+                <div>
+                  <label htmlFor="crTleMajor" className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold mb-1">
+                    TLE Major (this term)
+                  </label>
+                  <select
+                    id="crTleMajor"
+                    value={tleMajor}
+                    onChange={(e) => {
+                      pushHistoryAndMarkDirty();
+                      setTleMajor(e.target.value);
+                    }}
+                    className="px-2 py-1.5 border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-colors"
+                  >
+                    <option value="">Not set</option>
+                    {(config?.tleMajors || []).map((major) => (
+                      <option key={major} value={major}>{major}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <span className="text-gray-500 dark:text-gray-400 text-xs uppercase block font-semibold">Weights</span>
                 <span className="text-gray-700 dark:text-gray-300">
-                  WW: {(subjectWeights.ww * 100).toFixed(0)}% | PT: {(subjectWeights.pt * 100).toFixed(0)}% | EX: {(subjectWeights.ex * 100).toFixed(0)}%
+                  Written Works {(subjectWeights.ww * 100).toFixed(0)}% · Performance Tasks{" "}
+                  {(subjectWeights.pt * 100).toFixed(0)}% · Summative Tests &amp; Term Exam{" "}
+                  {(subjectWeights.ex * 100).toFixed(0)}%
                 </span>
               </div>
             </div>
@@ -618,348 +850,78 @@ export default function ClassRecord({ user, initialSelection }) {
                   <RefreshCw size={12} className="animate-spin" /> Reloading…
                 </span>
               )}
+              {autosaveLabel && <span>{autosaveLabel}</span>}
               Learners: <span className="font-bold text-gray-800 dark:text-gray-100">{learners.length}</span>
             </div>
           </div>
 
-          {/* Grid Container */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-card overflow-hidden">
-            <div className="overflow-x-auto max-h-[70vh]">
-              <table className="w-full border-collapse text-xs text-left">
-                {/* Header Group 1: Category Sections */}
-                <thead>
-                  <tr className="bg-primary text-white sticky top-0 z-20 font-semibold border-b border-primary-dark">
-                    <th className="px-3 py-2 border-r border-white/20 sticky left-0 z-30 bg-primary min-w-[200px]" rowSpan={2}>
-                      Learner Name
-                    </th>
-                    {/* Written Work Section */}
-                    <th className="px-2 py-1.5 text-center border-r border-white/20" colSpan={wwItems.length + 2}>
-                      <div className="flex items-center justify-between gap-2 px-1">
-                        <span>WRITTEN WORK ({(subjectWeights.ww * 100).toFixed(0)}%)</span>
-                        <button
-                          onClick={addWWItem}
-                          className="px-1.5 py-0.5 bg-white/20 hover:bg-white/30 text-white rounded text-[11px] font-normal transition-colors duration-150 active:scale-[0.98] transition-transform flex items-center gap-1"
-                          title="Add WW Column"
-                          type="button"
-                        >
-                          <Plus size={12} /> Add WW
-                        </button>
-                      </div>
-                    </th>
-
-                    {/* Performance Tasks Section */}
-                    <th className="px-2 py-1.5 text-center border-r border-white/20" colSpan={ptItems.length + 2}>
-                      <div className="flex items-center justify-between gap-2 px-1">
-                        <span>PERFORMANCE TASKS ({(subjectWeights.pt * 100).toFixed(0)}%)</span>
-                        <button
-                          onClick={addPTItem}
-                          className="px-1.5 py-0.5 bg-white/20 hover:bg-white/30 text-white rounded text-[11px] font-normal transition-colors duration-150 active:scale-[0.98] transition-transform flex items-center gap-1"
-                          title="Add PT Column"
-                          type="button"
-                        >
-                          <Plus size={12} /> Add PT
-                        </button>
-                      </div>
-                    </th>
-
-                    {/* Quarterly Assessment / Exam Section */}
-                    <th className="px-2 py-1.5 text-center border-r border-white/20" colSpan={5}>
-                      QUARTERLY EXAM ({(subjectWeights.ex * 100).toFixed(0)}%)
-                    </th>
-
-                    {/* Final Grade Summary Section */}
-                    <th className="px-2 py-1.5 text-center" colSpan={3}>
-                      SUMMARY
-                    </th>
-                  </tr>
-
-                  {/* Header Group 2: Sub-headers */}
-                  <tr className="bg-primary-light text-white sticky top-[33px] z-20 text-[11px] font-semibold border-b border-primary-dark">
-                    {/* WW sub-headers */}
-                    {wwItems.map((item, idx) => (
-                      <th key={item.id} className="px-2 py-1.5 text-center border-r border-white/20 min-w-[60px]">
-                        <div className="flex items-center justify-center gap-1">
-                          <span>WW{idx + 1}</span>
-                          <button
-                            onClick={() => removeWWItem(item.id)}
-                            className="text-white/60 hover:text-white transition-colors duration-150 active:scale-[0.98] transition-transform"
-                            title="Remove column"
-                            type="button"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      </th>
-                    ))}
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
-                      <Tooltip position="bottom" label="Written Work Percentage Score">WW PS</Tooltip>
-                    </th>
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
-                      <Tooltip position="bottom" label="Written Work Weighted Score">WW WS</Tooltip>
-                    </th>
-
-                    {/* PT sub-headers */}
-                    {ptItems.map((item, idx) => (
-                      <th key={item.id} className="px-2 py-1.5 text-center border-r border-white/20 min-w-[60px]">
-                        <div className="flex items-center justify-center gap-1">
-                          <span>PT{idx + 1}</span>
-                          <button
-                            onClick={() => removePTItem(item.id)}
-                            className="text-white/60 hover:text-white transition-colors duration-150 active:scale-[0.98] transition-transform"
-                            title="Remove column"
-                            type="button"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      </th>
-                    ))}
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
-                      <Tooltip position="bottom" label="Performance Task Percentage Score">PT PS</Tooltip>
-                    </th>
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
-                      <Tooltip position="bottom" label="Performance Task Weighted Score">PT WS</Tooltip>
-                    </th>
-
-                    {/* EX sub-headers */}
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 min-w-[55px]">
-                      <Tooltip position="bottom" label="Summative Test 1 — 30% of the Exam component">ST1</Tooltip>
-                    </th>
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 min-w-[55px]">
-                      <Tooltip position="bottom" label="Summative Test 2 — 30% of the Exam component">ST2</Tooltip>
-                    </th>
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 min-w-[55px]">
-                      <Tooltip position="bottom" label="Term Exam — 40% of the Exam component">TE</Tooltip>
-                    </th>
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
-                      <Tooltip position="bottom" label="Exam Percentage Score">EX PS</Tooltip>
-                    </th>
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-primary-dark/40 min-w-[60px]">
-                      <Tooltip position="bottom" label="Exam Weighted Score">EX WS</Tooltip>
-                    </th>
-
-                    {/* Summary sub-headers */}
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-accent-dark/80 min-w-[70px]">
-                      <Tooltip position="bottom" label="Raw computed grade before DO 15 transmutation">Init Grade</Tooltip>
-                    </th>
-                    <th className="px-2 py-1.5 text-center border-r border-white/20 bg-accent-dark/90 min-w-[70px]">
-                      <Tooltip position="bottom" label="Final grade after transmutation table">Term Grade</Tooltip>
-                    </th>
-                    <th className="px-2 py-1.5 text-center min-w-[130px]">Description</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {/* HPS (Highest Possible Score) Row */}
-                  <tr className="bg-accent/10 dark:bg-accent/20 font-semibold border-b-2 border-gray-300 dark:border-gray-600">
-                    <td className="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700 sticky left-0 z-10 bg-amber-50/90 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
-                      Highest Possible Score (HPS)
-                    </td>
-
-                    {/* WW HPS Inputs */}
-                    {wwItems.map((item, idx) => (
-                      <td key={item.id} className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.hps || ""}
-                          onChange={(e) => updateWWHPS(idx, e.target.value)}
-                          className="w-14 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800"
-                          placeholder="0"
-                        />
-                      </td>
-                    ))}
-                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-
-                    {/* PT HPS Inputs */}
-                    {ptItems.map((item, idx) => (
-                      <td key={item.id} className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.hps || ""}
-                          onChange={(e) => updatePTHPS(idx, e.target.value)}
-                          className="w-14 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800"
-                          placeholder="0"
-                        />
-                      </td>
-                    ))}
-                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-
-                    {/* Exam HPS Inputs -- disabled when this subject's weight profile
-                        has no exam component (Tech-Pro, DO 15's 20/80/0 profile) */}
-                    <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
-                      <input
-                        type="number"
-                        min="0"
-                        value={exHPS.st1 || ""}
-                        onChange={(e) => updateExHPS("st1", e.target.value)}
-                        disabled={subjectWeights.ex === 0}
-                        title={subjectWeights.ex === 0 ? "N/A — this subject has no written exam component" : undefined}
-                        className="w-12 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                        placeholder={subjectWeights.ex === 0 ? "N/A" : "0"}
-                      />
-                    </td>
-                    <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
-                      <input
-                        type="number"
-                        min="0"
-                        value={exHPS.st2 || ""}
-                        onChange={(e) => updateExHPS("st2", e.target.value)}
-                        disabled={subjectWeights.ex === 0}
-                        title={subjectWeights.ex === 0 ? "N/A — this subject has no written exam component" : undefined}
-                        className="w-12 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                        placeholder={subjectWeights.ex === 0 ? "N/A" : "0"}
-                      />
-                    </td>
-                    <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
-                      <input
-                        type="number"
-                        min="0"
-                        value={exHPS.te || ""}
-                        onChange={(e) => updateExHPS("te", e.target.value)}
-                        disabled={subjectWeights.ex === 0}
-                        title={subjectWeights.ex === 0 ? "N/A — this subject has no written exam component" : undefined}
-                        className="w-12 px-1 py-0.5 border border-accent/40 rounded text-center text-xs font-bold text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-primary bg-white dark:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
-                        placeholder={subjectWeights.ex === 0 ? "N/A" : "0"}
-                      />
-                    </td>
-                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-
-                    {/* Summary HPS row place-holders */}
-                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                    <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                    <td className="px-2 py-1.5 text-center bg-accent/5 dark:bg-gray-800/60 text-gray-400 dark:text-gray-500">—</td>
-                  </tr>
-
-                  {/* Learner Rows */}
-                  {learners.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={wwItems.length + ptItems.length + 14}
-                        className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
-                      >
-                        No learners found in Grade Level &quot;{gradeLevel}&quot; and Section &quot;{section}&quot;.
-                      </td>
-                    </tr>
-                  ) : (
-                    learners.map((learner, index) => {
-                      const learnerScore = scores[learner.id] || {};
-                      const { wwPS, wwWS, ptPS, ptWS, exPS, exWS, initialGrade, termGrade, description } =
-                        computeLearnerGrade(learner);
-
-                      const nameDisplay = `${learner.lastName || ""}, ${learner.firstName || ""} ${learner.middleName ? learner.middleName.charAt(0) + "." : ""}`;
-
-                      return (
-                        <tr
-                          key={learner.id}
-                          className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150 even:bg-gray-50/50 dark:even:bg-gray-800/30 bg-white dark:bg-gray-900"
-                        >
-                          {/* Name Column */}
-                          <td className="px-3 py-1.5 border-r border-gray-200 dark:border-gray-700 font-medium text-gray-800 dark:text-gray-100 sticky left-0 z-10 bg-inherit break-words max-w-[220px]" title={nameDisplay}>
-                            <span className="text-gray-400 dark:text-gray-500 font-normal mr-2">{index + 1}.</span>
-                            {nameDisplay}
-                          </td>
-
-                          {/* WW Score Inputs */}
-                          {wwItems.map((item) => (
-                            <td key={item.id} className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
-                              <input
-                                type="number"
-                                min="0"
-                                max={item.hps || undefined}
-                                value={learnerScore.ww?.[item.id] ?? ""}
-                                onChange={(e) => updateLearnerWWScore(learner.id, item.id, e.target.value)}
-                                className="w-14 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-center text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                              />
-                            </td>
-                          ))}
-                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
-                            {formatComputed(wwPS)}
-                          </td>
-                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
-                            {formatComputed(wwWS)}
-                          </td>
-
-                          {/* PT Score Inputs */}
-                          {ptItems.map((item) => (
-                            <td key={item.id} className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
-                              <input
-                                type="number"
-                                min="0"
-                                max={item.hps || undefined}
-                                value={learnerScore.pt?.[item.id] ?? ""}
-                                onChange={(e) => updateLearnerPTScore(learner.id, item.id, e.target.value)}
-                                className="w-14 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-center text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                              />
-                            </td>
-                          ))}
-                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
-                            {formatComputed(ptPS)}
-                          </td>
-                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
-                            {formatComputed(ptWS)}
-                          </td>
-
-                          {/* Exam Score Inputs */}
-                          <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
-                            <input
-                              type="number"
-                              min="0"
-                              max={exHPS.st1 || undefined}
-                              value={learnerScore.st1 ?? ""}
-                              onChange={(e) => updateLearnerExamScore(learner.id, "st1", e.target.value)}
-                              className="w-12 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-center text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                            />
-                          </td>
-                          <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
-                            <input
-                              type="number"
-                              min="0"
-                              max={exHPS.st2 || undefined}
-                              value={learnerScore.st2 ?? ""}
-                              onChange={(e) => updateLearnerExamScore(learner.id, "st2", e.target.value)}
-                              className="w-12 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-center text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                            />
-                          </td>
-                          <td className="px-1 py-1.5 border-r border-gray-200 dark:border-gray-700 text-center">
-                            <input
-                              type="number"
-                              min="0"
-                              max={exHPS.te || undefined}
-                              value={learnerScore.te ?? ""}
-                              onChange={(e) => updateLearnerExamScore(learner.id, "te", e.target.value)}
-                              className="w-12 px-1 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-center text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                            />
-                          </td>
-                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
-                            {formatComputed(exPS)}
-                          </td>
-                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-800/60 font-mono text-gray-700 dark:text-gray-300">
-                            {formatComputed(exWS)}
-                          </td>
-
-                          {/* Summary Columns */}
-                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/10 dark:bg-accent/20 font-mono font-medium text-gray-800 dark:text-gray-200">
-                            {formatComputed(initialGrade)}
-                          </td>
-                          <td className="px-2 py-1.5 text-center border-r border-gray-200 dark:border-gray-700 bg-accent/20 dark:bg-accent/30 font-bold text-gray-900 dark:text-gray-100">
-                            {termGrade !== null ? termGrade : "—"}
-                          </td>
-                          <td className="px-2 py-1.5 text-left bg-gray-50 dark:bg-gray-800/40 text-[11px] text-gray-700 dark:text-gray-300 font-medium break-words max-w-[150px]" title={description || ""}>
-                            {description || "—"}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
+          {/* Tabs */}
+          <div className="flex flex-wrap gap-1.5 border-b border-gray-200 dark:border-gray-700" role="tablist">
+            {TABS.map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-4 py-2.5 text-sm font-semibold rounded-t-lg border-b-2 transition-colors ${
+                  activeTab === tab.key
+                    ? "border-primary text-primary dark:text-primary-light"
+                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
+
+          {activeTab === "ww" && (
+            <WrittenWorksPanel
+              weightPercent={(subjectWeights.ww * 100).toFixed(0)}
+              learners={learners}
+              wwItems={wwItems}
+              onAddItem={addWWItem}
+              onHPSChange={updateWWHPS}
+              onRemoveItem={removeWWItem}
+              getScore={getWWScore}
+              onScoreChange={updateLearnerWWScore}
+            />
+          )}
+          {activeTab === "pt" && (
+            <PerformanceTasksPanel
+              weightPercent={(subjectWeights.pt * 100).toFixed(0)}
+              learners={learners}
+              ptItems={ptItems}
+              onAddItem={addPTItem}
+              onHPSChange={updatePTHPS}
+              onRemoveItem={removePTItem}
+              getScore={getPTScore}
+              onScoreChange={updateLearnerPTScore}
+            />
+          )}
+          {activeTab === "exam" && (
+            <ExamPanel
+              weightPercent={Number((subjectWeights.ex * 100).toFixed(0))}
+              learners={learners}
+              exHPS={exHPS}
+              onHPSChange={updateExHPS}
+              getScore={getExamScore}
+              onScoreChange={updateLearnerExamScore}
+            />
+          )}
+          {activeTab === "results" && (
+            <ResultsPanel learners={learners} computeLearnerGrade={computeLearnerGrade} term={term} />
+          )}
+          {activeTab === "ecr" && (
+            <ECRPreview
+              learners={learners}
+              wwItems={wwItems}
+              ptItems={ptItems}
+              scores={scores}
+              subjectWeights={subjectWeights}
+              computeLearnerGrade={computeLearnerGrade}
+            />
+          )}
         </div>
       )}
     </div>

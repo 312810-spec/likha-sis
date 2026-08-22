@@ -41,39 +41,63 @@ export const KS1_SUBJECTS = [
   { id: "SCIENCE", label: "Science", aliases: [] },
 ];
 
-// Key Stage 2 (Grades 4-6) and Key Stage 3 (Grades 7-10) learning areas --
-// same 8 areas at both stages per the source document, kept as one list
-// (their key stage assignment happens via getSubjectsForGradeLevel, driven
-// by keyStagesConfig.js). Keys/aliases mirror LEGACY_SUBJECT_ROWS exactly.
-export const KS2_KS3_SUBJECTS = [
+// The 6 learning areas common to both Key Stage 2 (Grades 4-6) and Key
+// Stage 3 (Grades 7-10) learning areas, per the source document. Keys/
+// aliases mirror LEGACY_SUBJECT_ROWS exactly.
+const KS2_KS3_SHARED_SUBJECTS = [
   { id: "ENGLISH", label: "English", aliases: [] },
   { id: "FILIPINO", label: "Filipino", aliases: [] },
   { id: "MATHEMATICS", label: "Mathematics", aliases: ["Math"] },
   { id: "SCIENCE", label: "Science", aliases: [] },
   { id: "ARALING PANLIPUNAN", label: "Araling Panlipunan (AP)", aliases: ["AP"] },
   { id: "MAPEH", label: "MAPEH", aliases: [] },
+];
+
+// Key Stage 2 (Grades 4-6): EPP and GMRC are their own separate subjects
+// here, never combined with their Key Stage 3 counterpart into one
+// slash-joined name. A subject-teacher assignment's `subject` value becomes
+// part of a Class Record's Firestore document ID (see utils/classRecordId.js)
+// -- a "/" in that value used to be parsed as a path separator and crash the
+// load, so this directory must never offer a combined name again. The
+// combined "GMRC / Values Education" / "EPP / TLE" labels stay only as
+// aliases, so a pre-existing assignment still saved under the old combined
+// name is recognized (see LEGACY_SUBJECT_ROWS in subjectRows.js, and the
+// backward-compatible keys kept in subjectWeights.js).
+export const KS2_SUBJECTS = [
+  ...KS2_KS3_SHARED_SUBJECTS,
   {
-    id: "GMRC/ESP",
-    label: "GMRC / Values Education",
+    id: "GMRC",
+    label: "GMRC",
+    aliases: ["Good Manners and Right Conduct", "GMRC / Values Education"],
+  },
+  {
+    id: "EPP",
+    label: "EPP",
+    aliases: ["Edukasyong Pantahanan at Pangkabuhayan", "EPP / TLE"],
+  },
+];
+
+// Key Stage 3 (Grades 7-10): TLE and Values Education are their own
+// separate subjects, for the same reason as KS2_SUBJECTS above. TLE
+// additionally carries a Major (e.g. CSS, Cookery) for Grades 9-10 only --
+// chosen on the Class Record page itself, not baked into this directory
+// entry (Grades 7-8 TLE is exploratory, with no major).
+export const KS3_SUBJECTS = [
+  ...KS2_KS3_SHARED_SUBJECTS,
+  {
+    id: "VALUES EDUCATION",
+    label: "Values Education",
     aliases: [
       "Edukasyon sa Pagpapakatao",
       "Edukasyon sa Pagpapakatao (EsP)",
       "EsP",
-      "Good Manners and Right Conduct",
-      "GMRC",
-      "Values Education",
+      "GMRC / Values Education",
     ],
   },
   {
-    id: "EPP/TLE",
-    label: "EPP / TLE",
-    aliases: [
-      "Edukasyong Pantahanan at Pangkabuhayan",
-      "Technology and Livelihood Education",
-      "EPP",
-      "TLE",
-      "TLE / ICT Specializations",
-    ],
+    id: "TLE",
+    label: "TLE",
+    aliases: ["Technology and Livelihood Education", "TLE / ICT Specializations", "EPP / TLE"],
   },
 ];
 
@@ -229,8 +253,8 @@ export const GRADE_12_STRAND_SUBJECTS = [
 
 export const DEPED_SUBJECT_DIRECTORY = {
   ks1: { subjects: KS1_SUBJECTS },
-  ks2: { subjects: KS2_KS3_SUBJECTS },
-  ks3: { subjects: KS2_KS3_SUBJECTS },
+  ks2: { subjects: KS2_SUBJECTS },
+  ks3: { subjects: KS3_SUBJECTS },
   ks4: {
     grade11: { core: GRADE_11_CORE_SUBJECTS, clusters: GRADE_11_ELECTIVE_CLUSTERS },
     grade12: { applied: GRADE_12_APPLIED_SUBJECTS, strands: GRADE_12_STRAND_SUBJECTS },

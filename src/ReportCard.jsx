@@ -12,7 +12,7 @@ import useTeacherScope from "./hooks/useTeacherScope";
 import { getSubjectWeights } from "./utils/subjectWeights";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { computeLearnerTermGrade } from "./utils/gradeComputations";
-import { getSubjectRows, isShsGradeLevel } from "./utils/subjectRows.js";
+import { getSubjectRows, isShsGradeLevel, findCanonicalKey, LEGACY_SUBJECT_ROWS } from "./utils/subjectRows.js";
 import schoolConfig from "./schoolConfig";
 import { ArrowLeft, Printer, RefreshCw } from "lucide-react";
 
@@ -162,7 +162,11 @@ export default function ReportCard({ user, goBack }) {
       const bySubject = {};
       filteredRecords.forEach((rec) => {
         if (!rec.subject) return;
-        const sk = rec.subject.trim().toUpperCase();
+        // Resolves to the same canonical Annex G row key subjectRows below
+        // reads from (e.g. "EPP" and "TLE" both resolve to "EPP/TLE") --
+        // falls back to a raw uppercase match for anything with no
+        // canonical row (SHS subjects), preserving today's behavior there.
+        const sk = findCanonicalKey(rec.subject, LEGACY_SUBJECT_ROWS) || rec.subject.trim().toUpperCase();
         if (!bySubject[sk]) bySubject[sk] = {};
         const tk = (rec.term || "").trim();
         if (tk) bySubject[sk][tk] = rec;

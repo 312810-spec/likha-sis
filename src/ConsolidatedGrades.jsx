@@ -25,6 +25,7 @@ import { getSubjectWeights } from "./utils/subjectWeights";
 import { makeSubjectWeightsResolver } from "./utils/shsSubjectWeights";
 import { computeLearnerTermGrade } from "./utils/gradeComputations";
 import { getSubjectsForGradeLevel } from "./utils/subjectDirectory";
+import { groupLearnersBySex } from "./utils/sexGrouping";
 import { RefreshCw, Info, Users, BookOpenCheck, Award, CheckCircle2, ShieldAlert } from "lucide-react";
 import PageHeader from "./components/PageHeader.jsx";
 import Button from "./components/Button.jsx";
@@ -341,6 +342,53 @@ export default function ConsolidatedGrades({ user, userRoles = [] }) {
 
   const showManualSetup = !isAdviser && !isLoaded;
 
+  // Standing Male-then-Female roster convention (already applied in SF1.jsx
+  // and SF2.jsx): learnersData is already alphabetically sorted (inherited
+  // from the sectionLearners sort in loadSection above), so grouping here
+  // preserves that order within each sex group.
+  const { male: maleLearners, female: femaleLearners, unresolved: unresolvedLearners } = groupLearnersBySex(learnersData);
+
+  // Row numbering restarts at 1 within each Male/Female/Needs Sex Assignment
+  // group, matching SF1LearnerList's per-group numbering convention.
+  function renderLearnerRow(learner, idx) {
+    return (
+      <tr
+        key={learner.id}
+        className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150 bg-white dark:bg-gray-900"
+      >
+        <td
+          className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 sticky left-0 z-10 bg-white dark:bg-gray-900 group-hover:bg-inherit break-words max-w-[240px]"
+          title={learner.name}
+        >
+          <span className="text-gray-400 dark:text-gray-500 font-normal mr-2">{idx + 1}.</span>
+          {learner.name}
+        </td>
+        {subjectsList.map((subj) => {
+          const grade = learner.subjectFinalGrades[subj];
+          const isFailing = typeof grade === "number" && grade < 75;
+          return (
+            <td
+              key={subj}
+              className={`px-3 py-2.5 text-center font-mono ${
+                isFailing ? "text-red-600 dark:text-red-400 font-semibold" : "text-gray-800 dark:text-gray-200"
+              }`}
+            >
+              {grade}
+            </td>
+          );
+        })}
+        <td className="px-4 py-3 text-center font-mono font-bold text-accent-dark dark:text-accent-light bg-accent/10 dark:bg-accent/20">
+          {learner.genAvg}
+        </td>
+        <td className="px-4 py-3 text-center font-mono font-semibold">
+          <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary-dark dark:bg-primary/20 dark:text-primary-light">
+            {learner.rank}
+          </span>
+        </td>
+      </tr>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-none w-full">
       <PageHeader
@@ -509,7 +557,6 @@ export default function ConsolidatedGrades({ user, userRoles = [] }) {
                     <th className="px-4 py-2.5 sticky left-0 z-30 bg-gray-50 dark:bg-gray-800 min-w-[220px]">
                       Learner Name
                     </th>
-                    <th className="px-3 py-2.5 text-center min-w-[60px]">Sex</th>
                     {subjectsList.map((subj) => (
                       <th key={subj} className="px-3 py-2.5 text-center min-w-[110px]">
                         {subj}
@@ -524,48 +571,55 @@ export default function ConsolidatedGrades({ user, userRoles = [] }) {
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-sm text-gray-800 dark:text-gray-200">
                   {learnersData.length === 0 ? (
                     <tr>
-                      <td colSpan={subjectsList.length + 4} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
+                      <td colSpan={subjectsList.length + 3} className="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
                         No learners found matching Grade Level &quot;{loadedGradeLevel}&quot; and Section &quot;{loadedSection}&quot;.
                       </td>
                     </tr>
                   ) : (
-                    learnersData.map((learner, idx) => (
-                      <tr
-                        key={learner.id}
-                        className="hover:bg-primary/5 dark:hover:bg-gray-800/50 transition-colors duration-150 bg-white dark:bg-gray-900"
-                      >
-                        <td
-                          className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 sticky left-0 z-10 bg-white dark:bg-gray-900 group-hover:bg-inherit break-words max-w-[240px]"
-                          title={learner.name}
-                        >
-                          <span className="text-gray-400 dark:text-gray-500 font-normal mr-2">{idx + 1}.</span>
-                          {learner.name}
-                        </td>
-                        <td className="px-3 py-3 text-center text-gray-600 dark:text-gray-400 font-mono">{learner.sex}</td>
-                        {subjectsList.map((subj) => {
-                          const grade = learner.subjectFinalGrades[subj];
-                          const isFailing = typeof grade === "number" && grade < 75;
-                          return (
-                            <td
-                              key={subj}
-                              className={`px-3 py-2.5 text-center font-mono ${
-                                isFailing ? "text-red-600 dark:text-red-400 font-semibold" : "text-gray-800 dark:text-gray-200"
-                              }`}
+                    <>
+                      {maleLearners.length > 0 && (
+                        <>
+                          <tr className="bg-gray-50 dark:bg-gray-800/60">
+                            <th
+                              scope="colgroup"
+                              colSpan={subjectsList.length + 3}
+                              className="px-4 py-2 text-left text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-200"
                             >
-                              {grade}
-                            </td>
-                          );
-                        })}
-                        <td className="px-4 py-3 text-center font-mono font-bold text-accent-dark dark:text-accent-light bg-accent/10 dark:bg-accent/20">
-                          {learner.genAvg}
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono font-semibold">
-                          <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary-dark dark:bg-primary/20 dark:text-primary-light">
-                            {learner.rank}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
+                              Male Learners — {maleLearners.length}
+                            </th>
+                          </tr>
+                          {maleLearners.map((learner, idx) => renderLearnerRow(learner, idx))}
+                        </>
+                      )}
+                      {femaleLearners.length > 0 && (
+                        <>
+                          <tr className="bg-gray-50 dark:bg-gray-800/60">
+                            <th
+                              scope="colgroup"
+                              colSpan={subjectsList.length + 3}
+                              className="px-4 py-2 text-left text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-gray-200"
+                            >
+                              Female Learners — {femaleLearners.length}
+                            </th>
+                          </tr>
+                          {femaleLearners.map((learner, idx) => renderLearnerRow(learner, idx))}
+                        </>
+                      )}
+                      {unresolvedLearners.length > 0 && (
+                        <>
+                          <tr className="bg-amber-50 dark:bg-amber-950/30">
+                            <th
+                              scope="colgroup"
+                              colSpan={subjectsList.length + 3}
+                              className="px-4 py-2 text-left text-xs font-bold uppercase tracking-wide text-amber-900 dark:text-amber-200"
+                            >
+                              Needs Sex Assignment — {unresolvedLearners.length}
+                            </th>
+                          </tr>
+                          {unresolvedLearners.map((learner, idx) => renderLearnerRow(learner, idx))}
+                        </>
+                      )}
+                    </>
                   )}
                 </tbody>
               </table>

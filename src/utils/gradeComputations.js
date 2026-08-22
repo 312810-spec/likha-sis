@@ -90,7 +90,16 @@ export function computeInitialGradeFromRecord(record, learnerId, getSubjectWeigh
   const learnerScore = record.scores?.[learnerId];
   if (!learnerScore) return null;
 
-  const weights = getSubjectWeightsFn(record.subject) || { ww: 0.2, pt: 0.5, ex: 0.3 };
+  const resolvedWeights = getSubjectWeightsFn(record.subject);
+  if (!resolvedWeights) {
+    // Never silently guess -- log which subject name couldn't be matched to
+    // a DO 15 weight profile before falling back to Core (20/50/30), so an
+    // unrecognized subject name is traceable instead of quietly mis-graded.
+    console.warn(
+      `gradeComputations: no DO 15 weight profile found for subject "${record.subject}" -- falling back to Core weights (20/50/30).`
+    );
+  }
+  const weights = resolvedWeights || { ww: 0.2, pt: 0.5, ex: 0.3 };
 
   const wwItems = Array.isArray(record.wwItems) ? record.wwItems : [];
   const wwRaw = wwItems.map((item) => {

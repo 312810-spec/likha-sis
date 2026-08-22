@@ -72,4 +72,31 @@ describe("subjectDirectory", () => {
     expect(getKeyStageForGradeLevel("Grade 11")).toBe("ks4");
     expect(getKeyStageForGradeLevel("Grade 99")).toBeNull();
   });
+
+  it("Grade 5 (Key Stage 2 / elementary) offers EPP and GMRC as their own subjects, not the combined names", () => {
+    const labels = getSubjectsForGradeLevel("Grade 5").map((s) => s.label);
+    expect(labels).toContain("EPP");
+    expect(labels).toContain("GMRC");
+    expect(labels).not.toContain("EPP / TLE");
+    expect(labels).not.toContain("GMRC / Values Education");
+    expect(labels).not.toContain("TLE");
+    expect(labels).not.toContain("Values Education");
+  });
+
+  it("Grade 8 (Key Stage 3 / JHS) offers TLE and Values Education as their own subjects, not the combined names", () => {
+    const labels = getSubjectsForGradeLevel("Grade 8").map((s) => s.label);
+    expect(labels).toContain("TLE");
+    expect(labels).toContain("Values Education");
+    expect(labels).not.toContain("EPP / TLE");
+    expect(labels).not.toContain("GMRC / Values Education");
+    expect(labels).not.toContain("EPP");
+    expect(labels).not.toContain("GMRC");
+  });
+
+  it("no Grade 4-10 subject label ever contains a slash, so it can never break a Class Record document ID", () => {
+    ["Grade 4", "Grade 5", "Grade 6", "Grade 7", "Grade 8", "Grade 9", "Grade 10"].forEach((gradeLevel) => {
+      const labels = getSubjectsForGradeLevel(gradeLevel).map((s) => s.label);
+      labels.forEach((label) => expect(label).not.toContain("/"));
+    });
+  });
 });

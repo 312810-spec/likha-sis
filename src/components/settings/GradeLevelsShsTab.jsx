@@ -49,6 +49,13 @@ function GradeLevelsShsForm({ initial, save }) {
   const [shsClusters, setShsClusters] = useState(() =>
     initial?.shs?.electiveClusters?.length ? initial.shs.electiveClusters : makeDefaultShsClusters()
   );
+  // TLE Majors (e.g. CSS, Cookery) apply only to Grade 9-10 TLE, chosen per
+  // Class Record on the Class Record page itself -- this list just tells
+  // that dropdown which majors your school actually offers. Starts empty
+  // rather than pre-filled with guessed names.
+  const [tleMajors, setTleMajors] = useState(() =>
+    Array.isArray(initial?.tleMajors) ? initial.tleMajors : []
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -105,6 +112,18 @@ function GradeLevelsShsForm({ initial, save }) {
     );
   }
 
+  function addTleMajor() {
+    setTleMajors((prev) => [...prev, ""]);
+  }
+
+  function updateTleMajor(index, name) {
+    setTleMajors((prev) => prev.map((m, i) => (i === index ? name : m)));
+  }
+
+  function removeTleMajor(index) {
+    setTleMajors((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function handleSave(e) {
     e.preventDefault();
     setErrorMessage("");
@@ -122,9 +141,15 @@ function GradeLevelsShsForm({ initial, save }) {
       ? { subjects: shsSubjects, electiveClusters: shsClusters }
       : { subjects: [], electiveClusters: [] };
 
+    // Only persist TLE Majors when Key Stage 3 is enabled -- same reasoning
+    // as the SHS config above.
+    const cleanedTleMajors = selectedKeyStages.ks3
+      ? tleMajors.map((m) => m.trim()).filter(Boolean)
+      : [];
+
     setIsSaving(true);
     try {
-      await save({ gradeLevelsOffered, shs });
+      await save({ gradeLevelsOffered, shs, tleMajors: cleanedTleMajors });
       setSuccessMessage("Grade levels and SHS configuration saved.");
     } catch (err) {
       console.error("Failed to save grade levels:", err);
@@ -268,6 +293,50 @@ function GradeLevelsShsForm({ initial, save }) {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {selectedKeyStages.ks3 && (
+        <div className={`${cardClass} space-y-3 animate-fade-in`}>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">TLE Majors (Grades 9-10)</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Grade 9 and 10 TLE sections specialize into a major (e.g. Computer Systems Servicing,
+              Cookery). List your school's actual majors here so subject teachers can pick the right one
+              on the Class Record page, per section, per term. Grades 7-8 TLE is exploratory and never
+              shows this list.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            {tleMajors.length === 0 && (
+              <p className="text-xs text-gray-400 dark:text-gray-500 italic">No TLE majors added yet.</p>
+            )}
+            {tleMajors.map((major, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <input
+                  className={`${inputClass} flex-1`}
+                  placeholder="e.g. Computer Systems Servicing (CSS)"
+                  value={major}
+                  onChange={(e) => updateTleMajor(i, e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeTleMajor(i)}
+                  className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 px-2"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addTleMajor}
+              className="text-xs font-medium text-primary dark:text-primary-light hover:text-primary-light"
+            >
+              + Add TLE Major
+            </button>
           </div>
         </div>
       )}

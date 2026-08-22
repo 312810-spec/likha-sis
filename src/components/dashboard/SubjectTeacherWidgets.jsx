@@ -9,13 +9,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { BookOpenCheck, Layers, ClipboardList } from 'lucide-react';
 import { db } from '../../firebase.js';
 import { formatCount, timestampToMillis, formatActivityDate } from '../../utils/dashboardFormatters.js';
+import { buildClassRecordId } from '../../utils/classRecordId.js';
 import { StatTile, StatSkeleton, TileEmptyState, SectionCard, EmptyState } from './primitives.jsx';
-
-function classRecordDocId(gradeLevel, section, subject, term, schoolYear) {
-  return `${gradeLevel}_${String(section).trim()}_${subject}_${term}_${String(schoolYear).trim()}`
-    .toLowerCase()
-    .replace(/\s+/g, '-');
-}
 
 export function TeachingAssignmentsCard({ subjectMap, classRecordCombos }) {
   const subjectCount = subjectMap ? subjectMap.size : 0;
@@ -81,7 +76,13 @@ export function ClassRecordOverview({ classRecordCombos, schoolYear, onNavigate 
         const results = await Promise.all(
           combos.map(async (combo) => {
             const term = (combo.terms && combo.terms[0]) || 1;
-            const docId = classRecordDocId(combo.gradeLevel, combo.section, combo.subject, term, schoolYear);
+            const docId = buildClassRecordId({
+              gradeLevel: combo.gradeLevel,
+              section: combo.section,
+              subject: combo.subject,
+              term,
+              schoolYear,
+            });
             const snap = await getDoc(doc(db, 'classRecords', docId));
             return {
               combo,

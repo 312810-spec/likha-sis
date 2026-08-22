@@ -73,6 +73,61 @@ describe("buildLearnerAcademicHistory", () => {
     ]);
   });
 
+  it("resolves a live EPP class record (Grades 4-6) to the canonical EPP/TLE Annex G row key", () => {
+    const classRecords = [
+      perfectClassRecord({
+        learnerId: "learner-1",
+        subject: "EPP",
+        term: "Term 1",
+        schoolYear: "2026-2027",
+        gradeLevel: "Grade 5",
+      }),
+    ];
+    const result = buildLearnerAcademicHistory(
+      { learnerId: "learner-1", lrn: "123456789012" },
+      classRecords,
+      [],
+      getSubjectWeights
+    );
+    expect(result[0].subjects).toEqual({ "EPP/TLE": 100 });
+  });
+
+  it("resolves a live TLE class record (Grades 7-10) to the same canonical EPP/TLE Annex G row key", () => {
+    const classRecords = [
+      perfectClassRecord({
+        learnerId: "learner-1",
+        subject: "TLE",
+        term: "Term 1",
+        schoolYear: "2026-2027",
+        gradeLevel: "Grade 8",
+      }),
+    ];
+    const result = buildLearnerAcademicHistory(
+      { learnerId: "learner-1", lrn: "123456789012" },
+      classRecords,
+      [],
+      getSubjectWeights
+    );
+    expect(result[0].subjects).toEqual({ "EPP/TLE": 100 });
+  });
+
+  it("resolves live GMRC and Values Education class records to the same canonical GMRC/ESP Annex G row key", () => {
+    const gmrcResult = buildLearnerAcademicHistory(
+      { learnerId: "learner-1", lrn: "123456789012" },
+      [perfectClassRecord({ learnerId: "learner-1", subject: "GMRC", term: "Term 1", schoolYear: "2026-2027", gradeLevel: "Grade 5" })],
+      [],
+      getSubjectWeights
+    );
+    const valuesEdResult = buildLearnerAcademicHistory(
+      { learnerId: "learner-1", lrn: "123456789012" },
+      [perfectClassRecord({ learnerId: "learner-1", subject: "Values Education", term: "Term 1", schoolYear: "2026-2027", gradeLevel: "Grade 8" })],
+      [],
+      getSubjectWeights
+    );
+    expect(gmrcResult[0].subjects).toEqual({ "GMRC/ESP": 100 });
+    expect(valuesEdResult[0].subjects).toEqual({ "GMRC/ESP": 100 });
+  });
+
   it("ignores classRecords for a different learner", () => {
     const classRecords = [
       perfectClassRecord({
